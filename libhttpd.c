@@ -559,7 +559,8 @@ add_response( httpd_conn* hc, char* str )
     size_t len;
 
     len = strlen( str );
-    httpd_realloc_str( &hc->response, &hc->maxresponse, hc->responselen + len );
+    size_t new_responselen = hc->responselen + len;
+    httpd_realloc_str( &hc->response, &hc->maxresponse, new_responselen);
     _Array_ptr<void> tmp : byte_count(len) = _Assume_bounds_cast<_Array_ptr<void>>(&(hc->response[hc->responselen]), byte_count(len));
     (void) memmove(tmp , str, len );
     hc->responselen += len;
@@ -739,6 +740,43 @@ httpd_realloc_str( char** strP, size_t* maxsizeP, size_t size )
 	    (long) *maxsizeP );
 	exit( 1 );
 	}
+    }
+
+_Nt_array_ptr<char>
+httpd_realloc_strbuf(_Ptr<struct strbuf> sbuf, size_t size) : count(size) _Checked
+    {
+      _Nt_array_ptr<char> ret : count(size) = 0;
+    if ( sbuf->maxsize == 0 )
+	{
+	size_t newsize = MAX( 200, size + 100 );
+	sbuf->maxsize = newsize, sbuf->str = malloc_nt(newsize); /* BOUNDS WARNING VERIFIED */
+        ret = sbuf->str; /* BOUNDS WARNING REVIEWED: Needs reasoning that newsize >= size */
+	++str_alloc_count;
+	str_alloc_size += sbuf->maxsize;
+	}
+    else if ( size > sbuf->maxsize )
+	{
+	str_alloc_size -= sbuf->maxsize;
+        size_t newsize = MAX( sbuf->maxsize * 2, size * 5 / 4 );
+        sbuf->maxsize = newsize, sbuf->str = realloc_nt(sbuf->str, newsize); /* BOUNDS WARNING VERIFIED */
+        ret = sbuf->str; /* BOUNDS WARNING REVIEWED: Needs reasoning that newsize >= size */
+	str_alloc_size += sbuf->maxsize;
+	}
+    else
+      {
+        /* I expected a warning that the compiler couldn't reason that the bound
+           of sbuf->str (namely sbuf->maxsize) >= size, but there is none: a
+           compiler bug? */
+        return sbuf->str;
+      }
+    if ( ret == 0 )
+	_Unchecked {
+	syslog(
+	    LOG_ERR, "out of memory reallocating a string to %ld bytes",
+	    (long) sbuf->maxsize );
+	exit( 1 );
+	}
+    return ret;
     }
 
 static void
@@ -3301,7 +3339,7 @@ cgi_interpose_output( httpd_conn* hc, int rfd )
 	    br = &(headers[headers_len]);
 	    break;
 	    }
-	httpd_realloc_str( &headers, &headers_size, headers_len + r );
+	httpd_realloc_str(&headers, &headers_size, headers_len + r );
         _Array_ptr<void> tmp : byte_count(r) = _Assume_bounds_cast<_Array_ptr<void>>(&(headers[headers_len]), byte_count(r));
 	(void) memmove(tmp, buf, r );
 	headers_len += r;

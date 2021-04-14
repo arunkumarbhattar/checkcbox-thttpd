@@ -272,6 +272,51 @@ char* httpd_method_str( int method );
 /* Reallocate a string. */
 void httpd_realloc_str( char** strP, size_t* maxsizeP, size_t size );
 
+// Test the new Checked C way starting at one call site.
+
+struct strbuf {
+  _Nt_array_ptr<char> str : count(maxsize);
+  size_t maxsize;
+};
+
+// The returned pointer is the same one stored in the structure, but with a
+// promise that it's as big as the caller requested.
+_Nt_array_ptr<char> httpd_realloc_strbuf(_Ptr<struct strbuf> sbuf, size_t size) : count(size);
+
+// httpd_realloc_str_ccl(tmp_foo, stored_foo, stored_maxfoo, size):
+//
+// Expand `stored_foo` to at least `size` and update `stored_maxfoo` to the
+// allocated size. Also generate a local variable `_Nt_array_ptr<char> tmp_foo :
+// count(size)` containing the same pointer as `stored_foo`. In the name, `cc`
+// stands for "Checked C" and `l` stands for "local".
+
+// `L` means lvalue.
+//
+// It doesn't seem we can do a `( _Checked { ... })` expression statement, so do
+// the best we can.
+//
+// Hm, while we want the _Checked annotations long-term, they seem to block 3C
+// from starting. So disable them for the moment.
+#define httpd_realloc_str_ccl(_tmp_str_var, _strL, _maxsizeL, _size) \
+  _Nt_array_ptr<char> _tmp_str_var : count(_size) = 0; \
+  /*_Checked*/ { \
+    struct strbuf _sbuf = {_strL, _maxsizeL}; \
+    _tmp_str_var = httpd_realloc_strbuf(&_sbuf, _size); \
+    _maxsizeL = _sbuf.maxsize; \
+    _strL = _sbuf.str; /* BOUNDS WARNING REVIEWED */ \
+  }
+
+// Same but don't generate the local variable. Use if you're going to access
+// _strL directly using _maxsizeL as a bound or you just aren't going to access
+// the buffer at all yet.
+#define httpd_realloc_str_cc(_strL, _maxsizeL, _size) \
+  /*_Checked*/ { \
+    struct strbuf _sbuf = {_strL, _maxsizeL}; \
+    httpd_realloc_strbuf(&_sbuf, _size); \
+    _maxsizeL = _sbuf.maxsize; \
+    _strL = _sbuf.str; /* BOUNDS WARNING REVIEWED */ \
+  }
+
 /* Format a network socket to a string representation. */
 char* httpd_ntoa( httpd_sockaddr* saP );
 
