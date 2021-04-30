@@ -64,6 +64,7 @@
 #include <string.h>
 
 #include "config.h"
+#include "checkedc_utils.h"
 
 
 static char* argv0;
@@ -150,14 +151,17 @@ main( int argc, char** argv )
     path_info = getenv( "PATH_INFO" );
     if ( path_info != (char*) 0 )
 	{
-	cp = (char*) malloc( strlen( script_name ) + strlen( path_info ) + 1 );
-	if ( cp == (char*) 0 )
+	// `cp` was used for multiple things, and I want to see if I can get at
+	// least this one to become checked by using a separate variable. ~ Matt
+	size_t full_script_name_len = strlen( script_name ) + strlen( path_info );
+	char *full_script_name = malloc_nt( full_script_name_len );
+	if ( full_script_name == (char*) 0 )
 	    {
 	    internal_error( "Out of memory." );
 	    exit( 1 );
 	    }
-	(void) sprintf( cp, "%s%s", script_name, path_info );
-	script_name = cp;
+	(void) xsbprintf( full_script_name, full_script_name_len, "%s%s", script_name, path_info );
+	script_name = full_script_name;
 	}
 
     /* Open the redirects file. */
@@ -192,7 +196,7 @@ main( int argc, char** argv )
 		    if ( strncmp( file, script_name, star - file ) == 0 )
 			{
 			/* Got it; put together the full name. */
-			strcat( url, script_name + ( star - file ) );
+			xstrbcat( url, script_name + ( star - file ), sizeof url - 1 );
 			/* XXX Whack the script_name, too? */
 			moved( script_name, url );
 			exit( 0 );

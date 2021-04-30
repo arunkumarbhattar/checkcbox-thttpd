@@ -76,6 +76,7 @@
 # endif
 #endif
 
+#include "checkedc_utils.h"
 #include "libhttpd.h"
 #include "mmc.h"
 #include "timers.h"
@@ -737,7 +738,6 @@ httpd_realloc_str( char** strP, size_t* maxsizeP, size_t size )
 	exit( 1 );
 	}
     }
-
 
 static void
 send_response( httpd_conn* hc, int status, char* title, char* extraheads, char* form, char* arg )

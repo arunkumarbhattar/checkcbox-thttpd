@@ -14,6 +14,7 @@
 /extras/htpasswd
 /extras/makeweb
 /thttpd
+/unit_tests
 /mime_encodings.h
 /mime_types.h
 /compile_commands.json

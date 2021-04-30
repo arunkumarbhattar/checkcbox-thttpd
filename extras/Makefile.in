@@ -53,15 +53,15 @@ CLEANFILES =	*.o makeweb htpasswd
 all:		makeweb htpasswd
 
 makeweb:	makeweb.o
-	$(CC) $(LDFLAGS) makeweb.o -o makeweb $(LIBS) $(NETLIBS)
+	$(CC) $(LDFLAGS) makeweb.o ../checkedc_utils.o -o makeweb $(LIBS) $(NETLIBS)
 
-makeweb.o:	makeweb.c ../config.h
+makeweb.o:	makeweb.c ../config.h ../checkedc_utils.h
 	$(CC) $(CFLAGS) -DWEBDIR=\"$(WEBDIR)\" -c makeweb.c
 
 htpasswd:	htpasswd.o
-	$(CC) $(LDFLAGS) $(STATICFLAG) htpasswd.o -o htpasswd $(LIBS)
+	$(CC) $(LDFLAGS) $(STATICFLAG) htpasswd.o ../checkedc_utils.o -o htpasswd $(LIBS)
 
-htpasswd.o:	htpasswd.c ../config.h
+htpasswd.o:	htpasswd.c ../config.h ../checkedc_utils.h
 	$(CC) $(CFLAGS) -DWEBDIR=\"$(WEBDIR)\" -c htpasswd.c
 
 

@@ -17,4 +17,6 @@ extras/htpasswd.c \
 extras/makeweb.c \
 tdate_parse.c \
 libhttpd.c \
-cgi-src/phf.c
+cgi-src/phf.c \
+checkedc_utils.c \
+unit_tests.c

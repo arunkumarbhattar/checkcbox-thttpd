@@ -16,6 +16,8 @@
 #include <time.h>
 #include <unistd.h>
 
+#include "checkedc_utils.h"
+
 #define LF 10
 #define CR 13
 
@@ -26,11 +28,14 @@ char temp_template[] = "/tmp/htp.XXXXXX";
 
 void interrupted(int);
 
+// Obviously this whole function could just be replaced with strdup, but I want
+// to use it as a simple example for porting. ~ Matt
 static char * strd(char *s) {
+    size_t len = strlen(s);
     char *d;
 
-    d=(char *)malloc(strlen(s) + 1);
-    strcpy(d,s);
+    d=malloc_nt(len);
+    xstrbcpy(d,s,len);
     return(d);
 }
 

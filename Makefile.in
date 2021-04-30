@@ -62,15 +62,25 @@ INSTALL =	@INSTALL@
 	@rm -f $@
 	$(CC) $(CFLAGS) -c $*.c
 
-SRC =		thttpd.c libhttpd.c fdwatch.c mmc.c timers.c match.c tdate_parse.c
+SRC =		thttpd.c libhttpd.c fdwatch.c mmc.c timers.c match.c tdate_parse.c checkedc_utils.c
 
 OBJ =		$(SRC:.c=.o) @LIBOBJS@
 
-ALL =		thttpd
+# For now, we include checkedc_utils.c and unit_tests.c in the default target,
+# so they will be included in the compilation database. It's convenient to
+# include them in all our development processes (tracking of build
+# errors/warnings, etc.) for now while they're under active development and we
+# don't have a ready alternative, but there are some potential problems we may
+# need to address at some point (e.g., we may want 3C to treat some of this code
+# as unwritable and it may be inappropriate to include it in the 3C statistics).
+
+ALL =		thttpd unit_tests
 
 GENHDR =	mime_encodings.h mime_types.h
 
-CLEANFILES =	$(ALL) $(OBJ) $(GENSRC) $(GENHDR)
+# unit_tests.o has to be handled separately because we can't link it into thttpd
+# (duplicate main).
+CLEANFILES =	$(ALL) $(OBJ) unit_tests.o $(GENSRC) $(GENHDR)
 
 SUBDIRS =	cgi-src extras
 
@@ -80,6 +90,12 @@ this:		$(ALL)
 thttpd: $(OBJ)
 	@rm -f $@
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(OBJ) $(LIBS) $(NETLIBS)
+
+unit_tests: unit_tests.o checkedc_utils.o
+# Should we use .DELETE_ON_ERROR instead of this pattern throughout the
+# makefile? Maybe the intent was to avoid a dependency on GNU make?
+	@rm -f $@
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^
 
 mime_encodings.h:	mime_encodings.txt
 	rm -f mime_encodings.h
@@ -163,11 +179,15 @@ tar:
 	  rm -rf $$name ; \
 	  gzip $$name.tar
 
-thttpd.o:	config.h version.h libhttpd.h fdwatch.h mmc.h timers.h match.h
+thttpd.o:	config.h version.h libhttpd.h fdwatch.h mmc.h timers.h match.h \
+		checkedc_utils.h
 libhttpd.o:	config.h version.h libhttpd.h mime_encodings.h mime_types.h \
-		mmc.h timers.h match.h tdate_parse.h
+		mmc.h timers.h match.h tdate_parse.h checkedc_utils.h
 fdwatch.o:	fdwatch.h
 mmc.o:		mmc.h libhttpd.h
 timers.o:	timers.h
 match.o:	match.h
 tdate_parse.o:	tdate_parse.h
+checkedc_utils.o:  checkedc_utils.h
+unit_tests.o:  checkedc_utils.h
+strerror.o:  checkedc_utils.h
