@@ -70,30 +70,30 @@ typedef union {
 
 /* A server. */
 typedef struct {
-    char* binding_hostname;
-    char* server_hostname;
+    char* binding_hostname : itype(_Nt_array_ptr<char>);
+    char* server_hostname : itype(_Nt_array_ptr<char>);
     unsigned short port;
-    char* cgi_pattern;
+    char* cgi_pattern : itype(_Nt_array_ptr<char>);
     int cgi_limit, cgi_count;
-    char* charset;
-    char* p3p;
+    char* charset : itype(_Nt_array_ptr<char>);
+    char* p3p : itype(_Nt_array_ptr<char>);
     int max_age;
-    char* cwd;
+    char* cwd : itype(_Nt_array_ptr<char>);
     int listen4_fd, listen6_fd;
     int no_log;
-    FILE* logfp;
+    FILE* logfp : itype(_Ptr<FILE>);
     int no_symlink_check;
     int vhost;
     int global_passwd;
-    char* url_pattern;
-    char* local_pattern;
+    char* url_pattern : itype(_Nt_array_ptr<char>);
+    char* local_pattern : itype(_Nt_array_ptr<char>);
     int no_empty_referrers;
     } httpd_server;
 
 /* A connection. */
 typedef struct {
     int initialized;
-    httpd_server* hs;
+    httpd_server* hs : itype(_Ptr<httpd_server>);
     httpd_sockaddr client_addr;
     char* read_buf;
     size_t read_size, read_idx, checked_idx;
