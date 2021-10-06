@@ -49,8 +49,8 @@
 #ifndef MIN
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
 #endif
-#define NEW(t,n) ((t*) malloc( sizeof(t) * (n) ))
-#define RENEW(o,t,n) ((t*) realloc( (void*) o, sizeof(t) * (n) ))
+#define NEW(t,n) (malloc<t>( sizeof(t) * (n) ))
+#define RENEW(o,t,n) (realloc<t>( (void*) o, sizeof(t) * (n) ))
 
 /* Do overlapping strcpy safely, by using memmove. */
 #define ol_strcpy(dst,src) memmove(dst,src,strlen(src)+1)
