@@ -3141,7 +3141,8 @@ make_envp( httpd_conn* hc )
 static char**
 make_argp( httpd_conn* hc )
     {
-    char** argp;
+    unsigned int max_args = strlen( hc->query ) + 2;
+    _Array_ptr<char *> argp : count(max_args) = 0;
     int argn;
     char* cp1;
     char* cp2;
@@ -3150,7 +3151,7 @@ make_argp( httpd_conn* hc )
     ** one for the filename and one for the NULL, we are guaranteed to
     ** have enough.  We could actually use strlen/2.
     */
-    argp = NEW( char*, strlen( hc->query ) + 2 );
+    argp = NEW(_Nt_array_ptr<char>,  max_args);
     if ( argp == (char**) 0 )
 	return (char**) 0;
 
@@ -3186,7 +3187,7 @@ make_argp( httpd_conn* hc )
 	}
 
     argp[argn] = (char*) 0;
-    return argp;
+    return (char**) argp;
     }
 
 
