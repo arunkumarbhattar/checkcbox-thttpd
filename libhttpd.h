@@ -105,26 +105,26 @@ typedef struct {
     off_t bytes_to_send;
     off_t bytes_sent;
     char* encodedurl : itype(_Nt_array_ptr<char>);
-    char* decodedurl;
+    char* decodedurl : itype(_Nt_array_ptr<char>);
     char* protocol : itype(_Nt_array_ptr<char>);
-    char* origfilename;
-    char* expnfilename;
-    char* encodings;
-    char* pathinfo;
-    char* query;
+    char* origfilename : itype(_Nt_array_ptr<char>);
+    char* expnfilename : itype(_Nt_array_ptr<char>);
+    char* encodings : itype(_Nt_array_ptr<char>);
+    char* pathinfo : itype(_Nt_array_ptr<char>);
+    char* query : itype(_Nt_array_ptr<char>);
     char* referrer : itype(_Nt_array_ptr<char>);
     char* useragent : itype(_Nt_array_ptr<char>);
-    char* accept;
-    char* accepte;
+    char* accept : itype(_Nt_array_ptr<char>);
+    char* accepte : itype(_Nt_array_ptr<char>);
     char* acceptl : itype(_Nt_array_ptr<char>);
     char* cookie : itype(_Nt_array_ptr<char>);
     char* contenttype : itype(_Nt_array_ptr<char>);
-    char* reqhost;
+    char* reqhost : itype(_Nt_array_ptr<char>);
     char* hdrhost : itype(_Nt_array_ptr<char>);
-    char* hostdir;
+    char* hostdir : itype(_Nt_array_ptr<char>);
     char* authorization : itype(_Nt_array_ptr<char>);
-    char* remoteuser;
-    char* response;
+    char* remoteuser : itype(_Nt_array_ptr<char>);
+    char* response : itype(_Nt_array_ptr<char>);
     size_t maxdecodedurl, maxorigfilename, maxexpnfilename, maxencodings,
 	maxpathinfo, maxquery, maxaccept, maxaccepte, maxreqhost, maxhostdir,
 	maxremoteuser, maxresponse;
