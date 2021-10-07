@@ -148,7 +148,7 @@ static int tilde_map_1( httpd_conn* hc );
 static int tilde_map_2( httpd_conn* hc );
 #endif /* TILDE_MAP_2 */
 static int vhost_map( httpd_conn* hc );
-static char* expand_symlinks( char* path, char** restP, int no_symlink_check, int tildemapped );
+static char* expand_symlinks( char* path, nt_box *restP, int no_symlink_check, int tildemapped );
 static char* bufgets( httpd_conn* hc );
 static void de_dotdot( char* file );
 static void init_mime( void );
@@ -1457,7 +1457,7 @@ vhost_map( httpd_conn* hc )
 ** without excessive mallocs.
 */
 static char*
-expand_symlinks( char* path, char** restP, int no_symlink_check, int tildemapped )
+expand_symlinks( char* path, nt_box *restP, int no_symlink_check, int tildemapped )
     {
     static char* checked;
     static char* rest;
@@ -1497,7 +1497,7 @@ expand_symlinks( char* path, char** restP, int no_symlink_check, int tildemapped
 		}
 	    httpd_realloc_str( &rest, &maxrest, 0 );
 	    rest[0] = '\0';
-	    *restP = rest;
+	    restP->ptr = rest;
 	    return checked;
 	    }
 	}
@@ -1610,7 +1610,7 @@ expand_symlinks( char* path, char** restP, int no_symlink_check, int tildemapped
 	    if ( errno == EACCES || errno == ENOENT || errno == ENOTDIR )
 		{
 		/* That last component was bogus.  Restore and return. */
-		*restP = r - ( prevrestlen - restlen );
+		restP->ptr = r - ( prevrestlen - restlen );
 		if ( prevcheckedlen == 0 )
 		    (void) xstrbcpy( checked, ".",  maxchecked );
 		else
@@ -1668,7 +1668,7 @@ expand_symlinks( char* path, char** restP, int no_symlink_check, int tildemapped
 	}
 
     /* Ok. */
-    *restP = r;
+    restP->ptr = r;
     if ( checked[0] == '\0' )
 	(void) xstrbcpy( checked, ".", maxchecked );
     return checked;
@@ -1964,7 +1964,7 @@ httpd_parse_request( httpd_conn* hc )
     char* reqhost;
     char* eol;
     char* cp;
-    char* pi;
+    nt_box pi;
 
     hc->checked_idx = 0;	/* reset */
     method_str = bufgets( hc );
@@ -2347,8 +2347,8 @@ httpd_parse_request( httpd_conn* hc )
 	}
     httpd_realloc_str( &hc->expnfilename, &hc->maxexpnfilename, strlen( cp ) );
     (void) xstrbcpy( hc->expnfilename, cp, hc->maxexpnfilename );
-    httpd_realloc_str( &hc->pathinfo, &hc->maxpathinfo, strlen( pi ) );
-    (void) xstrbcpy( hc->pathinfo, pi, hc->maxpathinfo);
+    httpd_realloc_str( &hc->pathinfo, &hc->maxpathinfo, strlen( pi.ptr ) );
+    (void) xstrbcpy( hc->pathinfo, pi.ptr, hc->maxpathinfo);
 
     /* Remove pathinfo stuff from the original filename too. */
     if ( hc->pathinfo[0] != '\0' )
@@ -3638,7 +3638,7 @@ really_start_request( httpd_conn* hc, struct timeval* nowP )
 #endif /* AUTH_FILE */
     size_t expnlen, indxlen;
     char* cp;
-    char* pi;
+    nt_box pi;
 
     expnlen = strlen( hc->expnfilename );
 
@@ -3747,7 +3747,7 @@ really_start_request( httpd_conn* hc, struct timeval* nowP )
 	** something went wrong.
 	*/
 	cp = expand_symlinks( indexname, &pi, hc->hs->no_symlink_check, hc->tildemapped );
-	if ( cp == (char*) 0 || pi[0] != '\0' )
+	if ( cp == (char*) 0 || pi.ptr[0] != '\0' )
 	    {
 	    httpd_send_err( hc, 500, err500title, "", err500form, hc->encodedurl );
 	    return -1;

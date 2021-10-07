@@ -55,6 +55,10 @@ _Unchecked int xsbprintf(char *restrict s
                            size_t count, const char *restrict format
                          : itype(restrict _Nt_array_ptr<const char>), ...);
 
+typedef struct {
+  char *ptr : itype(_Nt_array_ptr<char>);
+} nt_box;
+
 #pragma CHECKED_SCOPE pop
 
 #endif /* _CHECKEDC_UTILS_H_ */
