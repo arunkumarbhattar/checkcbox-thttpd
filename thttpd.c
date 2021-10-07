@@ -171,6 +171,13 @@ static void show_stats( ClientData client_data, struct timeval* nowP );
 static void logstats( struct timeval* nowP );
 static void thttpd_logstats( long secs );
 
+static connecttab *get_client_connecttab(ClientData client_data) {
+  return client_data.p;
+}
+
+static void set_client_connecttab(ClientData *client_data, connecttab *data) {
+  client_data->p = data;
+}
 
 /* SIGTERM and SIGINT say to exit immediately. */
 static void
@@ -1555,7 +1562,7 @@ handle_newconnect( struct timeval* tvP, int listen_fd )
 	first_free_connect = c->next_free_connect;
 	c->next_free_connect = -1;
 	++num_connects;
-	client_data.p = c;
+	set_client_connecttab(&client_data, c);
 	c->active_at = tvP->tv_sec;
 	c->wakeup_timer = (Timer*) 0;
 	c->linger_timer = (Timer*) 0;
@@ -1689,7 +1696,7 @@ handle_read( connecttab* c, struct timeval* tvP )
     c->conn_state = CNST_SENDING;
     c->started_at = tvP->tv_sec;
     c->wouldblock_delay = 0;
-    client_data.p = c;
+    set_client_connecttab(&client_data, c);
 
     fdwatch_del_fd( hc->conn_fd );
     fdwatch_add_fd( hc->conn_fd, c, FDW_WRITE );
@@ -1756,7 +1763,7 @@ handle_send( connecttab* c, struct timeval* tvP )
 	c->wouldblock_delay += MIN_WOULDBLOCK_DELAY;
 	c->conn_state = CNST_PAUSING;
 	fdwatch_del_fd( hc->conn_fd );
-	client_data.p = c;
+        set_client_connecttab(&client_data, c);
 	if ( c->wakeup_timer != (Timer*) 0 )
 	    syslog( LOG_ERR, "replacing non-null wakeup_timer!" );
 	c->wakeup_timer = tmr_create(
@@ -1841,7 +1848,7 @@ handle_send( connecttab* c, struct timeval* tvP )
 	    ** than a second (integer math rounding), use 1/2 second.
 	    */
 	    coast = c->hc->bytes_sent / c->max_limit - elapsed;
-	    client_data.p = c;
+            set_client_connecttab(&client_data, c);
 	    if ( c->wakeup_timer != (Timer*) 0 )
 		syslog( LOG_ERR, "replacing non-null wakeup_timer!" );
 	    c->wakeup_timer = tmr_create(
@@ -2024,7 +2031,7 @@ clear_connection( connecttab* c, struct timeval* tvP )
 	c->conn_state = CNST_LINGERING;
 	shutdown( c->hc->conn_fd, SHUT_WR );
 	fdwatch_add_fd( c->hc->conn_fd, c, FDW_READ );
-	client_data.p = c;
+        set_client_connecttab(&client_data, c);
 	if ( c->linger_timer != (Timer*) 0 )
 	    syslog( LOG_ERR, "replacing non-null linger_timer!" );
 	c->linger_timer = tmr_create(
@@ -2096,13 +2103,12 @@ idle( ClientData client_data, struct timeval* nowP )
 	}
     }
 
-
 static void
 wakeup_connection( ClientData client_data, struct timeval* nowP )
     {
     connecttab* c;
 
-    c = (connecttab*) client_data.p;
+    c = get_client_connecttab(client_data);
     c->wakeup_timer = (Timer*) 0;
     if ( c->conn_state == CNST_PAUSING )
 	{
@@ -2116,7 +2122,7 @@ linger_clear_connection( ClientData client_data, struct timeval* nowP )
     {
     connecttab* c;
 
-    c = (connecttab*) client_data.p;
+    c = get_client_connecttab(client_data);
     c->linger_timer = (Timer*) 0;
     really_clear_connection( c, nowP );
     }
