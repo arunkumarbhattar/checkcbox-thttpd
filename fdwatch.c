@@ -72,8 +72,8 @@
 
 static int nfiles;
 static long nwatches;
-static int* fd_rw;
-static void** fd_data;
+static int* fd_rw: itype(_Array_ptr<int>) count(nfiles);
+static void** fd_data : itype(_Array_ptr<_Ptr<void>>) count(nfiles);
 static int nreturned, next_ridx;
 
 #ifdef HAVE_KQUEUE
