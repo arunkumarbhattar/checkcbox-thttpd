@@ -3145,8 +3145,12 @@ make_envp( httpd_conn* hc )
 static char**
 make_argp( httpd_conn* hc )
     {
-    unsigned int max_args = strlen( hc->query ) + 2;
-    _Array_ptr<char *> argp : count(max_args) = 0;
+    typedef struct {
+      char **argp : itype(_Array_ptr<_Nt_array_ptr<char>>) count(max_args);
+      size_t max_args;
+    } argp_box;
+    int max_args = strlen( hc->query ) + 2;
+    argp_box box ={0, max_args};
     int argn;
     char* cp1;
     char* cp2;
@@ -3155,15 +3159,15 @@ make_argp( httpd_conn* hc )
     ** one for the filename and one for the NULL, we are guaranteed to
     ** have enough.  We could actually use strlen/2.
     */
-    argp = NEW(_Nt_array_ptr<char>,  max_args);
-    if ( argp == (char**) 0 )
+    box.argp = NEW(_Nt_array_ptr<char>,  max_args);
+    if ( box.argp == (char**) 0 )
 	return (char**) 0;
 
-    argp[0] = strrchr( hc->expnfilename, '/' );
-    if ( argp[0] != (char*) 0 )
-	++argp[0];
+    box.argp[0] = strrchr( hc->expnfilename, '/' );
+    if ( box.argp[0] != (char*) 0 )
+	++box.argp[0];
     else
-	argp[0] = hc->expnfilename;
+	box.argp[0] = hc->expnfilename;
 
     argn = 1;
     /* According to the CGI spec at http://hoohoo.ncsa.uiuc.edu/cgi/cl.html,
@@ -3179,19 +3183,19 @@ make_argp( httpd_conn* hc )
 		{
 		*cp2 = '\0';
 		strdecode( cp1, cp1 );
-		argp[argn++] = cp1;
+		box.argp[argn++] = cp1;
 		cp1 = cp2 + 1;
 		}
 	    }
 	if ( cp2 != cp1 )
 	    {
 	    strdecode( cp1, cp1 );
-	    argp[argn++] = cp1;
+	    box.argp[argn++] = cp1;
 	    }
 	}
 
-    argp[argn] = (char*) 0;
-    return (char**) argp;
+    box.argp[argn] = (char*) 0;
+    return (char**) box.argp;
     }
 
 
