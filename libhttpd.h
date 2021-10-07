@@ -97,7 +97,7 @@ typedef struct {
     int initialized;
     httpd_server* hs : itype(_Ptr<httpd_server>);
     httpd_sockaddr client_addr;
-    char* read_buf : itype(_Array_ptr<char>) count(read_size);
+    char* read_buf : itype(_Nt_array_ptr<char>);
     size_t read_size, read_idx, checked_idx;
     int checked_state;
     int method;

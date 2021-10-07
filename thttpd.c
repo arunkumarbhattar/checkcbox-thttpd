@@ -1590,8 +1590,8 @@ handle_read( connecttab* c, struct timeval* tvP )
 	    finish_connection( c, tvP );
 	    return;
 	    }
-	httpd_realloc_str(
-	    &hc->read_buf, &hc->read_size, hc->read_size + 1000 );
+	httpd_realloc_str_cc(
+	    hc->read_buf, hc->read_size, hc->read_size + 1000 );
 	}
 
     /* Read some more bytes. */
