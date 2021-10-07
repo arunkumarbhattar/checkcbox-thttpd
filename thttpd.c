@@ -1798,7 +1798,7 @@ handle_send( connecttab* c, struct timeval* tvP )
 	    {
 	    /* Yes; move the unwritten part to the front of the buffer. */
 	    int newlen = hc->responselen - sz;
-	    (void) memmove( hc->response, &(hc->response[sz]), newlen );
+	    (void) memmove( _Assume_bounds_cast<_Array_ptr<void>>(hc->response, byte_count(newlen)), _Assume_bounds_cast<_Array_ptr<void>>(&(hc->response[sz]), byte_count(newlen)), newlen );
 	    hc->responselen = newlen;
 	    sz = 0;
 	    }

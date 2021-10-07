@@ -560,7 +560,8 @@ add_response( httpd_conn* hc, char* str )
 
     len = strlen( str );
     httpd_realloc_str( &hc->response, &hc->maxresponse, hc->responselen + len );
-    (void) memmove( &(hc->response[hc->responselen]), str, len );
+    _Array_ptr<void> tmp : byte_count(len) = _Assume_bounds_cast<_Array_ptr<void>>(&(hc->response[hc->responselen]), byte_count(len));
+    (void) memmove(tmp , str, len );
     hc->responselen += len;
     }
 
@@ -3301,7 +3302,8 @@ cgi_interpose_output( httpd_conn* hc, int rfd )
 	    break;
 	    }
 	httpd_realloc_str( &headers, &headers_size, headers_len + r );
-	(void) memmove( &(headers[headers_len]), buf, r );
+        _Array_ptr<void> tmp : byte_count(r) = _Assume_bounds_cast<_Array_ptr<void>>(&(headers[headers_len]), byte_count(r));
+	(void) memmove(tmp, buf, r );
 	headers_len += r;
 	headers[headers_len] = '\0';
 	if ( ( br = strstr( headers, "\015\012\015\012" ) ) != (char*) 0 ||
