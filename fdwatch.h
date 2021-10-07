@@ -60,7 +60,7 @@
 int fdwatch_get_nfiles( void );
 
 /* Add a descriptor to the watch list.  rw is either FDW_READ or FDW_WRITE.  */
-void fdwatch_add_fd( int fd, void* client_data, int rw );
+_Itype_for_any(T) void fdwatch_add_fd( int fd, void* client_data : itype(_Ptr<T>), int rw );
 
 /* Delete a descriptor from the watch list. */
 void fdwatch_del_fd( int fd );
@@ -77,7 +77,7 @@ int fdwatch_check_fd( int fd );
 /* Get the client data for the next returned event.  Returns -1 when there
 ** are no more events.
 */
-void* fdwatch_get_next_client_data( void );
+_Itype_for_any(T) void* fdwatch_get_next_client_data( void ) : itype(_Ptr<T>);
 
 /* Generate debugging statistics syslog message. */
 void fdwatch_logstats( long secs );
