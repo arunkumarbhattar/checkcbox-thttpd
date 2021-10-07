@@ -1299,8 +1299,8 @@ tilde_map_1( httpd_conn* hc )
 	&hc->expnfilename, &hc->maxexpnfilename, strlen( prefix ) + 1 + len );
     (void) xstrbcpy( hc->expnfilename, prefix );
     if ( prefix[0] != '\0' )
-	(void) strcat( hc->expnfilename, "/" );
-    (void) strcat( hc->expnfilename, temp );
+	(void) xstrbcat( hc->expnfilename, "/", hc->maxexpnfilename );
+    (void) xstrbcat( hc->expnfilename, temp, hc->maxexpnfilename );
     return 1;
     }
 #endif /* TILDE_MAP_1 */
@@ -1339,8 +1339,8 @@ tilde_map_2( httpd_conn* hc )
     (void) xstrbcpy( hc->altdir, pw->pw_dir );
     if ( postfix[0] != '\0' )
 	{
-	(void) strcat( hc->altdir, "/" );
-	(void) strcat( hc->altdir, postfix );
+	(void) xstrbcat( hc->altdir, "/", hc->maxaltdir );
+	(void) xstrbcat( hc->altdir, postfix, hc->maxaltdir );
 	}
     alt = expand_symlinks( hc->altdir, &rest, 0, 1 );
     if ( rest[0] != '\0' )
@@ -1442,8 +1442,8 @@ vhost_map( httpd_conn* hc )
 	&hc->expnfilename, &hc->maxexpnfilename,
 	strlen( hc->hostdir ) + 1 + len );
     (void) xstrbcpy( hc->expnfilename, hc->hostdir, hc->maxexpnfilename );
-    (void) strcat( hc->expnfilename, "/" );
-    (void) strcat( hc->expnfilename, tempfilename );
+    (void) xstrbcat( hc->expnfilename, "/", hc->maxexpnfilename );
+    (void) xstrbcat( hc->expnfilename, tempfilename, hc->maxexpnfilename );
     return 1;
     }
 
@@ -2136,12 +2136,12 @@ httpd_parse_request( httpd_conn* hc )
 		    httpd_realloc_str(
 			&hc->accept, &hc->maxaccept,
 			strlen( hc->accept ) + 2 + strlen( cp ) );
-		    (void) strcat( hc->accept, ", " );
+		    (void) xstrbcat( hc->accept, ", ", hc->maxaccept );
 		    }
 		else
 		    httpd_realloc_str(
 			&hc->accept, &hc->maxaccept, strlen( cp ) );
-		(void) strcat( hc->accept, cp );
+		(void) xstrbcat( hc->accept, cp, hc->maxaccept);
 		}
 	    else if ( strncasecmp( buf, "Accept-Encoding:", 16 ) == 0 )
 		{
@@ -2159,7 +2159,7 @@ httpd_parse_request( httpd_conn* hc )
 		    httpd_realloc_str(
 			&hc->accepte, &hc->maxaccepte,
 			strlen( hc->accepte ) + 2 + strlen( cp ) );
-		    (void) strcat( hc->accepte, ", " );
+		    (void) xstrbcat( hc->accepte, ", ", hc->maxaccepte );
 		    }
 		else
 		    httpd_realloc_str(
@@ -3698,10 +3698,10 @@ really_start_request( httpd_conn* hc, struct timeval* nowP )
 	    (void) xstrbcpy( indexname, hc->expnfilename, maxindexname );
 	    indxlen = strlen( indexname );
 	    if ( indxlen == 0 || indexname[indxlen - 1] != '/' )
-		(void) strcat( indexname, "/" );
+		(void) xstrbcat( indexname, "/", maxindexname );
 	    if ( strcmp( indexname, "./" ) == 0 )
 		indexname[0] = '\0';
-	    (void) strcat( indexname, index_names[i] );
+	    (void) xstrbcat( indexname, index_names[i], maxindexname );
 	    if ( stat( indexname, &hc->sb ) >= 0 )
 		goto got_one;
 	    }

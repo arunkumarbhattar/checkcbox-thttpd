@@ -59,6 +59,7 @@
 #include "mmc.h"
 #include "timers.h"
 #include "match.h"
+#include "checkedc_utils.h"
 
 #ifndef SHUT_WR
 #define SHUT_WR 1
@@ -486,7 +487,7 @@ main( int argc, char** argv )
     /* Get current directory. */
     (void) getcwd( cwd, sizeof(cwd) - 1 );
     if ( cwd[strlen( cwd ) - 1] != '/' )
-	(void) strcat( cwd, "/" );
+	(void) xstrbcat( cwd, "/", sizeof(cwd) - 1 );
 
     if ( ! debug )
 	{
@@ -585,7 +586,7 @@ main( int argc, char** argv )
 		(void) fprintf( stderr, "%s: logfile is not within the chroot tree, you will not be able to re-open it\n", argv0 );
 		}
 	    }
-	(void) xstrbcpy( cwd, "/" );
+	(void) xstrbcpy( cwd, "/", sizeof(cwd) - 1);
 	/* Always chdir to / after a chroot. */
 	if ( chdir( cwd ) < 0 )
 	    {
