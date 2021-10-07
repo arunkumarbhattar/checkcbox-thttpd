@@ -257,12 +257,12 @@ void httpd_send_err(
     char* arg );
 
 /* Some error messages. */
-extern char* httpd_err400title;
-extern char* httpd_err400form;
-extern char* httpd_err408title;
-extern char* httpd_err408form;
-extern char* httpd_err503title;
-extern char* httpd_err503form;
+extern char* httpd_err400title : itype(_Nt_array_ptr<char>);
+extern char* httpd_err400form : itype(_Nt_array_ptr<char>);
+extern char* httpd_err408title : itype(_Nt_array_ptr<char>);
+extern char* httpd_err408form : itype(_Nt_array_ptr<char>);
+extern char* httpd_err503title : itype(_Nt_array_ptr<char>);
+extern char* httpd_err503form : itype(_Nt_array_ptr<char>);
 
 /* Generate a string representation of a method number. */
 char* httpd_method_str( int method );
