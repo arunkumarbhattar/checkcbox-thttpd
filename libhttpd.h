@@ -280,10 +280,10 @@ void httpd_set_ndelay( int fd );
 void httpd_clear_ndelay( int fd );
 
 /* Read the requested buffer completely, accounting for interruptions. */
-int httpd_read_fully( int fd, void* buf, size_t nbytes );
+_Itype_for_any(T) int httpd_read_fully( int fd, void* buf : itype(_Array_ptr<T>) byte_count(nbytes), size_t nbytes );
 
 /* Write the requested buffer completely, accounting for interruptions. */
-int httpd_write_fully( int fd, const char* buf, size_t nbytes );
+int httpd_write_fully( int fd, const char* buf : itype(_Array_ptr<const char>) count(nbytes), size_t nbytes );
 
 /* Generate debugging statistics syslog message. */
 void httpd_logstats( long secs );
