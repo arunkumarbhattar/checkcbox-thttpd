@@ -181,6 +181,9 @@ static int my_snprintf( char* str, size_t size, const char* format, ... );
 static long long atoll( const char* str );
 #endif /* HAVE_ATOLL */
 
+char *ol_strcpy(char *dst, char *src) {
+  return memmove(dst,src,strlen(src)+1);
+}
 
 /* This global keeps track of whether we are in the main process or a
 ** sub-process.  The reason is that httpd_write_response() can get called

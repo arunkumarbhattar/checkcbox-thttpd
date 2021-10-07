@@ -53,8 +53,7 @@
 #define RENEW(o,t,n) (realloc<t>( (void*) o, sizeof(t) * (n) ))
 
 /* Do overlapping strcpy safely, by using memmove. */
-#define ol_strcpy(dst,src) memmove(dst,src,strlen(src)+1)
-
+char *ol_strcpy(char *dst, char *src);
 
 /* The httpd structs. */
 
