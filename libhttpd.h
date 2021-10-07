@@ -95,7 +95,7 @@ typedef struct {
     int initialized;
     httpd_server* hs : itype(_Ptr<httpd_server>);
     httpd_sockaddr client_addr;
-    char* read_buf;
+    char* read_buf : itype(_Array_ptr<char>) count(read_size);
     size_t read_size, read_idx, checked_idx;
     int checked_state;
     int method;
@@ -133,8 +133,8 @@ typedef struct {
     size_t responselen;
     time_t if_modified_since, range_if;
     size_t contentlength;
-    char* type;		/* not malloc()ed */
-    char* hostname;	/* not malloc()ed */
+    char* type : itype(_Nt_array_ptr<char>);		/* not malloc()ed */
+    char* hostname : itype(_Nt_array_ptr<char>);	/* not malloc()ed */
     int mime_flag;
     int one_one;	/* HTTP/1.1 or better */
     int got_range;
