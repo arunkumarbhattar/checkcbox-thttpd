@@ -1724,13 +1724,17 @@ handle_send( connecttab* c, struct timeval* tvP )
 	/* Yes.  We'll combine headers and file into a single writev(),
 	** hoping that this generates a single packet.
 	*/
-	struct iovec iv[2];
+        struct cc_iovec {
+          void *iov_base : byte_count(iov_len);
+          size_t iov_len;
+        } iv[2];
 
-	iv[0].iov_base = hc->response;
-	iv[0].iov_len = hc->responselen;
-	iv[1].iov_base = &(hc->file_address[c->next_byte_index]);
-	iv[1].iov_len = MIN( c->end_byte_index - c->next_byte_index, max_bytes );
-	sz = writev( hc->conn_fd, iv, 2 );
+	iv[0].iov_base = _Assume_bounds_cast<_Array_ptr<void>>(hc->response, byte_count(hc->responselen)),
+          iv[0].iov_len = hc->responselen;
+        size_t s = MIN( c->end_byte_index - c->next_byte_index, max_bytes );
+	iv[1].iov_base = _Assume_bounds_cast<_Array_ptr<void>>(&(hc->file_address[c->next_byte_index]), byte_count(s)),
+          iv[1].iov_len = s;
+	sz = writev( hc->conn_fd, (struct iovec*) iv, 2 );
 	}
 
     if ( sz < 0 && errno == EINTR )
