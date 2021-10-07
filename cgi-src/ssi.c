@@ -31,6 +31,7 @@
 #include <time.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include "../checkedc_utils.h"
 
 #include "config.h"
 #include "match.h"
@@ -180,8 +181,8 @@ get_filename( char* vfilename, char* filename, char* directive, char* tag, char*
 	    return -1;
 	if ( fl - vl + strlen( val ) >= fnsize )
 	    return -1;
-	(void) strncpy( fn, filename, fl - vl );
-	(void) strcpy( &fn[fl - vl], val );
+	(void) xstrbcpy( fn, filename, fl - vl );
+	(void) xstrbcpy( &fn[fl - vl], val, fnsize - (fl - vl) );
 	}
     else if ( strcmp( tag, "file" ) == 0 )
 	{
@@ -192,14 +193,14 @@ get_filename( char* vfilename, char* filename, char* directive, char* tag, char*
 	    }
 	if ( fl + 1 + strlen( val ) >= fnsize )
 	    return -1;
-	(void) strcpy( fn, filename );
+	(void) xstrbcpy( fn, filename, fnsize );
 	cp = strrchr( fn, '/' );
 	if ( cp == (char*) 0 )
 	    {
 	    cp = &fn[strlen( fn )];
 	    *cp = '/';
 	    }
-	(void) strcpy( ++cp, val );
+	(void) strcpy(++cp, val);
 	}
     else
 	{
@@ -256,7 +257,7 @@ check_filename( char* filename )
 	return 0;	/* out of memory */
     cp = strrchr( dirname, '/' );
     if ( cp == (char*) 0 )
-	(void) strcpy( dirname, "." );
+	(void) xstrbcpy( dirname, ".", fnl );
     else
 	*cp = '\0';
     authname = malloc( strlen( dirname ) + 1 + sizeof(AUTH_FILE) );
@@ -379,16 +380,16 @@ do_include( char* vfilename, char* filename, FILE* fp, char* directive, char* ta
     if ( strcmp( tag, "virtual" ) == 0 )
 	{
 	if ( strlen( val ) < sizeof( vfilename2 ) )
-	    (void) strcpy( vfilename2, val );
+	    (void) xstrbcpy( vfilename2, val, sizeof(vfilename2) - 1);
 	else
-	    (void) strcpy( vfilename2, filename2 );  /* same size, has to fit */
+	    (void) xstrbcpy( vfilename2, filename2, sizeof(vfilename2) - 1);  /* same size, has to fit */
 	}
     else
 	{
 	if ( strlen( vfilename ) + 1 + strlen( val ) < sizeof(vfilename2) )
 	    {
 	    char* cp;
-	    (void) strcpy( vfilename2, vfilename );
+	    (void) xstrbcpy( vfilename2, vfilename, sizeof(vfilename2) - 1);
 	    cp = strrchr( vfilename2, '/' );
 	    if ( cp == (char*) 0 )
 		{
@@ -398,7 +399,7 @@ do_include( char* vfilename, char* filename, FILE* fp, char* directive, char* ta
 	    (void) strcpy( ++cp, val );
 	    }
 	else
-	    (void) strcpy( vfilename2, filename2 );  /* same size, has to fit */
+	    (void) xstrbcpy( vfilename2, filename2, sizeof(vfilename2) - 1);  /* same size, has to fit */
 	}
 
     read_file( vfilename2, filename2, fp2 );
@@ -707,7 +708,7 @@ main( int argc, char** argv )
     argv0 = argv[0];
 
     /* Default formats. */
-    (void) strcpy( timefmt, "%a %b %e %T %Z %Y" );
+    (void) xstrbcpy( timefmt, "%a %b %e %T %Z %Y", sizeof(timefmt) - 1 );
     sizefmt = SF_BYTES;
 
     /* The MIME type has to be text/html. */

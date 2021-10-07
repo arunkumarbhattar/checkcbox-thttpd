@@ -43,6 +43,8 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
+#include "../checkedc_utils.h"
+
 
 #define LINK "public_html"
 
@@ -154,7 +156,7 @@ main( int argc, char** argv )
     */
     check_room(
 	sizeof(dirname), strlen( homedir ) + strlen( TILDE_MAP_2 ) + 2 );
-    (void) strcpy( dirname, homedir );
+    (void) xstrbcpy( dirname, homedir, sizeof(dirname) - 1 );
     end_with_slash( dirname );
     (void) strcat( dirname, TILDE_MAP_2 );
 
@@ -174,7 +176,7 @@ main( int argc, char** argv )
     check_room(
 	sizeof(dirname),
 	strlen( webdir ) + strlen( prefix ) + strlen( username ) + 3 );
-    (void) strcpy( dirname, webdir );
+    (void) xstrbcpy( dirname, webdir, sizeof(dirname) - 1 );
     end_with_slash( dirname );
     if ( strlen( prefix ) != 0 )
 	{
@@ -185,7 +187,7 @@ main( int argc, char** argv )
 
     /* Assemble the link name. */
     check_room( sizeof(linkname), strlen( homedir ) + strlen( LINK ) + 2 );
-    (void) strcpy( linkname, homedir );
+    (void) xstrbcpy( linkname, homedir, sizeof(linkname) - 1 );
     end_with_slash( linkname );
     (void) strcat( linkname, LINK );
 

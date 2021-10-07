@@ -585,7 +585,7 @@ main( int argc, char** argv )
 		(void) fprintf( stderr, "%s: logfile is not within the chroot tree, you will not be able to re-open it\n", argv0 );
 		}
 	    }
-	(void) strcpy( cwd, "/" );
+	(void) xstrbcpy( cwd, "/" );
 	/* Always chdir to / after a chroot. */
 	if ( chdir( cwd ) < 0 )
 	    {
