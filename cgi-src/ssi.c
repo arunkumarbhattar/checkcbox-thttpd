@@ -219,7 +219,6 @@ check_filename( char* filename )
     int fnl;
     char* cp;
     char* dirname;
-    char* authname;
     struct stat sb2;
     int r;
 
@@ -260,10 +259,12 @@ check_filename( char* filename )
 	(void) xstrbcpy( dirname, ".", fnl );
     else
 	*cp = '\0';
-    authname = malloc( strlen( dirname ) + 1 + sizeof(AUTH_FILE) );
+    char* authname;
+    size_t authsize = strlen( dirname ) + 1 + sizeof(AUTH_FILE);
+    authname = malloc_nt( authsize );
     if ( authname == (char*) 0 )
 	return 0;	/* out of memory */
-    (void) sprintf( authname, "%s/%s", dirname, AUTH_FILE );
+    (void) xsbprintf( authname, authsize - 1, "%s/%s", dirname, AUTH_FILE );
     r = stat( authname, &sb2 );
     free( dirname );
     free( authname );
@@ -726,13 +727,14 @@ main( int argc, char** argv )
     path_info = getenv( "PATH_INFO" );
     if ( path_info == (char*) 0 )
 	path_info = "";
-    url = (char*) malloc( strlen( script_name ) + strlen( path_info ) + 1 );
+    size_t urlsize = strlen( script_name ) + strlen( path_info ) + 1;
+    url = (char*) malloc( urlsize  );
     if ( url == (char*) 0 )
 	{
 	internal_error( "Out of memory." );
 	exit( 1 );
 	}
-    (void) sprintf( url, "%s%s", script_name, path_info );
+    (void) xsbprintf( url, urlsize, "%s%s", script_name, path_info );
 
     /* Get the name of the file to parse. */
     path_translated = getenv( "PATH_TRANSLATED" );
