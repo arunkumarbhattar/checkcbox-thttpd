@@ -70,29 +70,29 @@ typedef long long int64_t;
 #endif
 
 
-static char* argv0;
+static char *argv0 : itype(_Nt_array_ptr<char>) = ((void *)0);
 static int debug;
 static unsigned short port;
-static char* dir;
-static char* data_dir;
+static char *dir : itype(_Nt_array_ptr<char>) = ((void *)0);
+static char *data_dir : itype(_Nt_array_ptr<char>) = ((void *)0);
 static int do_chroot, no_log, no_symlink_check, do_vhost, do_global_passwd;
-static char* cgi_pattern;
+static char *cgi_pattern : itype(_Nt_array_ptr<char>) = ((void *)0);
 static int cgi_limit;
-static char* url_pattern;
+static char *url_pattern : itype(_Nt_array_ptr<char>) = ((void *)0);
 static int no_empty_referrers;
-static char* local_pattern;
-static char* logfile;
-static char* throttlefile;
-static char* hostname;
-static char* pidfile;
-static char* user;
-static char* charset;
-static char* p3p;
+static char *local_pattern : itype(_Nt_array_ptr<char>) = ((void *)0);
+static char *logfile : itype(_Nt_array_ptr<char>) = ((void *)0);
+static char *throttlefile : itype(_Nt_array_ptr<char>) = ((void *)0);
+static char *hostname : itype(_Nt_array_ptr<char>) = ((void *)0);
+static char *pidfile : itype(_Nt_array_ptr<char>) = ((void *)0);
+static char *user : itype(_Nt_array_ptr<char>) byte_count(6) = ((void *)0);
+static char *charset : itype(_Nt_array_ptr<char>) byte_count(5) = ((void *)0);
+static char *p3p : itype(_Nt_array_ptr<char>) byte_count(0) = ((void *)0);
 static int max_age;
 
 
 typedef struct {
-    char* pattern;
+    char *pattern : itype(_Nt_array_ptr<char>);
     long max_limit, min_limit;
     long rate;
     off_t bytes_since_avg;
@@ -107,20 +107,21 @@ static int numthrottles, maxthrottles;
 typedef struct {
     int conn_state;
     int next_free_connect;
-    httpd_conn* hc;
-    int tnums[MAXTHROTTLENUMS];         /* throttle indexes */
+    httpd_conn *hc : itype(_Ptr<httpd_conn>);
+    int tnums[10] : itype(int _Checked[MAXTHROTTLENUMS]);         /* throttle indexes */
     int numtnums;
     long max_limit, min_limit;
     time_t started_at, active_at;
-    Timer* wakeup_timer;
-    Timer* linger_timer;
+    Timer *wakeup_timer : itype(_Ptr<Timer>);
+    Timer *linger_timer : itype(_Ptr<Timer>);
     long wouldblock_delay;
     off_t bytes;
     off_t end_byte_index;
     off_t next_byte_index;
     } connecttab;
-static connecttab* connects;
-static int num_connects, max_connects, first_free_connect;
+static int max_connects;
+static connecttab *connects : itype(_Array_ptr<connecttab>) count(max_connects) = ((void *)0);
+static int num_connects, first_free_connect;
 static int httpd_conn_count;
 
 /* The connection states. */
@@ -131,7 +132,7 @@ static int httpd_conn_count;
 #define CNST_LINGERING 4
 
 
-static httpd_server* hs = (httpd_server*) 0;
+static httpd_server *hs : itype(_Ptr<httpd_server>) = (_Ptr<httpd_server>) 0;
 int terminate = 0;
 time_t start_time, stats_time;
 long stats_connections;
@@ -142,33 +143,33 @@ static volatile int got_hup, got_usr1, watchdog_flag;
 
 
 /* Forwards. */
-static void parse_args( int argc, char** argv );
+static void parse_args(int argc, char **argv : itype(_Array_ptr<_Nt_array_ptr<char>>) count(argc));
 static void usage( void );
-static void read_config( char* filename );
-static void value_required( char* name, char* value );
-static void no_value_required( char* name, char* value );
-static char* e_strdup( char* oldstr );
-static void lookup_hostname( httpd_sockaddr* sa4P, size_t sa4_len, int* gotv4P, httpd_sockaddr* sa6P, size_t sa6_len, int* gotv6P );
-static void read_throttlefile( char* tf );
+static void read_config(char *filename : itype(_Nt_array_ptr<char>));
+static void value_required(char *name : itype(_Nt_array_ptr<char>), char *value : itype(_Ptr<char>));
+static void no_value_required(char *name : itype(_Nt_array_ptr<char>), char *value : itype(_Ptr<char>));
+static char *e_strdup(char *oldstr : itype(_Nt_array_ptr<char>) count(4999)) : itype(_Nt_array_ptr<char>);
+static void lookup_hostname(httpd_sockaddr *sa4P : itype(_Array_ptr<httpd_sockaddr>) count(sa4_len), size_t sa4_len, int *gotv4P : itype(_Ptr<int>), httpd_sockaddr *sa6P : itype(_Array_ptr<httpd_sockaddr>) count(sa6_len), size_t sa6_len, int *gotv6P : itype(_Ptr<int>));
+static void read_throttlefile(char *tf : itype(_Nt_array_ptr<char>));
 static void shut_down( void );
-static int handle_newconnect( struct timeval* tvP, int listen_fd );
-static void handle_read( connecttab* c, struct timeval* tvP );
-static void handle_send( connecttab* c, struct timeval* tvP );
-static void handle_linger( connecttab* c, struct timeval* tvP );
-static int check_throttles( connecttab* c );
-static void clear_throttles( connecttab* c, struct timeval* tvP );
-static void update_throttles( ClientData client_data, struct timeval* nowP );
-static void finish_connection( connecttab* c, struct timeval* tvP );
-static void clear_connection( connecttab* c, struct timeval* tvP );
-static void really_clear_connection( connecttab* c, struct timeval* tvP );
-static void idle( ClientData client_data, struct timeval* nowP );
-static void wakeup_connection( ClientData client_data, struct timeval* nowP );
-static void linger_clear_connection( ClientData client_data, struct timeval* nowP );
-static void occasional( ClientData client_data, struct timeval* nowP );
+static int handle_newconnect(struct timeval *tvP : itype(_Ptr<struct timeval>), int listen_fd);
+static void handle_read(connecttab *c : itype(_Array_ptr<connecttab>) count(max_connects), struct timeval *tvP : itype(_Ptr<struct timeval>));
+static void handle_send(connecttab *c : itype(_Array_ptr<connecttab>) count(max_connects), struct timeval *tvP : itype(_Ptr<struct timeval>));
+static void handle_linger(connecttab *c : itype(_Array_ptr<connecttab>) count(max_connects), struct timeval *tvP : itype(_Ptr<struct timeval>));
+static int check_throttles(connecttab *c : itype(_Ptr<connecttab>));
+static void clear_throttles(connecttab *c : itype(_Ptr<connecttab>), struct timeval *tvP : itype(_Ptr<struct timeval>));
+static void update_throttles(ClientData client_data, struct timeval *nowP : itype(_Ptr<struct timeval>));
+static void finish_connection(connecttab *c : itype(_Array_ptr<connecttab>) count(max_connects), struct timeval *tvP : itype(_Ptr<struct timeval>));
+static void clear_connection(connecttab *c : itype(_Array_ptr<connecttab>) count(max_connects), struct timeval *tvP : itype(_Ptr<struct timeval>));
+static void really_clear_connection(connecttab *c : itype(_Array_ptr<connecttab>) count(max_connects), struct timeval *tvP : itype(_Ptr<struct timeval>));
+static void idle(ClientData client_data, struct timeval *nowP : itype(_Ptr<struct timeval>));
+static void wakeup_connection(ClientData client_data, struct timeval *nowP : itype(_Ptr<struct timeval>));
+static void linger_clear_connection(ClientData client_data, struct timeval *nowP : itype(_Ptr<struct timeval>));
+static void occasional(ClientData client_data, struct timeval *nowP : itype(_Ptr<struct timeval>));
 #ifdef STATS_TIME
-static void show_stats( ClientData client_data, struct timeval* nowP );
+static void show_stats(ClientData client_data, struct timeval *nowP : itype(_Ptr<struct timeval>));
 #endif /* STATS_TIME */
-static void logstats( struct timeval* nowP );
+static void logstats(struct timeval *nowP : itype(_Ptr<struct timeval>));
 static void thttpd_logstats( long secs );
 
 static connecttab *get_client_connecttab(ClientData client_data) {
