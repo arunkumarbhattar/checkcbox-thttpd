@@ -146,9 +146,9 @@ static volatile int got_hup, got_usr1, watchdog_flag;
 static void parse_args(int argc, char **argv : itype(_Array_ptr<_Nt_array_ptr<char>>) count(argc));
 static void usage( void );
 static void read_config(char *filename : itype(_Nt_array_ptr<char>));
-static void value_required(char *name : itype(_Nt_array_ptr<char>), char *value : itype(_Ptr<char>));
-static void no_value_required(char *name : itype(_Nt_array_ptr<char>), char *value : itype(_Ptr<char>));
-static char *e_strdup(char *oldstr : itype(_Nt_array_ptr<char>) count(4999)) : itype(_Nt_array_ptr<char>);
+static void value_required(char *name : itype(_Nt_array_ptr<char>), char *value : itype(_Nt_array_ptr<char>));
+static void no_value_required(char *name : itype(_Nt_array_ptr<char>), char *value : itype(_Nt_array_ptr<char>));
+static char *e_strdup(char *oldstr : itype(_Nt_array_ptr<char>)) : itype(_Nt_array_ptr<char>);
 static void lookup_hostname(httpd_sockaddr *sa4P : itype(_Array_ptr<httpd_sockaddr>) byte_count(sa4_len), size_t sa4_len, int *gotv4P : itype(_Ptr<int>), httpd_sockaddr *sa6P : itype(_Array_ptr<httpd_sockaddr>) byte_count(sa6_len), size_t sa6_len, int *gotv6P : itype(_Ptr<int>));
 static void read_throttlefile(char *tf : itype(_Nt_array_ptr<char>));
 static void shut_down( void );
@@ -1014,7 +1014,7 @@ parse_args(int argc, char **argv : itype(_Array_ptr<_Nt_array_ptr<char>>) count(
     }
 
 
-static void
+_Checked static void
 usage( void )
     {
     (void) fprintf( stderr,
@@ -1024,46 +1024,52 @@ usage( void )
     }
 
 
-static void
-read_config( char* filename )
+_Checked static void
+read_config(char *filename : itype(_Nt_array_ptr<char>))
     {
-    FILE* fp;
-    char line[10000];
-    char* cp;
-    char* cp2;
-    char* name;
-    char* value;
+    _Ptr<FILE> fp = ((void *)0);
+    char line _Nt_checked[10000];
+    _Nt_array_ptr<char> cp = ((void *)0);
+    _Nt_array_ptr<char> cp2 = ((void *)0);
+    _Nt_array_ptr<char> name = ((void *)0);
+    _Nt_array_ptr<char> value = ((void *)0);
 
     fp = fopen( filename, "r" );
-    if ( fp == (FILE*) 0 )
+    if ( fp ==  0 )
 	{
 	perror( filename );
 	exit( 1 );
 	}
 
-    while ( fgets( line, sizeof(line), fp ) != (char*) 0 )
+    while ( fgets( line, sizeof(line) - 1, fp ) !=  0 )
 	{
 	/* Trim comments. */
-	if ( ( cp = strchr( line, '#' ) ) != (char*) 0 )
+	if ( ( cp = ((_Nt_array_ptr<char> )strchr( line, '#' )) ) !=  0 )
 	    *cp = '\0';
 
 	/* Skip leading whitespace. */
 	cp = line;
-	cp += strspn( cp, " \t\n\r" );
+        size_t spn_size = strspn( cp, " \t\n\r" ) _Where cp : bounds(cp, cp + spn_size);
+        cp = _Dynamic_bounds_cast<_Nt_array_ptr<char>>(cp + spn_size, count(0));
 
 	/* Split line into words. */
 	while ( *cp != '\0' )
 	    {
 	    /* Find next whitespace. */
-	    cp2 = cp + strcspn( cp, " \t\n\r" );
+            size_t cspn_size = strcspn( cp, " \t\n\r" ) _Where cp : bounds(cp, cp + cspn_size);
+	    cp2 = _Dynamic_bounds_cast<_Nt_array_ptr<char>>(cp + cspn_size, count(0));
 	    /* Insert EOS and advance next-word pointer. */
-	    while ( *cp2 == ' ' || *cp2 == '\t' || *cp2 == '\n' || *cp2 == '\r' )
-		*cp2++ = '\0';
+	    while ( *cp2 == ' ' || *cp2 == '\t' || *cp2 == '\n' || *cp2 == '\r' ) {
+                *cp2 = '\0';
+                cp2++;
+            }
 	    /* Split into name and value. */
 	    name = cp;
-	    value = strchr( name, '=' );
-	    if ( value != (char*) 0 )
-		*value++ = '\0';
+	    value = ((_Nt_array_ptr<char> )strchr( name, '=' ));
+	    if ( value !=  0  && *value != '\0' ) {
+                *value = '\0';
+                value++;
+            }
 	    /* Interpret. */
 	    if ( strcasecmp( name, "debug" ) == 0 )
 		{
@@ -1202,7 +1208,8 @@ read_config( char* filename )
 
 	    /* Advance to next word. */
 	    cp = cp2;
-	    cp += strspn( cp, " \t\n\r" );
+            size_t spn_size = strspn( cp, " \t\n\r" ) _Where cp : bounds(cp, cp + spn_size);
+            cp = _Dynamic_bounds_cast<_Nt_array_ptr<char>>(cp + spn_size, count(0));
 	    }
 	}
 
