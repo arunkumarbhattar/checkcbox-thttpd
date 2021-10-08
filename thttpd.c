@@ -99,7 +99,7 @@ typedef struct {
     int num_sending;
     } throttletab;
 static int numthrottles, maxthrottles;
-static throttletab* throttles : itype(_Array_ptr<throttletab>) count(maxthrottles);
+static throttletab* throttles : itype(_Array_ptr<throttletab>) byte_count(sizeof(throttletab) * maxthrottles);
 
 #define THROTTLE_NOLIMIT -1
 
@@ -1257,18 +1257,18 @@ _Checked static char *e_strdup(char *oldstr : itype(_Nt_array_ptr<char>)) : ityp
     }
 
 
-static void
-lookup_hostname( httpd_sockaddr* sa4P, size_t sa4_len, int* gotv4P, httpd_sockaddr* sa6P, size_t sa6_len, int* gotv6P )
+_Checked static void
+lookup_hostname(httpd_sockaddr *sa4P : itype(_Array_ptr<httpd_sockaddr>) byte_count(sa4_len), size_t sa4_len, int *gotv4P : itype(_Ptr<int>), httpd_sockaddr *sa6P : itype(_Array_ptr<httpd_sockaddr>) byte_count(sa6_len), size_t sa6_len, int *gotv6P : itype(_Ptr<int>))
     {
 #ifdef USE_IPV6
 
     struct addrinfo hints;
-    char portstr[10];
+    char portstr _Nt_checked[10];
     int gaierr;
-    struct addrinfo* ai;
-    struct addrinfo* ai2;
-    struct addrinfo* aiv6;
-    struct addrinfo* aiv4;
+    _Ptr<struct addrinfo> ai = 0;
+    _Ptr<struct addrinfo> ai2 = 0;
+    _Ptr<struct addrinfo> aiv6 = 0;
+    _Ptr<struct addrinfo> aiv4 = 0;
 
     (void) memset( &hints, 0, sizeof(hints) );
     hints.ai_family = PF_UNSPEC;
@@ -1279,32 +1279,33 @@ lookup_hostname( httpd_sockaddr* sa4P, size_t sa4_len, int* gotv4P, httpd_sockad
 	{
 	syslog(
 	    LOG_CRIT, "getaddrinfo %.80s - %.80s",
-	    hostname, gai_strerror( gaierr ) );
+	    hostname, ((_Nt_array_ptr<const char> )gai_strerror( gaierr )) );
 	(void) fprintf(
 	    stderr, "%s: getaddrinfo %s - %s\n",
-	    argv0, hostname, gai_strerror( gaierr ) );
+	    argv0, hostname, ((_Nt_array_ptr<const char> )gai_strerror( gaierr )) );
 	exit( 1 );
 	}
 
     /* Find the first IPv6 and IPv4 entries. */
-    aiv6 = (struct addrinfo*) 0;
-    aiv4 = (struct addrinfo*) 0;
-    for ( ai2 = ai; ai2 != (struct addrinfo*) 0; ai2 = ai2->ai_next )
+    aiv6 =  0;
+    aiv4 =  0;
+    for ( ai2 = ai; ai2 !=  0;  )
 	{
 	switch ( ai2->ai_family )
 	    {
 	    case AF_INET6:
-	    if ( aiv6 == (struct addrinfo*) 0 )
+	    if ( aiv6 ==  0 )
 		aiv6 = ai2;
 	    break;
 	    case AF_INET:
-	    if ( aiv4 == (struct addrinfo*) 0 )
+	    if ( aiv4 ==  0 )
 		aiv4 = ai2;
 	    break;
 	    }
+        _Unchecked { ai2 = _Assume_bounds_cast<_Ptr<struct addrinfo>>(ai2->ai_next); }
 	}
 
-    if ( aiv6 == (struct addrinfo*) 0 )
+    if ( aiv6 ==  0 )
 	*gotv6P = 0;
     else
 	{
@@ -1317,11 +1318,14 @@ lookup_hostname( httpd_sockaddr* sa4P, size_t sa4_len, int* gotv4P, httpd_sockad
 	    exit( 1 );
 	    }
 	(void) memset( sa6P, 0, sa6_len );
-	(void) memmove( sa6P, aiv6->ai_addr, aiv6->ai_addrlen );
+        size_t tmp_size = aiv6->ai_addrlen;
+        _Array_ptr<struct sockaddr> tmp : byte_count(tmp_size) = 0;
+        _Unchecked { tmp = _Assume_bounds_cast<_Array_ptr<struct sockaddr>>(aiv6->ai_addr, byte_count(tmp_size)); }
+	(void) memmove( sa6P, tmp, tmp_size);
 	*gotv6P = 1;
 	}
 
-    if ( aiv4 == (struct addrinfo*) 0 )
+    if ( aiv4 ==  0 )
 	*gotv4P = 0;
     else
 	{
@@ -1334,7 +1338,11 @@ lookup_hostname( httpd_sockaddr* sa4P, size_t sa4_len, int* gotv4P, httpd_sockad
 	    exit( 1 );
 	    }
 	(void) memset( sa4P, 0, sa4_len );
-	(void) memmove( sa4P, aiv4->ai_addr, aiv4->ai_addrlen );
+        size_t tmp_size = aiv4->ai_addrlen;
+        _Array_ptr<struct sockaddr> tmp : byte_count(tmp_size) = 0;
+        _Unchecked { tmp = _Assume_bounds_cast<_Array_ptr<struct sockaddr>>(aiv6->ai_addr, byte_count(tmp_size)); }
+
+	(void) memmove( sa4P, tmp, tmp_size);
 	*gotv4P = 1;
 	}
 
@@ -1391,32 +1399,32 @@ lookup_hostname( httpd_sockaddr* sa4P, size_t sa4_len, int* gotv4P, httpd_sockad
     }
 
 
-static void
-read_throttlefile( char* tf )
+_Checked static void
+read_throttlefile(char *tf : itype(_Nt_array_ptr<char>))
     {
-    FILE* fp;
-    char buf[5000];
-    char* cp;
+    _Ptr<FILE> fp = ((void *)0);
+    char buf _Nt_checked[5000];
+    _Nt_array_ptr<char> cp = ((void *)0);
     int len;
-    char pattern[5000];
+    char pattern _Nt_checked[5000];
     long max_limit, min_limit;
     struct timeval tv;
 
     fp = fopen( tf, "r" );
-    if ( fp == (FILE*) 0 )
+    if ( fp ==  0 )
 	{
 	syslog( LOG_CRIT, "%.80s - %m", tf );
 	perror( tf );
 	exit( 1 );
 	}
 
-    (void) gettimeofday( &tv, (struct timezone*) 0 );
+    (void) gettimeofday( &tv,  0 );
 
-    while ( fgets( buf, sizeof(buf), fp ) != (char*) 0 )
+    while ( fgets( buf, sizeof(buf) - 1, fp ) !=  0 )
 	{
 	/* Nuke comments. */
-	cp = strchr( buf, '#' );
-	if ( cp != (char*) 0 )
+	cp = ((_Nt_array_ptr<char> )strchr( buf, '#' ));
+	if ( cp !=  0 )
 	    *cp = '\0';
 
 	/* Nuke trailing whitespace. */
@@ -1431,12 +1439,13 @@ read_throttlefile( char* tf )
 	    continue;
 
 	/* Parse line. */
+        _Unchecked {
 	if ( sscanf( buf, " %4900[^ \t] %ld-%ld", pattern, &min_limit, &max_limit ) == 3 )
 	    {}
 	else if ( sscanf( buf, " %4900[^ \t] %ld", pattern, &max_limit ) == 2 )
 	    min_limit = 0;
 	else
-	    {
+	    _Checked {
 	    syslog( LOG_CRIT,
 		"unparsable line in %.80s - %.80s", tf, buf );
 	    (void) fprintf( stderr,
@@ -1444,12 +1453,17 @@ read_throttlefile( char* tf )
 		argv0, tf, buf );
 	    continue;
 	    }
+        }
 
 	/* Nuke any leading slashes in pattern. */
-	if ( pattern[0] == '/' )
-	    (void) ol_strcpy( pattern, &pattern[1] );
-	while ( ( cp = strstr( pattern, "|/" ) ) != (char*) 0 )
+	if ( pattern[0] == '/' ) {
+          _Nt_array_ptr<char> tmp = _Dynamic_bounds_cast<_Nt_array_ptr<char>>(pattern + 1, count(0));
+	    (void) ol_strcpy( pattern, tmp);
+        }
+	while ( ( cp = ((_Nt_array_ptr<char> )strstr( pattern, "|/" )) ) !=  0 ) {
+          if (*cp != '\0' && *(cp + 1) != '\0')
 	    (void) ol_strcpy( cp + 1, cp + 2 );
+        }
 
 	/* Check for room in throttles. */
 	if ( numthrottles >= maxthrottles )
@@ -1464,7 +1478,7 @@ read_throttlefile( char* tf )
 		maxthrottles *= 2;
 		throttles = RENEW( throttles, throttletab, maxthrottles );
 		}
-	    if ( throttles == (throttletab*) 0 )
+	    if ( throttles ==  0 )
 		{
 		syslog( LOG_CRIT, "out of memory allocating a throttletab" );
 		(void) fprintf(
