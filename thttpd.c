@@ -172,16 +172,16 @@ static void show_stats(ClientData client_data, struct timeval *nowP : itype(_Ptr
 static void logstats(struct timeval *nowP : itype(_Ptr<struct timeval>));
 static void thttpd_logstats( long secs );
 
-static connecttab *get_client_connecttab(ClientData client_data) {
+static connecttab *get_client_connecttab(ClientData client_data) : itype(_Array_ptr<connecttab>) {
   return client_data.p;
 }
 
-static void set_client_connecttab(ClientData *client_data, connecttab *data) {
+static void set_client_connecttab(ClientData *client_data : itype(_Ptr<ClientData>), connecttab *data : itype(_Ptr<connecttab>)) {
   client_data->p = data;
 }
 
 /* SIGTERM and SIGINT say to exit immediately. */
-static void
+_Checked static void
 handle_term( int sig )
     {
     /* Don't need to set up the handler again, since it's a one-shot. */
@@ -194,7 +194,7 @@ handle_term( int sig )
 
 
 /* SIGCHLD - a chile process exitted, so we need to reap the zombie */
-static void
+_Checked static void
 handle_chld( int sig )
     {
     const int oerrno = errno;
@@ -210,7 +210,9 @@ handle_chld( int sig )
     for (;;)
 	{
 #ifdef HAVE_WAITPID
+        _Unchecked {
 	pid = waitpid( (pid_t) -1, &status, WNOHANG );
+        }
 #else /* HAVE_WAITPID */
 	pid = wait3( &status, WNOHANG, (struct rusage*) 0 );
 #endif /* HAVE_WAITPID */
@@ -233,7 +235,7 @@ handle_chld( int sig )
 	** activity, the count will be lower than it should be, and therefore
 	** more CGIs will be allowed than should be.
 	*/
-	if ( hs != (httpd_server*) 0 )
+	if ( hs != (_Ptr<httpd_server>) 0 )
 	    {
 	    --hs->cgi_count;
 	    if ( hs->cgi_count < 0 )
@@ -247,7 +249,7 @@ handle_chld( int sig )
 
 
 /* SIGHUP says to re-open the log file. */
-static void
+_Checked static void
 handle_hup( int sig )
     {
     const int oerrno = errno;
@@ -266,7 +268,7 @@ handle_hup( int sig )
 
 
 /* SIGUSR1 says to exit as soon as all current connections are done. */
-static void
+_Checked static void
 handle_usr1( int sig )
     {
     /* Don't need to set up the handler again, since it's a one-shot. */
@@ -291,7 +293,7 @@ handle_usr1( int sig )
 
 
 /* SIGUSR2 says to generate the stats syslogs immediately. */
-static void
+_Checked static void
 handle_usr2( int sig )
     {
     const int oerrno = errno;
@@ -301,7 +303,7 @@ handle_usr2( int sig )
     (void) signal( SIGUSR2, handle_usr2 );
 #endif /* ! HAVE_SIGSET */
 
-    logstats( (struct timeval*) 0 );
+    logstats( (_Ptr<struct timeval>) 0 );
 
     /* Restore previous errno. */
     errno = oerrno;
@@ -309,7 +311,7 @@ handle_usr2( int sig )
 
 
 /* SIGALRM is used as a watchdog. */
-static void
+_Checked static void
 handle_alrm( int sig )
     {
     const int oerrno = errno;
@@ -336,25 +338,27 @@ handle_alrm( int sig )
     }
 
 
-static void
+_Checked static void
 re_open_logfile( void )
     {
-    FILE* logfp;
+    _Ptr<FILE> logfp = ((void *)0);
 
-    if ( no_log || hs == (httpd_server*) 0 )
+    if ( no_log || hs == 0 )
 	return;
 
     /* Re-open the log file. */
-    if ( logfile != (char*) 0 && strcmp( logfile, "-" ) != 0 )
+    if ( logfile != 0 && strcmp( logfile, "-" ) != 0 )
 	{
 	syslog( LOG_NOTICE, "re-opening logfile" );
 	logfp = fopen( logfile, "a" );
-	if ( logfp == (FILE*) 0 )
+	if ( logfp == 0 )
 	    {
 	    syslog( LOG_CRIT, "re-opening %.80s - %m", logfile );
 	    return;
 	    }
-	(void) fcntl( fileno( logfp ), F_SETFD, 1 );
+        _Unchecked {
+	  (void) fcntl( fileno( logfp ), F_SETFD, 1 );
+        }
 	httpd_set_logfp( hs, logfp );
 	}
     }
