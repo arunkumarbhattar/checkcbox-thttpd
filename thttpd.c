@@ -1502,30 +1502,30 @@ read_throttlefile(char *tf : itype(_Nt_array_ptr<char>))
     }
 
 
-static void
+_Checked static void
 shut_down( void )
     {
     int cnum;
     struct timeval tv;
 
-    (void) gettimeofday( &tv, (struct timezone*) 0 );
+    (void) gettimeofday( &tv,  0 );
     logstats( &tv );
     for ( cnum = 0; cnum < max_connects; ++cnum )
 	{
 	if ( connects[cnum].conn_state != CNST_FREE )
 	    httpd_close_conn( connects[cnum].hc, &tv );
-	if ( connects[cnum].hc != (httpd_conn*) 0 )
+	if ( connects[cnum].hc !=  0 )
 	    {
 	    httpd_destroy_conn( connects[cnum].hc );
-	    free( connects[cnum].hc );
+	    free<httpd_conn>( connects[cnum].hc );
 	    --httpd_conn_count;
-	    connects[cnum].hc = (httpd_conn*) 0;
+	    connects[cnum].hc = (_Ptr<httpd_conn>) 0;
 	    }
 	}
-    if ( hs != (httpd_server*) 0 )
+    if ( hs !=  0 )
 	{
-	httpd_server* ths = hs;
-	hs = (httpd_server*) 0;
+	_Ptr<httpd_server> ths = hs;
+	hs = (_Ptr<httpd_server>) 0;
 	if ( ths->listen4_fd != -1 )
 	    fdwatch_del_fd( ths->listen4_fd );
 	if ( ths->listen6_fd != -1 )
@@ -1534,16 +1534,16 @@ shut_down( void )
 	}
     mmc_term();
     tmr_term();
-    free( connects );
-    if ( throttles != (throttletab*) 0 )
-	free( throttles );
+    free<connecttab>( connects );
+    if ( throttles !=  0 )
+	free<throttletab>( throttles );
     }
 
 
-static int
-handle_newconnect( struct timeval* tvP, int listen_fd )
+_Checked static int
+handle_newconnect(struct timeval *tvP : itype(_Ptr<struct timeval>), int listen_fd)
     {
-    connecttab* c;
+    _Ptr<connecttab> c = ((void *)0);
     ClientData client_data;
 
     /* This loops until the accept() fails, trying to start new
@@ -1569,12 +1569,12 @@ handle_newconnect( struct timeval* tvP, int listen_fd )
 	    syslog( LOG_CRIT, "the connects free list is messed up" );
 	    exit( 1 );
 	    }
-	c = &connects[first_free_connect];
+	c = _Dynamic_bounds_cast<_Ptr<connecttab>>(connects + first_free_connect);
 	/* Make the httpd_conn if necessary. */
-	if ( c->hc == (httpd_conn*) 0 )
+	if ( c->hc ==  0 )
 	    {
 	    c->hc = NEW( httpd_conn, 1 );
-	    if ( c->hc == (httpd_conn*) 0 )
+	    if ( c->hc ==  0 )
 		{
 		syslog( LOG_CRIT, "out of memory allocating an httpd_conn" );
 		exit( 1 );
@@ -1604,15 +1604,15 @@ handle_newconnect( struct timeval* tvP, int listen_fd )
 	++num_connects;
 	set_client_connecttab(&client_data, c);
 	c->active_at = tvP->tv_sec;
-	c->wakeup_timer = (Timer*) 0;
-	c->linger_timer = (Timer*) 0;
+	c->wakeup_timer = (_Ptr<Timer>) 0;
+	c->linger_timer = (_Ptr<Timer>) 0;
 	c->next_byte_index = 0;
 	c->numtnums = 0;
 
 	/* Set the connection file descriptor to no-delay mode. */
 	httpd_set_ndelay( c->hc->conn_fd );
 
-	fdwatch_add_fd( c->hc->conn_fd, c, FDW_READ );
+	fdwatch_add_fd<connecttab>( c->hc->conn_fd, c, FDW_READ );
 
 	++stats_connections;
 	if ( num_connects > stats_simultaneous )
