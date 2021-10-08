@@ -1,6 +1,7 @@
 #!/bin/bash
 3c \
 -dump-stats \
+-itypes-for-extern \
 -alltypes \
 -p \
 compile_commands.json \
