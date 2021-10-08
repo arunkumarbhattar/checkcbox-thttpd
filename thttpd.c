@@ -1217,10 +1217,10 @@ read_config(char *filename : itype(_Nt_array_ptr<char>))
     }
 
 
-static void
-value_required( char* name, char* value )
+_Checked static void
+value_required(char *name : itype(_Nt_array_ptr<char>), char *value : itype(_Nt_array_ptr<char>))
     {
-    if ( value == (char*) 0 )
+    if ( value == 0 )
 	{
 	(void) fprintf(
 	    stderr, "%s: value required for %s option\n", argv0, name );
@@ -1229,10 +1229,10 @@ value_required( char* name, char* value )
     }
 
 
-static void
-no_value_required( char* name, char* value )
+_Checked static void
+no_value_required(char *name : itype(_Nt_array_ptr<char>), char *value : itype(_Nt_array_ptr<char>))
     {
-    if ( value != (char*) 0 )
+    if ( value != 0 )
 	{
 	(void) fprintf(
 	    stderr, "%s: no value required for %s option\n",
@@ -1242,13 +1242,12 @@ no_value_required( char* name, char* value )
     }
 
 
-static char*
-e_strdup( char* oldstr )
+_Checked static char *e_strdup(char *oldstr : itype(_Nt_array_ptr<char>)) : itype(_Nt_array_ptr<char>)
     {
-    char* newstr;
+    _Nt_array_ptr<char> newstr = ((void *)0);
 
-    newstr = strdup( oldstr );
-    if ( newstr == (char*) 0 )
+    newstr = ((_Nt_array_ptr<char> )strdup( oldstr ));
+    if ( newstr == 0 )
 	{
 	syslog( LOG_CRIT, "out of memory copying a string" );
 	(void) fprintf( stderr, "%s: out of memory copying a string\n", argv0 );
