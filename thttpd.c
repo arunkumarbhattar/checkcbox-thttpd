@@ -85,8 +85,8 @@ static char *logfile : itype(_Nt_array_ptr<char>) = ((void *)0);
 static char *throttlefile : itype(_Nt_array_ptr<char>) = ((void *)0);
 static char *hostname : itype(_Nt_array_ptr<char>) = ((void *)0);
 static char *pidfile : itype(_Nt_array_ptr<char>) = ((void *)0);
-static char *user : itype(_Nt_array_ptr<char>) byte_count(6) = ((void *)0);
-static char *charset : itype(_Nt_array_ptr<char>) byte_count(5) = ((void *)0);
+static char *user : itype(_Nt_array_ptr<char>) = ((void *)0);
+static char *charset : itype(_Nt_array_ptr<char>) = ((void *)0);
 static char *p3p : itype(_Nt_array_ptr<char>) byte_count(0) = ((void *)0);
 static int max_age;
 
@@ -861,15 +861,15 @@ main(int argc, char **argv : itype(_Array_ptr<_Nt_array_ptr<char>>) count(argc))
     }
 
 
-static void
-parse_args( int argc, char** argv )
+_Checked static void
+parse_args(int argc, char **argv : itype(_Array_ptr<_Nt_array_ptr<char>>) count(argc))
     {
     int argn;
 
     debug = 0;
     port = DEFAULT_PORT;
-    dir = (char*) 0;
-    data_dir = (char*) 0;
+    dir = (_Nt_array_ptr<char>) 0;
+    data_dir = (_Nt_array_ptr<char>) 0;
 #ifdef ALWAYS_CHROOT
     do_chroot = 1;
 #else /* ALWAYS_CHROOT */
@@ -890,20 +890,20 @@ parse_args( int argc, char** argv )
 #ifdef CGI_PATTERN
     cgi_pattern = CGI_PATTERN;
 #else /* CGI_PATTERN */
-    cgi_pattern = (char*) 0;
+    cgi_pattern = (_Nt_array_ptr<char>) 0;
 #endif /* CGI_PATTERN */
 #ifdef CGI_LIMIT
     cgi_limit = CGI_LIMIT;
 #else /* CGI_LIMIT */
     cgi_limit = 0;
 #endif /* CGI_LIMIT */
-    url_pattern = (char*) 0;
+    url_pattern = (_Nt_array_ptr<char>) 0;
     no_empty_referrers = 0;
-    local_pattern = (char*) 0;
-    throttlefile = (char*) 0;
-    hostname = (char*) 0;
-    logfile = (char*) 0;
-    pidfile = (char*) 0;
+    local_pattern = (_Nt_array_ptr<char>) 0;
+    throttlefile = (_Nt_array_ptr<char>) 0;
+    hostname = (_Nt_array_ptr<char>) 0;
+    logfile = (_Nt_array_ptr<char>) 0;
+    pidfile = (_Nt_array_ptr<char>) 0;
     user = DEFAULT_USER;
     charset = DEFAULT_CHARSET;
     p3p = "";

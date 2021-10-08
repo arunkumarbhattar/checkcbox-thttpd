@@ -177,7 +177,7 @@ typedef struct {
 ** httpd_server* which includes a socket fd that you can select() on.
 ** Return (httpd_server*) 0 on error.
 */
-httpd_server *httpd_initialize(char *hostname : itype(_Nt_array_ptr<char>), httpd_sockaddr *sa4P : itype(_Ptr<httpd_sockaddr>), httpd_sockaddr *sa6P : itype(_Ptr<httpd_sockaddr>), unsigned short port, char *cgi_pattern : itype(_Nt_array_ptr<char>), int cgi_limit, char *charset : itype(_Nt_array_ptr<char>) byte_count(5), char *p3p : itype(_Nt_array_ptr<char>), int max_age, char *cwd : itype(_Nt_array_ptr<char>) count(4096), int no_log, FILE *logfp : itype(_Ptr<FILE>), int no_symlink_check, int vhost, int global_passwd, char *url_pattern : itype(_Nt_array_ptr<char>), char *local_pattern : itype(_Nt_array_ptr<char>), int no_empty_referrers) : itype(_Ptr<httpd_server>);
+httpd_server *httpd_initialize(char *hostname : itype(_Nt_array_ptr<char>), httpd_sockaddr *sa4P : itype(_Ptr<httpd_sockaddr>), httpd_sockaddr *sa6P : itype(_Ptr<httpd_sockaddr>), unsigned short port, char *cgi_pattern : itype(_Nt_array_ptr<char>), int cgi_limit, char *charset : itype(_Nt_array_ptr<char>), char *p3p : itype(_Nt_array_ptr<char>), int max_age, char *cwd : itype(_Nt_array_ptr<char>) count(4096), int no_log, FILE *logfp : itype(_Ptr<FILE>), int no_symlink_check, int vhost, int global_passwd, char *url_pattern : itype(_Nt_array_ptr<char>), char *local_pattern : itype(_Nt_array_ptr<char>), int no_empty_referrers) : itype(_Ptr<httpd_server>);
 
 /* Change the log file. */
 void httpd_set_logfp(httpd_server *hs : itype(_Ptr<httpd_server>), FILE *logfp : itype(_Ptr<FILE>));
