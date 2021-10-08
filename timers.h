@@ -54,13 +54,13 @@ typedef void TimerProc( ClientData client_data, struct timeval* nowP );
 
 /* The Timer struct. */
 typedef struct TimerStruct {
-    TimerProc* timer_proc;
+    void ((*timer_proc)(ClientData, struct timeval *)) : itype(_Ptr<void (ClientData, _Ptr<struct timeval>)>);
     ClientData client_data;
     long msecs;
     int periodic;
     struct timeval time;
-    struct TimerStruct* prev;
-    struct TimerStruct* next;
+    struct TimerStruct *prev : itype(_Ptr<struct TimerStruct>);
+    struct TimerStruct *next : itype(_Ptr<struct TimerStruct>);
     int hash;
     } Timer;
 
@@ -68,34 +68,32 @@ typedef struct TimerStruct {
 void tmr_init( void );
 
 /* Set up a timer, either periodic or one-shot. Returns (Timer*) 0 on errors. */
-Timer* tmr_create(
-    struct timeval* nowP, TimerProc* timer_proc, ClientData client_data,
-    long msecs, int periodic );
+Timer *tmr_create(struct timeval *nowP : itype(_Ptr<struct timeval>), void ((*timer_proc)(ClientData, struct timeval *)) : itype(_Ptr<void (ClientData, _Ptr<struct timeval>)>), ClientData client_data, long msecs, int periodic) : itype(_Ptr<Timer>);
 
 /* Returns a timeout indicating how long until the next timer triggers.  You
 ** can just put the call to this routine right in your select().  Returns
 ** (struct timeval*) 0 if no timers are pending.
 */
-struct timeval* tmr_timeout( struct timeval* nowP );
+struct timeval *tmr_timeout(struct timeval *nowP : itype(_Ptr<struct timeval>)) : itype(_Ptr<struct timeval>);
 
 /* Returns a timeout in milliseconds indicating how long until the next timer
 ** triggers.  You can just put the call to this routine right in your poll().
 ** Returns INFTIM (-1) if no timers are pending.
 */
-long tmr_mstimeout( struct timeval* nowP );
+long tmr_mstimeout(struct timeval *nowP : itype(_Ptr<struct timeval>));
 
 /* Run the list of timers. Your main program needs to call this every so often,
 ** or as indicated by tmr_timeout().
 */
-void tmr_run( struct timeval* nowP );
+void tmr_run(struct timeval *nowP : itype(_Ptr<struct timeval>));
 
 /* Reset the clock on a timer, to current time plus the original timeout. */
-void tmr_reset( struct timeval* nowP, Timer* timer );
+void tmr_reset(struct timeval *nowP : itype(_Ptr<struct timeval>), Timer *timer : itype(_Ptr<Timer>));
 
 /* Deschedule a timer.  Note that non-periodic timers are automatically
 ** descheduled when they run, so you don't have to call this on them.
 */
-void tmr_cancel( Timer* timer );
+void tmr_cancel(Timer *timer : itype(_Ptr<Timer>));
 
 /* Clean up the timers package, freeing any unused storage. */
 void tmr_cleanup( void );

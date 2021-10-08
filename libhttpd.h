@@ -56,7 +56,7 @@
 #define RENEW(o,t,n) (realloc<t>( (void*) o, sizeof(t) * (n) ))
 
 /* Do overlapping strcpy safely, by using memmove. */
-char *ol_strcpy(char *dst, char *src);
+char *ol_strcpy(char *dst : itype(_Array_ptr<char>), char *src : itype(_Nt_array_ptr<char>)) : itype(_Ptr<char>);
 
 /* The httpd structs. */
 
@@ -177,21 +177,16 @@ typedef struct {
 ** httpd_server* which includes a socket fd that you can select() on.
 ** Return (httpd_server*) 0 on error.
 */
-httpd_server* httpd_initialize(
-    char* hostname, httpd_sockaddr* sa4P, httpd_sockaddr* sa6P,
-    unsigned short port, char* cgi_pattern, int cgi_limit, char* charset,
-    char* p3p, int max_age, char* cwd, int no_log, FILE* logfp,
-    int no_symlink_check, int vhost, int global_passwd, char* url_pattern,
-    char* local_pattern, int no_empty_referrers );
+httpd_server *httpd_initialize(char *hostname : itype(_Nt_array_ptr<char>), httpd_sockaddr *sa4P : itype(_Ptr<httpd_sockaddr>), httpd_sockaddr *sa6P : itype(_Ptr<httpd_sockaddr>), unsigned short port, char *cgi_pattern : itype(_Nt_array_ptr<char>), int cgi_limit, char *charset : itype(_Nt_array_ptr<char>) byte_count(5), char *p3p : itype(_Nt_array_ptr<char>), int max_age, char *cwd : itype(_Nt_array_ptr<char>) count(4096), int no_log, FILE *logfp : itype(_Ptr<FILE>), int no_symlink_check, int vhost, int global_passwd, char *url_pattern : itype(_Nt_array_ptr<char>), char *local_pattern : itype(_Nt_array_ptr<char>), int no_empty_referrers) : itype(_Ptr<httpd_server>);
 
 /* Change the log file. */
-void httpd_set_logfp( httpd_server* hs, FILE* logfp );
+void httpd_set_logfp(httpd_server *hs : itype(_Ptr<httpd_server>), FILE *logfp : itype(_Ptr<FILE>));
 
 /* Call to unlisten/close socket(s) listening for new connections. */
-void httpd_unlisten( httpd_server* hs );
+void httpd_unlisten(httpd_server *hs : itype(_Ptr<httpd_server>));
 
 /* Call to shut down. */
-void httpd_terminate( httpd_server* hs );
+void httpd_terminate(httpd_server *hs : itype(_Ptr<httpd_server>));
 
 
 /* When a listen fd is ready to read, call this.  It does the accept() and
@@ -203,7 +198,7 @@ void httpd_terminate( httpd_server* hs );
 ** The caller is also responsible for setting initialized to zero before the
 ** first call using each different httpd_conn.
 */
-int httpd_get_conn( httpd_server* hs, int listen_fd, httpd_conn* hc );
+int httpd_get_conn(httpd_server *hs : itype(_Ptr<httpd_server>), int listen_fd, httpd_conn *hc : itype(_Ptr<httpd_conn>));
 #define GC_FAIL 0
 #define GC_OK 1
 #define GC_NO_MORE 2
@@ -215,7 +210,7 @@ int httpd_get_conn( httpd_server* hs, int listen_fd, httpd_conn* hc );
 ** indication of whether there is no complete request yet, there is a
 ** complete request, or there won't be a valid request due to a syntax error.
 */
-int httpd_got_request( httpd_conn* hc );
+int httpd_got_request(httpd_conn *hc : itype(_Ptr<httpd_conn>));
 #define GR_NO_REQUEST 0
 #define GR_GOT_REQUEST 1
 #define GR_BAD_REQUEST 2
@@ -225,7 +220,7 @@ int httpd_got_request( httpd_conn* hc );
 **
 ** Returns -1 on error.
 */
-int httpd_parse_request( httpd_conn* hc );
+int httpd_parse_request(httpd_conn *hc : itype(_Ptr<httpd_conn>));
 
 /* Starts sending data back to the client.  In some cases (directories,
 ** CGI programs), finishes sending by itself - in those cases, hc->file_fd
@@ -235,28 +230,26 @@ int httpd_parse_request( httpd_conn* hc );
 **
 ** Returns -1 on error.
 */
-int httpd_start_request( httpd_conn* hc, struct timeval* nowP );
+int httpd_start_request(httpd_conn *hc : itype(_Ptr<httpd_conn>), struct timeval *nowP : itype(_Ptr<struct timeval>));
 
 /* Actually sends any buffered response text. */
-void httpd_write_response( httpd_conn* hc );
+void httpd_write_response(httpd_conn *hc : itype(_Ptr<httpd_conn>));
 
 /* Call this to close down a connection and free the data.  A fine point,
 ** if you fork() with a connection open you should still call this in the
 ** parent process - the connection will stay open in the child.
 ** If you don't have a current timeval handy just pass in 0.
 */
-void httpd_close_conn( httpd_conn* hc, struct timeval* nowP );
+void httpd_close_conn(httpd_conn *hc : itype(_Ptr<httpd_conn>), struct timeval *nowP : itype(_Ptr<struct timeval>));
 
 /* Call this to de-initialize a connection struct and *really* free the
 ** mallocced strings.
 */
-void httpd_destroy_conn( httpd_conn* hc );
+void httpd_destroy_conn(httpd_conn *hc : itype(_Ptr<httpd_conn>));
 
 
 /* Send an error message back to the client. */
-void httpd_send_err(
-    httpd_conn* hc, int status, char* title, char* extraheads, char* form,
-    char* arg );
+void httpd_send_err(httpd_conn *hc : itype(_Ptr<httpd_conn>), int status, char *title : itype(_Ptr<char>), char *extraheads : itype(_Nt_array_ptr<char>) count(0), char *form : itype(_Nt_array_ptr<char>) count(27), char *arg : itype(_Array_ptr<char>));
 
 /* Some error messages. */
 extern char* httpd_err400title : itype(_Nt_array_ptr<char>);
@@ -267,10 +260,10 @@ extern char* httpd_err503title : itype(_Nt_array_ptr<char>);
 extern char* httpd_err503form : itype(_Nt_array_ptr<char>);
 
 /* Generate a string representation of a method number. */
-char* httpd_method_str( int method );
+char *httpd_method_str(int method) : itype(_Nt_array_ptr<char>);
 
 /* Reallocate a string. */
-void httpd_realloc_str( char** strP, size_t* maxsizeP, size_t size );
+void httpd_realloc_str(char **strP : itype(_Ptr<_Ptr<char>>), size_t *maxsizeP : itype(_Ptr<size_t>), size_t size);
 
 // Test the new Checked C way starting at one call site.
 
@@ -318,7 +311,7 @@ _Nt_array_ptr<char> httpd_realloc_strbuf(_Ptr<struct strbuf> sbuf, size_t size) 
   }
 
 /* Format a network socket to a string representation. */
-char* httpd_ntoa( httpd_sockaddr* saP );
+char *httpd_ntoa(httpd_sockaddr *saP : itype(_Ptr<httpd_sockaddr>)) : itype(_Nt_array_ptr<char>);
 
 /* Set NDELAY mode on a socket. */
 void httpd_set_ndelay( int fd );
@@ -330,7 +323,7 @@ void httpd_clear_ndelay( int fd );
 _Itype_for_any(T) int httpd_read_fully( int fd, void* buf : itype(_Array_ptr<T>) byte_count(nbytes), size_t nbytes );
 
 /* Write the requested buffer completely, accounting for interruptions. */
-int httpd_write_fully( int fd, const char* buf : itype(_Array_ptr<const char>) count(nbytes), size_t nbytes );
+int httpd_write_fully(int fd, const char *buf : itype(_Array_ptr<const char>) count(nbytes), size_t nbytes);
 
 /* Generate debugging statistics syslog message. */
 void httpd_logstats( long secs );

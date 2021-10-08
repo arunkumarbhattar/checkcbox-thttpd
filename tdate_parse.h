@@ -28,6 +28,6 @@
 #ifndef _TDATE_PARSE_H_
 #define _TDATE_PARSE_H_
 
-time_t tdate_parse( char* str );
+time_t tdate_parse(char *str : itype(_Nt_array_ptr<char>));
 
 #endif /* _TDATE_PARSE_H_ */
