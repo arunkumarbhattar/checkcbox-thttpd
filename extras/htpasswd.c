@@ -198,7 +198,7 @@ int main(int argc, char *argv[]) {
             putline(tfp,line);
             continue;
         }
-        strcpy(l,line);
+        xstrbcpy(l, line, sizeof(line) - 1);
         getword(w,l,':');
         if(strcmp(user,w)) {
             putline(tfp,line);

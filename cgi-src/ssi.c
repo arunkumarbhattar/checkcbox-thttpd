@@ -200,7 +200,9 @@ get_filename( char* vfilename, char* filename, char* directive, char* tag, char*
 	    cp = &fn[strlen( fn )];
 	    *cp = '/';
 	    }
-	(void) strcpy(++cp, val);
+        cp++;
+        size_t cp_size = fnsize - (cp - fn) - 1;
+	(void) xstrbcpy(cp, val, cp_size);
 	}
     else
 	{
@@ -397,7 +399,9 @@ do_include( char* vfilename, char* filename, FILE* fp, char* directive, char* ta
 		cp = &vfilename2[strlen( vfilename2 )];
 		*cp = '/';
 		}
-	    (void) strcpy( ++cp, val );
+            cp++;
+            size_t cp_count = sizeof(filename2) - 1 - (cp - vfilename2);
+	    (void) xstrbcpy( cp, val, cp_count );
 	    }
 	else
 	    (void) xstrbcpy( vfilename2, filename2, sizeof(vfilename2) - 1);  /* same size, has to fit */
