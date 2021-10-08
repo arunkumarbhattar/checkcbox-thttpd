@@ -98,8 +98,8 @@ typedef struct {
     off_t bytes_since_avg;
     int num_sending;
     } throttletab;
-static throttletab* throttles;
 static int numthrottles, maxthrottles;
+static throttletab* throttles : itype(_Array_ptr<throttletab>) count(maxthrottles);
 
 #define THROTTLE_NOLIMIT -1
 
@@ -120,7 +120,7 @@ typedef struct {
     off_t next_byte_index;
     } connecttab;
 static int max_connects;
-static connecttab *connects : itype(_Array_ptr<connecttab>) count(max_connects) = ((void *)0);
+static connecttab *connects : itype(_Array_ptr<connecttab>) byte_count(sizeof(connecttab) * max_connects) = ((void *)0);
 static int num_connects, first_free_connect;
 static int httpd_conn_count;
 
@@ -149,19 +149,19 @@ static void read_config(char *filename : itype(_Nt_array_ptr<char>));
 static void value_required(char *name : itype(_Nt_array_ptr<char>), char *value : itype(_Ptr<char>));
 static void no_value_required(char *name : itype(_Nt_array_ptr<char>), char *value : itype(_Ptr<char>));
 static char *e_strdup(char *oldstr : itype(_Nt_array_ptr<char>) count(4999)) : itype(_Nt_array_ptr<char>);
-static void lookup_hostname(httpd_sockaddr *sa4P : itype(_Array_ptr<httpd_sockaddr>) count(sa4_len), size_t sa4_len, int *gotv4P : itype(_Ptr<int>), httpd_sockaddr *sa6P : itype(_Array_ptr<httpd_sockaddr>) count(sa6_len), size_t sa6_len, int *gotv6P : itype(_Ptr<int>));
+static void lookup_hostname(httpd_sockaddr *sa4P : itype(_Array_ptr<httpd_sockaddr>) byte_count(sa4_len), size_t sa4_len, int *gotv4P : itype(_Ptr<int>), httpd_sockaddr *sa6P : itype(_Array_ptr<httpd_sockaddr>) byte_count(sa6_len), size_t sa6_len, int *gotv6P : itype(_Ptr<int>));
 static void read_throttlefile(char *tf : itype(_Nt_array_ptr<char>));
 static void shut_down( void );
 static int handle_newconnect(struct timeval *tvP : itype(_Ptr<struct timeval>), int listen_fd);
-static void handle_read(connecttab *c : itype(_Array_ptr<connecttab>) count(max_connects), struct timeval *tvP : itype(_Ptr<struct timeval>));
-static void handle_send(connecttab *c : itype(_Array_ptr<connecttab>) count(max_connects), struct timeval *tvP : itype(_Ptr<struct timeval>));
-static void handle_linger(connecttab *c : itype(_Array_ptr<connecttab>) count(max_connects), struct timeval *tvP : itype(_Ptr<struct timeval>));
+static void handle_read(connecttab *c : itype(_Array_ptr<connecttab>) bounds(connects, connects + max_connects), struct timeval *tvP : itype(_Ptr<struct timeval>));
+static void handle_send(connecttab *c : itype(_Array_ptr<connecttab>) bounds(connects, connects + max_connects), struct timeval *tvP : itype(_Ptr<struct timeval>));
+static void handle_linger(connecttab *c : itype(_Array_ptr<connecttab>) bounds(connects, connects + max_connects), struct timeval *tvP : itype(_Ptr<struct timeval>));
 static int check_throttles(connecttab *c : itype(_Ptr<connecttab>));
 static void clear_throttles(connecttab *c : itype(_Ptr<connecttab>), struct timeval *tvP : itype(_Ptr<struct timeval>));
 static void update_throttles(ClientData client_data, struct timeval *nowP : itype(_Ptr<struct timeval>));
-static void finish_connection(connecttab *c : itype(_Array_ptr<connecttab>) count(max_connects), struct timeval *tvP : itype(_Ptr<struct timeval>));
-static void clear_connection(connecttab *c : itype(_Array_ptr<connecttab>) count(max_connects), struct timeval *tvP : itype(_Ptr<struct timeval>));
-static void really_clear_connection(connecttab *c : itype(_Array_ptr<connecttab>) count(max_connects), struct timeval *tvP : itype(_Ptr<struct timeval>));
+static void finish_connection(connecttab *c : itype(_Array_ptr<connecttab>) bounds(connects, connects + max_connects), struct timeval *tvP : itype(_Ptr<struct timeval>));
+static void clear_connection(connecttab *c : itype(_Array_ptr<connecttab>) bounds(connects, connects + max_connects), struct timeval *tvP : itype(_Ptr<struct timeval>));
+static void really_clear_connection(connecttab *c : itype(_Array_ptr<connecttab>) bounds(connects, connects + max_connects), struct timeval *tvP : itype(_Ptr<struct timeval>));
 static void idle(ClientData client_data, struct timeval *nowP : itype(_Ptr<struct timeval>));
 static void wakeup_connection(ClientData client_data, struct timeval *nowP : itype(_Ptr<struct timeval>));
 static void linger_clear_connection(ClientData client_data, struct timeval *nowP : itype(_Ptr<struct timeval>));
@@ -364,19 +364,18 @@ re_open_logfile( void )
     }
 
 
-int
-main( int argc, char** argv )
+_Checked int
+main(int argc, char **argv : itype(_Array_ptr<_Nt_array_ptr<char>>) count(argc))
     {
-    char* cp;
-    struct passwd* pwd;
+    _Nt_array_ptr<char> cp = ((void *)0);
+    _Ptr<struct passwd> pwd = ((void *)0);
     uid_t uid = 32767;
     gid_t gid = 32767;
-    char cwd[MAXPATHLEN+1];
-    FILE* logfp;
+    char cwd _Nt_checked[MAXPATHLEN+1];
+    _Ptr<FILE> logfp = ((void *)0);
     int num_ready;
     int cnum;
-    connecttab* c;
-    httpd_conn* hc;
+    _Ptr<httpd_conn> hc = ((void *)0);
     httpd_sockaddr sa4;
     httpd_sockaddr sa6;
     int gotv4, gotv6;
@@ -384,8 +383,8 @@ main( int argc, char** argv )
 
     argv0 = argv[0];
 
-    cp = strrchr( argv0, '/' );
-    if ( cp != (char*) 0 )
+    cp = ((_Nt_array_ptr<char> )strrchr( argv0, '/' ));
+    if ( cp != 0 && *cp != '\0' )
 	++cp;
     else
 	cp = argv0;
@@ -409,8 +408,8 @@ main( int argc, char** argv )
     /* Throttle file. */
     numthrottles = 0;
     maxthrottles = 0;
-    throttles = (throttletab*) 0;
-    if ( throttlefile != (char*) 0 )
+    throttles = 0;
+    if ( throttlefile != 0 )
 	read_throttlefile( throttlefile );
 
     /* If we're root and we're going to become another user, get the uid/gid
@@ -419,7 +418,7 @@ main( int argc, char** argv )
     if ( getuid() == 0 )
 	{
 	pwd = getpwnam( user );
-	if ( pwd == (struct passwd*) 0 )
+	if ( pwd == 0 )
 	    {
 	    syslog( LOG_CRIT, "unknown user - '%.80s'", user );
 	    (void) fprintf( stderr, "%s: unknown user - '%s'\n", argv0, user );
@@ -430,19 +429,19 @@ main( int argc, char** argv )
 	}
 
     /* Log file. */
-    if ( logfile != (char*) 0 )
+    if ( logfile != 0 )
 	{
 	if ( strcmp( logfile, "/dev/null" ) == 0 )
 	    {
 	    no_log = 1;
-	    logfp = (FILE*) 0;
+	    logfp = (_Ptr<FILE>) 0;
 	    }
 	else if ( strcmp( logfile, "-" ) == 0 )
 	    logfp = stdout;
 	else
 	    {
 	    logfp = fopen( logfile, "a" );
-	    if ( logfp == (FILE*) 0 )
+	    if ( logfp ==  0 )
 		{
 		syslog( LOG_CRIT, "%.80s - %m", logfile );
 		perror( logfile );
@@ -453,7 +452,7 @@ main( int argc, char** argv )
 		syslog( LOG_WARNING, "logfile is not an absolute path, you may not be able to re-open it" );
 		(void) fprintf( stderr, "%s: logfile is not an absolute path, you may not be able to re-open it\n", argv0 );
 		}
-	    (void) fcntl( fileno( logfp ), F_SETFD, 1 );
+	    _Unchecked { (void) fcntl( fileno( logfp ), F_SETFD, 1 ); }
 	    if ( getuid() == 0 )
 		{
 		/* If we are root then we chown the log file to the user we'll
@@ -468,10 +467,10 @@ main( int argc, char** argv )
 	    }
 	}
     else
-	logfp = (FILE*) 0;
+	logfp = (_Ptr<FILE>) 0;
 
     /* Switch directories if requested. */
-    if ( dir != (char*) 0 )
+    if ( dir !=  0 )
 	{
 	if ( chdir( dir ) < 0 )
 	    {
@@ -544,11 +543,11 @@ main( int argc, char** argv )
 #endif /* HAVE_SETSID */
 	}
 
-    if ( pidfile != (char*) 0 )
+    if ( pidfile !=  0 )
 	{
 	/* Write the PID file. */
-	FILE* pidfp = fopen( pidfile, "w" );
-	if ( pidfp == (FILE*) 0 )
+	_Ptr<FILE> pidfp = fopen( pidfile, "w" );
+	if ( pidfp ==  0 )
 	    {
 	    syslog( LOG_CRIT, "%.80s - %m", pidfile );
 	    exit( 1 );
@@ -582,11 +581,17 @@ main( int argc, char** argv )
 	** that the logfile pathname still works from inside the chroot
 	** tree.
 	*/
-	if ( logfile != (char*) 0 && strcmp( logfile, "-" ) != 0 )
+	if ( logfile !=  0 && strcmp( logfile, "-" ) != 0 )
 	    {
-	    if ( strncmp( logfile, cwd, strlen( cwd ) ) == 0 )
+            size_t cwd_len = strlen( cwd );
+	    if ( strncmp( logfile, cwd, cwd_len ) == 0 )
 		{
-		(void) ol_strcpy( logfile, &logfile[strlen( cwd ) - 1] );
+                _Nt_array_ptr<char> logfile_expand : count(cwd_len) = 0;
+                _Unchecked {
+                  logfile_expand = _Assume_bounds_cast<_Nt_array_ptr<char>>(logfile, count(cwd_len));
+                }
+                _Nt_array_ptr<char> logfile_offset = _Dynamic_bounds_cast<_Nt_array_ptr<char>>(logfile_expand + (cwd_len - 1), count(0));
+		(void) ol_strcpy( logfile, logfile_offset );
 		/* (We already guaranteed that cwd ends with a slash, so leaving
 		** that slash in logfile makes it an absolute pathname within
 		** the chroot tree.)
@@ -609,7 +614,7 @@ main( int argc, char** argv )
 	}
 
     /* Switch directories again if requested. */
-    if ( data_dir != (char*) 0 )
+    if ( data_dir !=  0 )
 	{
 	if ( chdir( data_dir ) < 0 )
 	    {
@@ -624,7 +629,7 @@ main( int argc, char** argv )
     (void) sigset( SIGTERM, handle_term );
     (void) sigset( SIGINT, handle_term );
     (void) sigset( SIGCHLD, handle_chld );
-    (void) sigset( SIGPIPE, SIG_IGN );          /* get EPIPE instead */
+    _Unchecked { (void) sigset( SIGPIPE, SIG_IGN ); }         /* get EPIPE instead */
     (void) sigset( SIGHUP, handle_hup );
     (void) sigset( SIGUSR1, handle_usr1 );
     (void) sigset( SIGUSR2, handle_usr2 );
@@ -650,23 +655,29 @@ main( int argc, char** argv )
     /* Initialize the HTTP layer.  Got to do this before giving up root,
     ** so that we can bind to a privileged port.
     */
+    _Ptr<httpd_sockaddr> ptr_sa4 = 0;
+    if (gotv4)
+      ptr_sa4 = &sa4;
+    _Ptr<httpd_sockaddr> ptr_sa6 = 0;
+    if (gotv6)
+      ptr_sa6 = &sa6;
     hs = httpd_initialize(
 	hostname,
-	gotv4 ? &sa4 : (httpd_sockaddr*) 0, gotv6 ? &sa6 : (httpd_sockaddr*) 0,
+	ptr_sa4, ptr_sa6,
 	port, cgi_pattern, cgi_limit, charset, p3p, max_age, cwd, no_log, logfp,
 	no_symlink_check, do_vhost, do_global_passwd, url_pattern,
 	local_pattern, no_empty_referrers );
-    if ( hs == (httpd_server*) 0 )
+    if ( hs ==  0 )
 	exit( 1 );
 
     /* Set up the occasional timer. */
-    if ( tmr_create( (struct timeval*) 0, occasional, JunkClientData, OCCASIONAL_TIME * 1000L, 1 ) == (Timer*) 0 )
+    if ( tmr_create( (_Ptr<struct timeval>) 0, occasional, JunkClientData, OCCASIONAL_TIME * 1000L, 1 ) ==  0 )
 	{
 	syslog( LOG_CRIT, "tmr_create(occasional) failed" );
 	exit( 1 );
 	}
     /* Set up the idle timer. */
-    if ( tmr_create( (struct timeval*) 0, idle, JunkClientData, 5 * 1000L, 1 ) == (Timer*) 0 )
+    if ( tmr_create( (_Ptr<struct timeval>) 0, idle, JunkClientData, 5 * 1000L, 1 ) ==  0 )
 	{
 	syslog( LOG_CRIT, "tmr_create(idle) failed" );
 	exit( 1 );
@@ -674,7 +685,7 @@ main( int argc, char** argv )
     if ( numthrottles > 0 )
 	{
 	/* Set up the throttles timer. */
-	if ( tmr_create( (struct timeval*) 0, update_throttles, JunkClientData, THROTTLE_TIME * 1000L, 1 ) == (Timer*) 0 )
+	if ( tmr_create( (_Ptr<struct timeval>) 0, update_throttles, JunkClientData, THROTTLE_TIME * 1000L, 1 ) ==  0 )
 	    {
 	    syslog( LOG_CRIT, "tmr_create(update_throttles) failed" );
 	    exit( 1 );
@@ -682,13 +693,13 @@ main( int argc, char** argv )
 	}
 #ifdef STATS_TIME
     /* Set up the stats timer. */
-    if ( tmr_create( (struct timeval*) 0, show_stats, JunkClientData, STATS_TIME * 1000L, 1 ) == (Timer*) 0 )
+    if ( tmr_create( (_Ptr<struct timeval>) 0, show_stats, JunkClientData, STATS_TIME * 1000L, 1 ) ==  0 )
 	{
 	syslog( LOG_CRIT, "tmr_create(show_stats) failed" );
 	exit( 1 );
 	}
 #endif /* STATS_TIME */
-    start_time = stats_time = time( (time_t*) 0 );
+    start_time = stats_time = time(  0 );
     stats_connections = 0;
     stats_bytes = 0;
     stats_simultaneous = 0;
@@ -697,7 +708,7 @@ main( int argc, char** argv )
     if ( getuid() == 0 )
 	{
 	/* Set aux groups to null. */
-	if ( setgroups( 0, (const gid_t*) 0 ) < 0 )
+	if ( setgroups( 0,  0 ) < 0 )
 	    {
 	    syslog( LOG_CRIT, "setgroups - %m" );
 	    exit( 1 );
@@ -729,8 +740,9 @@ main( int argc, char** argv )
 	}
 
     /* Initialize our connections table. */
-    connects = NEW( connecttab, max_connects );
-    if ( connects == (connecttab*) 0 )
+    connects = malloc<connecttab>(sizeof(connecttab) * max_connects);// NEW( connecttab, max_connects );
+    _Array_ptr<connecttab> c : bounds(connects, connects + max_connects) = 0;
+    if ( connects ==  0 )
 	{
 	syslog( LOG_CRIT, "out of memory allocating a connecttab" );
 	exit( 1 );
@@ -739,23 +751,23 @@ main( int argc, char** argv )
 	{
 	connects[cnum].conn_state = CNST_FREE;
 	connects[cnum].next_free_connect = cnum + 1;
-	connects[cnum].hc = (httpd_conn*) 0;
+	connects[cnum].hc = (_Ptr<httpd_conn>) 0;
 	}
     connects[max_connects - 1].next_free_connect = -1;	/* end of link list */
     first_free_connect = 0;
     num_connects = 0;
     httpd_conn_count = 0;
 
-    if ( hs != (httpd_server*) 0 )
+    if ( hs !=  0 )
 	{
 	if ( hs->listen4_fd != -1 )
-	    fdwatch_add_fd( hs->listen4_fd, (void*) 0, FDW_READ );
+	    fdwatch_add_fd<void>( hs->listen4_fd, (void*) 0, FDW_READ );
 	if ( hs->listen6_fd != -1 )
-	    fdwatch_add_fd( hs->listen6_fd, (void*) 0, FDW_READ );
+	    fdwatch_add_fd<void>( hs->listen6_fd, (void*) 0, FDW_READ );
 	}
 
     /* Main loop. */
-    (void) gettimeofday( &tv, (struct timezone*) 0 );
+    (void) gettimeofday( &tv,  0 );
     while ( ( ! terminate ) || num_connects > 0 )
 	{
 	/* Do we need to re-open the log file? */
@@ -774,7 +786,7 @@ main( int argc, char** argv )
 	    syslog( LOG_ERR, "fdwatch - %m" );
 	    exit( 1 );
 	    }
-	(void) gettimeofday( &tv, (struct timezone*) 0 );
+	(void) gettimeofday( &tv,  0 );
 
 	if ( num_ready == 0 )
 	    {
@@ -784,7 +796,7 @@ main( int argc, char** argv )
 	    }
 
 	/* Is it a new connection? */
-	if ( hs != (httpd_server*) 0 && hs->listen6_fd != -1 &&
+	if ( hs !=  0 && hs->listen6_fd != -1 &&
 	     fdwatch_check_fd( hs->listen6_fd ) )
 	    {
 	    if ( handle_newconnect( &tv, hs->listen6_fd ) )
@@ -794,7 +806,7 @@ main( int argc, char** argv )
 		*/
 		continue;
 	    }
-	if ( hs != (httpd_server*) 0 && hs->listen4_fd != -1 &&
+	if ( hs !=  0 && hs->listen4_fd != -1 &&
 	     fdwatch_check_fd( hs->listen4_fd ) )
 	    {
 	    if ( handle_newconnect( &tv, hs->listen4_fd ) )
@@ -806,9 +818,10 @@ main( int argc, char** argv )
 	    }
 
 	/* Find the connections that need servicing. */
-	while ( ( c = (connecttab*) fdwatch_get_next_client_data() ) != (connecttab*) -1 )
+        _Unchecked { c =  _Assume_bounds_cast<_Array_ptr<connecttab>>(fdwatch_get_next_client_data<connecttab>(), bounds(connects, connects + max_connects)); }
+	while ( c != -1 )
 	    {
-	    if ( c == (connecttab*) 0 )
+	    if ( c ==  0 )
 		continue;
 	    hc = c->hc;
 	    if ( ! fdwatch_check_fd( hc->conn_fd ) )
@@ -821,13 +834,15 @@ main( int argc, char** argv )
 		    case CNST_SENDING: handle_send( c, &tv ); break;
 		    case CNST_LINGERING: handle_linger( c, &tv ); break;
 		    }
+
+            _Unchecked { c =  _Assume_bounds_cast<_Array_ptr<connecttab>>(fdwatch_get_next_client_data<connecttab>(), bounds(connects, connects + max_connects)); }
 	    }
 	tmr_run( &tv );
 
 	if ( got_usr1 && ! terminate )
 	    {
 	    terminate = 1;
-	    if ( hs != (httpd_server*) 0 )
+	    if ( hs !=  0 )
 		{
 		if ( hs->listen4_fd != -1 )
 		    fdwatch_del_fd( hs->listen4_fd );
