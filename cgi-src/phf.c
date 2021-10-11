@@ -40,21 +40,21 @@
 
 #include "config.h"
 
-static char* argv0;
+static char *argv0 : itype(_Nt_array_ptr<char>) = ((void *)0);
 
-int
-main( int argc, char* argv[] )
+_Checked int
+main(int argc, char **argv : itype(_Array_ptr<_Nt_array_ptr<char>>) count(argc))
     {
-    char* cp;
+    _Nt_array_ptr<char> cp = ((void *)0);
 
     argv0 = argv[0];
-    cp = strrchr( argv0, '/' );
-    if ( cp != (char*) 0 )
+    cp = ((_Nt_array_ptr<char> )strrchr( argv0, '/' ));
+    if ( cp != 0 && *cp != '\0' )
 	++cp;
     else
 	cp = argv0;
     openlog( cp, LOG_NDELAY|LOG_PID, LOG_FACILITY );
-    syslog( LOG_CRIT, "phf CGI probe from %s", getenv( "REMOTE_ADDR" ) );
+    syslog( LOG_CRIT, "phf CGI probe from %s", ((_Nt_array_ptr<char> )getenv( "REMOTE_ADDR" )) );
     (void) printf( "\
 Content-type: text/html\n\
 Status: 404/html\n\
