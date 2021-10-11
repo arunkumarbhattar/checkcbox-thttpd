@@ -67,13 +67,13 @@
 #include "checkedc_utils.h"
 
 
-static char* argv0;
+static char *argv0 : itype(_Nt_array_ptr<char>) = ((void *)0);
 
 
-static void
-internal_error( char* reason )
+_Checked static void
+internal_error(char *reason : itype(_Nt_array_ptr<char>))
     {
-    char* title = "500 Internal Error";
+    _Nt_array_ptr<char> title : byte_count(18) = "500 Internal Error";
 
     (void) printf( "\
 Status: %s\n\
@@ -89,10 +89,10 @@ Something unusual went wrong during a redirection request:\n\
     }
 
 
-static void
-not_found( char* script_name )
+_Checked static void
+not_found(char *script_name : itype(_Nt_array_ptr<char>))
     {
-    char* title = "404 Not Found";
+    _Nt_array_ptr<char> title : byte_count(13) = "404 Not Found";
 
     (void) printf( "\
 Status: %s\n\
@@ -106,10 +106,10 @@ however, the new URL has not yet been specified.\n\
     }
 
 
-static void
-moved( char* script_name, char* url )
+_Checked static void
+moved(char *script_name : itype(_Nt_array_ptr<char>), char *url : itype(_Nt_array_ptr<char>) count(4999))
     {
-    char* title = "Moved";
+    _Nt_array_ptr<char> title : byte_count(5) = "Moved";
 
     (void) printf( "\
 Location: %s\n\
@@ -123,23 +123,25 @@ The requested filename, %s, has moved to a new URL:\n\
     }
 	
 
-int
-main( int argc, char** argv )
+_Checked int
+main(int argc, char **argv : itype(_Array_ptr<_Nt_array_ptr<char>>) count(argc))
     {
-    char* script_name;
-    char* path_info;
-    char* cp;
-    FILE* fp;
-    char *star;
-    char buf[5000], file[5000], url[5000];
+    _Nt_array_ptr<char> script_name = ((void *)0);
+    _Nt_array_ptr<char> path_info = ((void *)0);
+    _Ptr<FILE> fp = ((void *)0);
+    _Nt_array_ptr<char> star = ((void *)0);
+    char buf _Nt_checked[5000];
+char file _Nt_checked[5000];
+char url _Nt_checked[5000];
+
 
     argv0 = argv[0];
 
     /* Get the name that we were run as, which is the filename being
     ** redirected.
     */
-    script_name = getenv( "SCRIPT_NAME" );
-    if ( script_name == (char*) 0 )
+    script_name = ((_Nt_array_ptr<char> )getenv( "SCRIPT_NAME" ));
+    if ( script_name ==  0 )
 	{
 	internal_error( "Couldn't get SCRIPT_NAME environment variable." );
 	exit( 1 );
@@ -148,14 +150,14 @@ main( int argc, char** argv )
     /* Append the PATH_INFO, if any.  This allows redirection of whole
     ** directories.
     */
-    path_info = getenv( "PATH_INFO" );
-    if ( path_info != (char*) 0 )
+    path_info = ((_Nt_array_ptr<char> )getenv( "PATH_INFO" ));
+    if ( path_info !=  0 )
 	{
 	// `cp` was used for multiple things, and I want to see if I can get at
 	// least this one to become checked by using a separate variable. ~ Matt
 	size_t full_script_name_len = strlen( script_name ) + strlen( path_info );
-	char *full_script_name = malloc_nt( full_script_name_len );
-	if ( full_script_name == (char*) 0 )
+	_Nt_array_ptr<char> full_script_name : count(full_script_name_len) = ((_Nt_array_ptr<char> )malloc_nt( full_script_name_len ));
+	if ( full_script_name ==  0 )
 	    {
 	    internal_error( "Out of memory." );
 	    exit( 1 );
@@ -166,22 +168,23 @@ main( int argc, char** argv )
 
     /* Open the redirects file. */
     fp = fopen( ".redirects", "r" );
-    if ( fp == (FILE*) 0 )
+    if ( fp ==  0 )
 	{
 	internal_error( "Couldn't open .redirects file." );
 	exit( 1 );
 	}
 
     /* Search the file for a matching entry. */
-    while ( fgets( buf, sizeof(buf), fp ) != (char*) 0 )
+    while ( fgets( buf, sizeof(buf) - 1, fp ) !=  0 )
 	{
 	/* Remove comments. */
-	cp = strchr( buf, '#' );
-	if ( cp != (char*) 0 )
+        _Nt_array_ptr<char> cp = ((_Nt_array_ptr<char> )strchr( buf, '#' ));
+	if ( cp !=  0 )
 	    *cp = '\0';
 	/* Skip leading whitespace. */
 	cp = buf;
-	cp += strspn( cp, " \t" );
+        size_t spn = strspn(cp, " \t") _Where cp : bounds(cp, cp + spn);
+        cp += spn;
 	/* Check for blank line. */
 	if ( *cp != '\0' )
 	    {
@@ -190,13 +193,15 @@ main( int argc, char** argv )
 		{
 		/* Check for wildcard match. */
 		star = strchr( file, '*' );
-		if ( star != (char*) 0 )
+		if ( star !=  0 )
 		    {
 		    /* Check for leading match. */
 		    if ( strncmp( file, script_name, star - file ) == 0 )
 			{
 			/* Got it; put together the full name. */
-			xstrbcat( url, script_name + ( star - file ), sizeof url - 1 );
+                        size_t script_name_len = strlen(script_name) _Where script_name : bounds(script_name, script_name + script_name_len);
+                        _Nt_array_ptr<char> tmp = _Dynamic_bounds_cast<_Nt_array_ptr<char>>(script_name + ( star - file), count(0));
+			xstrbcat( url,  tmp, sizeof url - 1 );
 			/* XXX Whack the script_name, too? */
 			moved( script_name, url );
 			exit( 0 );
