@@ -83,19 +83,19 @@ typedef struct MapStruct {
     time_t ct;
     int refcount;
     time_t reftime;
-    void* addr;
+    void* addr : itype(_Ptr<void>);
     unsigned int hash;
     int hash_idx;
-    struct MapStruct* next;
+    struct MapStruct *next : itype(_Ptr<struct MapStruct>);
     } Map;
 
 
 /* Globals. */
-static Map* maps = (Map*) 0;
-static Map* free_maps = (Map*) 0;
+static Map *maps : itype(_Ptr<Map>) = (_Ptr<Map>) 0;
+static Map *free_maps : itype(_Ptr<Map>) = (_Ptr<Map>) 0;
 static int alloc_count = 0, map_count = 0, free_count = 0;
-static Map** hash_table = (Map**) 0;
-static int hash_size;
+static size_t hash_size;
+static Map **hash_table : itype(_Array_ptr<_Ptr<Map>>) count(hash_size) = (_Array_ptr<_Ptr<Map>>) 0;
 static unsigned int hash_mask;
 static time_t expire_age = DEFAULT_EXPIRE_AGE;
 static off_t mapped_bytes = 0;
@@ -104,23 +104,23 @@ static off_t mapped_bytes = 0;
 
 /* Forwards. */
 static void panic( void );
-static void really_unmap( Map** mm );
+static void really_unmap(Map **mm : itype(_Ptr<_Ptr<Map>>));
 static int check_hash_size( void );
-static int add_hash( Map* m );
-static Map* find_hash( ino_t ino, dev_t dev, off_t size, time_t ct );
+static int add_hash(Map *m : itype(_Ptr<Map>));
+static Map *find_hash(ino_t ino, dev_t dev, off_t size, time_t ct) : itype(_Ptr<Map>);
 static unsigned int hash( ino_t ino, dev_t dev, off_t size, time_t ct );
 
 
-void*
-mmc_map( char* filename, struct stat* sbP, struct timeval* nowP )
+_Checked _Itype_for_any(T) void*
+mmc_map(char *filename : itype(_Nt_array_ptr<char>), struct stat *sbP : itype(_Ptr<struct stat>), struct timeval *nowP : itype(_Ptr<struct timeval>)) : itype(_Ptr<T>)
     {
     time_t now;
     struct stat sb;
-    Map* m;
+    _Ptr<Map> m = ((void *)0);
     int fd;
 
     /* Stat the file, if necessary. */
-    if ( sbP != (struct stat*) 0 )
+    if ( sbP !=  0 )
 	sb = *sbP;
     else
 	{
@@ -132,10 +132,10 @@ mmc_map( char* filename, struct stat* sbP, struct timeval* nowP )
 	}
 
     /* Get the current time, if necessary. */
-    if ( nowP != (struct timeval*) 0 )
+    if ( nowP !=  0 )
 	now = nowP->tv_sec;
     else
-	now = time( (time_t*) 0 );
+	now = time(  0 );
 
     /* See if we have it mapped already, via the hash table. */
     if ( check_hash_size() < 0 )
@@ -144,16 +144,16 @@ mmc_map( char* filename, struct stat* sbP, struct timeval* nowP )
 	return (void*) 0;
 	}
     m = find_hash( sb.st_ino, sb.st_dev, sb.st_size, sb.st_ctime );
-    if ( m != (Map*) 0 )
+    if ( m !=  0 )
 	{
 	/* Yep.  Just return the existing map */
 	++m->refcount;
 	m->reftime = now;
-	return m->addr;
+	_Unchecked { return _Assume_bounds_cast<_Ptr<T>>(m->addr); }
 	}
 
     /* Open the file. */
-    fd = open( filename, O_RDONLY );
+    _Unchecked { fd = open( filename, O_RDONLY ); }
     if ( fd < 0 )
 	{
 	syslog( LOG_ERR, "open - %m" );
@@ -161,7 +161,7 @@ mmc_map( char* filename, struct stat* sbP, struct timeval* nowP )
 	}
 
     /* Find a free Map entry or make a new one. */
-    if ( free_maps != (Map*) 0 )
+    if ( free_maps !=  0 )
 	{
 	m = free_maps;
 	free_maps = m->next;
@@ -169,8 +169,8 @@ mmc_map( char* filename, struct stat* sbP, struct timeval* nowP )
 	}
     else
 	{
-	m = (Map*) malloc( sizeof(Map) );
-	if ( m == (Map*) 0 )
+	m = (_Ptr<Map>) malloc<Map>( sizeof(Map) );
+	if ( m ==  0 )
 	    {
 	    (void) close( fd );
 	    syslog( LOG_ERR, "out of memory allocating a Map" );
@@ -191,26 +191,30 @@ mmc_map( char* filename, struct stat* sbP, struct timeval* nowP )
     ** to mmap them, other systems dislike mallocing zero bytes.
     */
     if ( m->size == 0 )
-	m->addr = (void*) 1;	/* arbitrary non-NULL address */
+	_Unchecked { m->addr = _Assume_bounds_cast<_Ptr<void>>(1); }	/* arbitrary non-NULL address */
     else
 	{
 	size_t size_size = (size_t) m->size;	/* loses on files >2GB */
 #ifdef HAVE_MMAP
 	/* Map the file into memory. */
-	m->addr = mmap( 0, size_size, PROT_READ, MAP_PRIVATE, fd, 0 );
-	if ( m->addr == (void*) -1 && errno == ENOMEM )
+        _Unchecked {
+	  m->addr = mmap( 0, size_size, PROT_READ, MAP_PRIVATE, fd, 0 );
+        }
+	if ( (int) m->addr ==  -1 && errno == ENOMEM )
 	    {
 	    /* Ooo, out of address space.  Free all unreferenced maps
 	    ** and try again.
 	    */
 	    panic();
-	    m->addr = mmap( 0, size_size, PROT_READ, MAP_PRIVATE, fd, 0 );
+            _Unchecked {
+	      m->addr = mmap( 0, size_size, PROT_READ, MAP_PRIVATE, fd, 0 );
+            }
 	    }
-	if ( m->addr == (void*) -1 )
+	if ( (int) m->addr ==  -1 )
 	    {
 	    syslog( LOG_ERR, "mmap - %m" );
 	    (void) close( fd );
-	    free( m );
+	    free<Map>( m );
 	    --alloc_count;
 	    return (void*) 0;
 	    }
@@ -249,7 +253,7 @@ mmc_map( char* filename, struct stat* sbP, struct timeval* nowP )
     if ( add_hash( m ) < 0 )
 	{
 	syslog( LOG_ERR, "add_hash() failure" );
-	free( m );
+	free<Map>( m );
 	--alloc_count;
 	return (void*) 0;
 	}
@@ -263,21 +267,20 @@ mmc_map( char* filename, struct stat* sbP, struct timeval* nowP )
     mapped_bytes += m->size;
 
     /* And return the address. */
-    return m->addr;
+    _Unchecked { return _Assume_bounds_cast<_Ptr<T>>(m->addr); }
     }
 
 
-void
-mmc_unmap( void* addr, struct stat* sbP, struct timeval* nowP )
+_Itype_for_any(T) void mmc_unmap(void* addr : itype(_Ptr<T>), struct stat *sbP : itype(_Ptr<struct stat>), struct timeval *nowP : itype(_Ptr<struct timeval>))
     {
-    Map* m = (Map*) 0;
+    _Ptr<Map> m = (_Ptr<Map>) 0;
 
     /* Find the Map entry for this address.  First try a hash. */
     if ( sbP != (struct stat*) 0 )
 	{
 	m = find_hash( sbP->st_ino, sbP->st_dev, sbP->st_size, sbP->st_ctime );
 	if ( m != (Map*) 0 && m->addr != addr )
-	    m = (Map*) 0;
+	    m = (_Ptr<Map>) 0;
 	}
     /* If that didn't work, try a full search. */
     if ( m == (Map*) 0 )
@@ -299,21 +302,21 @@ mmc_unmap( void* addr, struct stat* sbP, struct timeval* nowP )
     }
 
 
-void
-mmc_cleanup( struct timeval* nowP )
+_Checked void
+mmc_cleanup(struct timeval *nowP : itype(_Ptr<struct timeval>))
     {
     time_t now;
-    Map** mm;
-    Map* m;
+    _Ptr<_Ptr<Map>> mm = ((void *)0);
+    _Ptr<Map> m = ((void *)0);
 
     /* Get the current time, if necessary. */
-    if ( nowP != (struct timeval*) 0 )
+    if ( nowP !=  0 )
 	now = nowP->tv_sec;
     else
-	now = time( (time_t*) 0 );
+	now = time(  0 );
 
     /* Really unmap any unreferenced entries older than the age limit. */
-    for ( mm = &maps; *mm != (Map*) 0; )
+    for ( mm = &maps; *mm !=  0; )
 	{
 	m = *mm;
 	if ( m->refcount == 0 && now - m->reftime >= expire_age )
@@ -338,22 +341,22 @@ mmc_cleanup( struct timeval* nowP )
 	m = free_maps;
 	free_maps = m->next;
 	--free_count;
-	free( m );
+	free<Map>( m );
 	--alloc_count;
 	}
     }
 
 
-static void
+_Checked static void
 panic( void )
     {
-    Map** mm;
-    Map* m;
+    _Ptr<_Ptr<Map>> mm = ((void *)0);
+    _Ptr<Map> m = ((void *)0);
 
     syslog( LOG_ERR, "mmc panic - freeing all unreferenced maps" );
 
     /* Really unmap all unreferenced entries. */
-    for ( mm = &maps; *mm != (Map*) 0; )
+    for ( mm = &maps; *mm !=  0; )
 	{
 	m = *mm;
 	if ( m->refcount == 0 )
@@ -364,16 +367,18 @@ panic( void )
     }
 
 
-static void
-really_unmap( Map** mm )
+_Checked static void
+really_unmap(Map **mm : itype(_Ptr<_Ptr<Map>>))
     {
-    Map* m;
+    _Ptr<Map> m = ((void *)0);
 
     m = *mm;
     if ( m->size != 0 )
 	{
 #ifdef HAVE_MMAP
-	if ( munmap( m->addr, m->size ) < 0 )
+        int res = 0;
+        _Unchecked { munmap( (void*) m->addr, m->size ); }
+	if ( res < 0 )
 	    syslog( LOG_ERR, "munmap - %m" );
 #else /* HAVE_MMAP */
 	free( m->addr );
@@ -390,37 +395,37 @@ really_unmap( Map** mm )
     /* This will sometimes break hash chains, but that's harmless; the
     ** unmapping code that searches the hash table knows to keep searching.
     */
-    hash_table[m->hash_idx] = (Map*) 0;
+    hash_table[m->hash_idx] = (_Ptr<Map>) 0;
     }
 
 
-void
+_Checked void
 mmc_term( void )
     {
-    Map* m;
+    _Ptr<Map> m = ((void *)0);
 
-    while ( maps != (Map*) 0 )
+    while ( maps !=  0 )
 	really_unmap( &maps );
-    while ( free_maps != (Map*) 0 )
+    while ( free_maps !=  0 )
 	{
 	m = free_maps;
 	free_maps = m->next;
 	--free_count;
-	free( m );
+	free<Map>( m );
 	--alloc_count;
 	}
     }
 
 
 /* Make sure the hash table is big enough. */
-static int
+_Checked static int
 check_hash_size( void )
     {
     int i;
-    Map* m;
+    _Ptr<Map> m = ((void *)0);
 
     /* Are we just starting out? */
-    if ( hash_table == (Map**) 0 )
+    if ( hash_table == 0 )
 	{
 	hash_size = INITIAL_HASH_SIZE;
 	hash_mask = hash_size - 1;
@@ -431,7 +436,7 @@ check_hash_size( void )
     else
 	{
 	/* No, got to expand. */
-	free( hash_table );
+	free<_Ptr<Map>>( hash_table );
 	/* Double the hash size until it's big enough. */
 	do
 	    {
@@ -441,22 +446,22 @@ check_hash_size( void )
 	hash_mask = hash_size - 1;
 	}
     /* Make the new table. */
-    hash_table = (Map**) malloc( hash_size * sizeof(Map*) );
-    if ( hash_table == (Map**) 0 )
+    hash_table = (_Array_ptr<_Ptr<Map>>) malloc<_Ptr<Map>>( hash_size * sizeof(Map*) );
+    if ( hash_table ==  0 )
 	return -1;
     /* Clear it. */
     for ( i = 0; i < hash_size; ++i )
-	hash_table[i] = (Map*) 0;
+	hash_table[i] = (_Ptr<Map>) 0;
     /* And rehash all entries. */
-    for ( m = maps; m != (Map*) 0; m = m->next )
+    for ( m = maps; m !=  0; m = m->next )
 	if ( add_hash( m ) < 0 )
 	    return -1;
     return 0;
     }
 
 
-static int
-add_hash( Map* m )
+_Checked static int
+add_hash(Map *m : itype(_Ptr<Map>))
     {
     unsigned int h, he, i;
 
@@ -464,7 +469,7 @@ add_hash( Map* m )
     he = ( h + hash_size - 1 ) & hash_mask;
     for ( i = h; ; i = ( i + 1 ) & hash_mask )
 	{
-	if ( hash_table[i] == (Map*) 0 )
+	if ( hash_table[i] == 0 )
 	    {
 	    hash_table[i] = m;
 	    m->hash = h;
@@ -478,18 +483,17 @@ add_hash( Map* m )
     }
 
 
-static Map*
-find_hash( ino_t ino, dev_t dev, off_t size, time_t ct )
+_Checked static Map *find_hash(ino_t ino, dev_t dev, off_t size, time_t ct) : itype(_Ptr<Map>)
     {
     unsigned int h, he, i;
-    Map* m;
+    _Ptr<Map> m = ((void *)0);
 
     h = hash( ino, dev, size, ct );
     he = ( h + hash_size - 1 ) & hash_mask;
     for ( i = h; ; i = ( i + 1 ) & hash_mask )
 	{
 	m = hash_table[i];
-	if ( m == (Map*) 0 )
+	if ( m == 0 )
 	    break;
 	if ( m->hash == h && m->ino == ino && m->dev == dev &&
 	     m->size == size && m->ct == ct )
@@ -497,11 +501,10 @@ find_hash( ino_t ino, dev_t dev, off_t size, time_t ct )
 	if ( i == he )
 	    break;
 	}
-    return (Map*) 0;
+    return (_Ptr<Map>) 0;
     }
 
-
-static unsigned int
+_Checked static unsigned int
 hash( ino_t ino, dev_t dev, off_t size, time_t ct )
     {
     unsigned int h = 177573;
@@ -519,11 +522,11 @@ hash( ino_t ino, dev_t dev, off_t size, time_t ct )
 
 
 /* Generate debugging statistics syslog message. */
-void
+_Checked void
 mmc_logstats( long secs )
     {
     syslog(
-	LOG_NOTICE, "  map cache - %d allocated, %d active (%lld bytes), %d free; hash size: %d; expire age: %lld",
+	LOG_NOTICE, "  map cache - %d allocated, %d active (%lld bytes), %d free; hash size: %zd; expire age: %lld",
 	alloc_count, map_count, (long long) mapped_bytes, free_count, hash_size,
 	(long long) expire_age );
     if ( map_count + free_count != alloc_count )
