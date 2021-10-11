@@ -137,9 +137,9 @@ static int auth_check2(httpd_conn *hc : itype(_Ptr<httpd_conn>), char *dirname :
 #endif /* AUTH_FILE */
 static void send_dirredirect(httpd_conn *hc : itype(_Ptr<httpd_conn>));
 static int hexit( char c );
-static void strdecode(char *to : itype(_Array_ptr<char>), char *from : itype(_Array_ptr<char>) byte_count(0));
+static void strdecode(char *to : itype(_Array_ptr<char>) count(to_size), size_t to_size, char *from : itype(_Nt_array_ptr<char>));
 #ifdef GENERATE_INDEXES
-static void strencode(char *to : itype(_Nt_array_ptr<char>) count(tosize), int tosize, char *from : itype(_Array_ptr<char>));
+static void strencode(char *to : itype(_Nt_array_ptr<char>) count(tosize), int tosize, char *from : itype(_Nt_array_ptr<char>));
 #endif /* GENERATE_INDEXES */
 #ifdef TILDE_MAP_1
 static int tilde_map_1( httpd_conn* hc );
@@ -1065,30 +1065,32 @@ auth_check(httpd_conn *hc : itype(_Ptr<httpd_conn>), char *dirname : itype(_Nt_a
 
 
 /* Returns -1 == unauthorized, 0 == no auth file, 1 = authorized. */
-static char* authpath : itype(_Nt_array_ptr<char>);
-static char* prevauthpath : itype(_Nt_array_ptr<char>);
-static char* prevuser : itype(_Nt_array_ptr<char>);
-static char* prevcryp : itype(_Nt_array_ptr<char>);
-static int
-auth_check2( httpd_conn* hc, char* dirname  )
+_Checked static int
+auth_check2(httpd_conn *hc : itype(_Ptr<httpd_conn>), char *dirname : itype(_Nt_array_ptr<char>))
     {
+    static _Nt_array_ptr<char> authpath = 0; 
+    static size_t maxprevauthpath = 0;
+    static _Nt_array_ptr<char> prevauthpath : count(maxprevauthpath) = 0; 
+    static size_t maxprevuser = 0;
+    static _Nt_array_ptr<char> prevuser : count(maxprevuser) = 0;
+    static size_t maxprevcryp = 0;
+    static _Nt_array_ptr<char> prevcryp : count(maxprevcryp) = 0;
+
     static size_t maxauthpath = 0;
     struct stat sb;
-    char authinfo[500];
-    char* authpass;
-    char* colon;
+    char authinfo _Nt_checked[500];
+    _Nt_array_ptr<char> authpass = ((void *)0);
+    _Nt_array_ptr<char> colon = ((void *)0);
     int l;
-    FILE* fp;
-    char line[500];
-    char* cryp;
-    static size_t maxprevauthpath = 0;
+    _Ptr<FILE> fp = ((void *)0);
+    char line _Nt_checked[500];
+    _Nt_array_ptr<char> cryp = ((void *)0);
     static time_t prevmtime;
-    static size_t maxprevuser = 0;
-    static size_t maxprevcryp = 0;
 
     /* Construct auth filename. */
+    size_t len_dirname = strlen(dirname);
     httpd_realloc_str_cc(
-	authpath, maxauthpath, strlen( dirname ) + 1 + sizeof(AUTH_FILE) );
+	authpath, maxauthpath, len_dirname + 1 + sizeof(AUTH_FILE) );
     (void) my_snprintf( authpath, maxauthpath, "%s/%s", dirname, AUTH_FILE );
 
     /* Does this directory have an auth file? */
@@ -1107,12 +1109,12 @@ auth_check2( httpd_conn* hc, char* dirname  )
 
     /* Decode it. */
     l = b64_decode(
-	&(hc->authorization[6]), (unsigned char*) authinfo,
+	&(hc->authorization[6]), (_Nt_array_ptr<unsigned char>) authinfo,
 	sizeof(authinfo) - 1 );
     authinfo[l] = '\0';
     /* Split into user and password. */
-    authpass = strchr( authinfo, ':' );
-    if ( authpass == (char*) 0 )
+    authpass = ((_Nt_array_ptr<char> )strchr( authinfo, ':' ));
+    if ( authpass ==  0 )
 	{
 	/* No colon?  Bogus auth info. */
 	send_authenticate( hc, dirname );
@@ -1120,8 +1122,8 @@ auth_check2( httpd_conn* hc, char* dirname  )
 	}
     *authpass++ = '\0';
     /* If there are more fields, cut them off. */
-    colon = strchr( authpass, ':' );
-    if ( colon != (char*) 0 )
+    colon = (_Nt_array_ptr<char>) strchr( authpass, ':' );
+    if ( colon !=  0 )
 	*colon = '\0';
 
     /* See if we have a cached entry and can use it. */
@@ -1131,11 +1133,12 @@ auth_check2( httpd_conn* hc, char* dirname  )
 	 strcmp( authinfo, prevuser ) == 0 )
 	{
 	/* Yes.  Check against the cached encrypted password. */
-	if ( strcmp( crypt( authpass, prevcryp ), prevcryp ) == 0 )
+	if ( strcmp( ((_Nt_array_ptr<char> )crypt( authpass, prevcryp )), prevcryp ) == 0 )
 	    {
 	    /* Ok! */
+            size_t len_authinfo = strlen(authinfo);
 	    httpd_realloc_str_cc(
-		hc->remoteuser, hc->maxremoteuser, strlen( authinfo ) );
+		hc->remoteuser, hc->maxremoteuser, len_authinfo );
 	    (void) xstrbcpy( hc->remoteuser, authinfo, hc->maxremoteuser );
 	    return 1;
 	    }
@@ -1149,12 +1152,12 @@ auth_check2( httpd_conn* hc, char* dirname  )
 
     /* Open the password file. */
     fp = fopen( authpath, "r" );
-    if ( fp == (FILE*) 0 )
+    if ( fp ==  0 )
 	{
 	/* The file exists but we can't open it?  Disallow access. */
 	syslog(
 	    LOG_ERR, "%.80s auth file %.80s could not be opened - %m",
-	    httpd_ntoa( &hc->client_addr ), authpath );
+	    ((_Nt_array_ptr<char> )httpd_ntoa( &hc->client_addr )), authpath );
 	httpd_send_err(
 	    hc, 403, err403title, "",
 	    ERROR_FORM( err403form, "The requested URL '%.80s' is protected by an authentication file, but the authentication file cannot be opened.\n" ),
@@ -1163,15 +1166,15 @@ auth_check2( httpd_conn* hc, char* dirname  )
 	}
 
     /* Read it. */
-    while ( fgets( line, sizeof(line), fp ) != (char*) 0 )
+    while ( fgets( line, sizeof(line) - 1, fp ) !=  0 )
 	{
 	/* Nuke newline. */
 	l = strlen( line );
 	if ( line[l - 1] == '\n' )
 	    line[l - 1] = '\0';
 	/* Split into user and encrypted password. */
-	cryp = strchr( line, ':' );
-	if ( cryp == (char*) 0 )
+	cryp = ((_Nt_array_ptr<char> )strchr( line, ':' ));
+	if ( cryp ==  0 )
 	    continue;
 	*cryp++ = '\0';
 	/* Is this the right user? */
@@ -1180,21 +1183,25 @@ auth_check2( httpd_conn* hc, char* dirname  )
 	    /* Yes. */
 	    (void) fclose( fp );
 	    /* So is the password right? */
-	    if ( strcmp( crypt( authpass, cryp ), cryp ) == 0 )
+	    if ( strcmp( ((_Nt_array_ptr<char> )crypt( authpass, cryp )), cryp ) == 0 )
 		{
 		/* Ok! */
+                size_t len_line = strlen(line);
 		httpd_realloc_str_cc(
-		    hc->remoteuser, hc->maxremoteuser, strlen( line ) );
+		    hc->remoteuser, hc->maxremoteuser, len_line );
 		(void) xstrbcpy( hc->remoteuser, line, hc->maxremoteuser );
 		/* And cache this user's info for next time. */
+                size_t len_authpath = strlen(authpath);
 		httpd_realloc_str_cc(
-		    prevauthpath, maxprevauthpath, strlen( authpath ) );
+		    prevauthpath, maxprevauthpath, len_authpath);
 		(void) xstrbcpy( prevauthpath, authpath, maxprevauthpath );
 		prevmtime = sb.st_mtime;
+                size_t len_authinfo = strlen( authinfo );
 		httpd_realloc_str_cc(
-		    prevuser, maxprevuser, strlen( authinfo ) );
+		    prevuser, maxprevuser, len_authinfo );
 		(void) xstrbcpy( prevuser, authinfo, maxprevuser );
-		httpd_realloc_str_cc( prevcryp, maxprevcryp, strlen( cryp ) );
+                size_t len_cryp = strlen(cryp);
+		httpd_realloc_str_cc( prevcryp, maxprevcryp, len_cryp );
 		(void) xstrbcpy( prevcryp, cryp, maxprevcryp );
 		return 1;
 		}
@@ -1216,42 +1223,45 @@ auth_check2( httpd_conn* hc, char* dirname  )
 #endif /* AUTH_FILE */
 
 
-static char* location : itype(_Nt_array_ptr<char>);
-static char* header : itype(_Nt_array_ptr<char>);
-static void
-send_dirredirect( httpd_conn* hc )
+_Checked static void
+send_dirredirect(httpd_conn *hc : itype(_Ptr<httpd_conn>))
     {
+    static _Nt_array_ptr<char> location = 0;
+    static _Nt_array_ptr<char> header = 0;
     static size_t maxlocation = 0, maxheader = 0;
-    static char headstr[] = "Location: ";
+    static char headstr _Nt_checked[] = "Location: ";
 
     if ( hc->query[0] != '\0')
 	{
-	char* cp = strchr( hc->encodedurl, '?' );
-	if ( cp != (char*) 0 )	/* should always find it */
+	_Nt_array_ptr<char> cp = strchr( hc->encodedurl, '?' );
+	if ( cp != 0 )	/* should always find it */
 	    *cp = '\0';
+        size_t len_query = strlen(hc->query);
+        size_t len_encurl = strlen(hc->encodedurl);
 	httpd_realloc_str_cc(
 	    location, maxlocation,
-	    strlen( hc->encodedurl ) + 2 + strlen( hc->query ) );
+	    len_encurl + 2 + len_query );
 	(void) my_snprintf( location, maxlocation,
 	    "%s/?%s", hc->encodedurl, hc->query );
 	}
     else
 	{
+        size_t len_encurl = strlen(hc->encodedurl);
 	httpd_realloc_str_cc(
-	    location, maxlocation, strlen( hc->encodedurl ) + 1 );
+	    location, maxlocation, len_encurl + 1 );
 	(void) my_snprintf( location, maxlocation,
 	    "%s/", hc->encodedurl );
 	}
+    size_t len_loc = strlen(location);
     httpd_realloc_str_cc(
-	header, maxheader, sizeof(headstr) + strlen( location ) );
+	header, maxheader, sizeof(headstr) + len_loc );
     (void) my_snprintf( header, maxheader,
 	"%s%s\015\012", headstr, location );
     send_response( hc, 302, err302title, header, err302form, location );
     }
 
 
-char*
-httpd_method_str( int method )
+_Checked char *httpd_method_str(int method) : itype(_Nt_array_ptr<char>)
     {
     switch ( method )
 	{
@@ -1266,7 +1276,7 @@ httpd_method_str( int method )
     }
 
 
-static int
+_Checked static int
 hexit( char c )
     {
     if ( c >= '0' && c <= '9' )
@@ -1282,12 +1292,18 @@ hexit( char c )
 /* Copies and decodes a string.  It's ok for from and to to be the
 ** same string.
 */
-static void
-strdecode( char* to, char* from )
+
+static int _isxdigit(char c) _Unchecked {
+  return isxdigit(c);
+}
+_Checked static void
+strdecode(char *__to : itype(_Array_ptr<char>) count(to_size), size_t to_size, char *__from : itype(_Nt_array_ptr<char>))
     {
+    _Nt_array_ptr<char> from = __from;
+    _Array_ptr<char> to : bounds(__to, __to + to_size) = __to;
     for ( ; *from != '\0'; ++to, ++from )
 	{
-	if ( from[0] == '%' && isxdigit( from[1] ) && isxdigit( from[2] ) )
+	if ( from[0] == '%' && from[0] != '\0' && from[1] != '\0' &&  _isxdigit( from[1] ) && _isxdigit( from[2] ) )
 	    {
 	    *to = hexit( from[1] ) * 16 + hexit( from[2] );
 	    from += 2;
@@ -1301,14 +1317,18 @@ strdecode( char* to, char* from )
 
 #ifdef GENERATE_INDEXES
 /* Copies and encodes a string. */
-static void
-strencode( char* to, int tosize, char* from )
+static int _isalnum(char c) _Unchecked {
+  return isalnum(c);
+}
+_Checked static void
+strencode(char *__3c_tmp_to : itype(_Nt_array_ptr<char>) count(tosize), int tosize, char *from : itype(_Nt_array_ptr<char>))
     {
+    _Nt_array_ptr<char> to : bounds(__3c_tmp_to, __3c_tmp_to + tosize) = __3c_tmp_to;
     int tolen;
 
     for ( tolen = 0; *from != '\0' && tolen + 4 < tosize; ++from )
 	{
-	if ( isalnum(*from) || strchr( "/_.-~", *from ) != (char*) 0 )
+	if ( _isalnum(*from) || strchr( "/_.-~", *from ) != 0 )
 	    {
 	    *to = *from;
 	    ++to;
@@ -1316,7 +1336,9 @@ strencode( char* to, int tosize, char* from )
 	    }
 	else
 	    {
-	    (void) xsbprintf( to, tosize, "%%%02x", (int) *from & 0xff );
+            size_t tmp_size = tosize - (to - __3c_tmp_to);
+            _Nt_array_ptr<char> tmp : count(tmp_size) = _Dynamic_bounds_cast<_Nt_array_ptr<char>>(to, count(tmp_size));
+	    (void) xsbprintf( tmp, tmp_size, "%%%02x", (int) *from & 0xff );
 	    to += 3;
 	    tolen += 3;
 	    }
@@ -1406,16 +1428,22 @@ tilde_map_2( httpd_conn* hc )
     }
 #endif /* TILDE_MAP_2 */
 
+static int __isupper(char c) _Unchecked {
+  return isupper(c);
+}
 
+static int __tolower(char c) _Unchecked {
+  return tolower(c);
+}
 /* Virtual host mapping. */
-static char* tempfilename : itype(_Nt_array_ptr<char>);
-static int
-vhost_map( httpd_conn* hc )
+_Checked static int
+vhost_map(httpd_conn *hc : itype(_Ptr<httpd_conn>))
     {
     httpd_sockaddr sa;
     socklen_t sz;
     static size_t maxtempfilename = 0;
-    char* cp1;
+    static _Nt_array_ptr<char> tempfilename : count(maxtempfilename);
+    _Nt_array_ptr<char> cp1 = ((void *)0);
     int len;
 #ifdef VHOST_DIRLEVELS
     int i;
@@ -1435,12 +1463,12 @@ vhost_map( httpd_conn* hc )
 	    syslog( LOG_ERR, "getsockname - %m" );
 	    return 0;
 	    }
-	hc->hostname = httpd_ntoa( &sa );
+	hc->hostname = ((_Nt_array_ptr<char> )httpd_ntoa( &sa ));
 	}
     /* Pound it to lower case. */
     for ( cp1 = hc->hostname; *cp1 != '\0'; ++cp1 )
-	if ( isupper( *cp1 ) )
-	    *cp1 = tolower( *cp1 );
+	if ( __isupper( *cp1 ) )
+	    *cp1 = __tolower( *cp1 );
 
     if ( hc->tildemapped )
 	return 1;
@@ -1474,7 +1502,8 @@ vhost_map( httpd_conn* hc )
 	}
     (void) xstrbcpy( cp2, hc->hostname );
 #else /* VHOST_DIRLEVELS */
-    httpd_realloc_str_cc( hc->hostdir, hc->maxhostdir, strlen( hc->hostname ) );
+    size_t hostname_len = strlen(hc->hostname);
+    httpd_realloc_str_cc( hc->hostdir, hc->maxhostdir, hostname_len );
     (void) xstrbcpy( hc->hostdir, hc->hostname, hc->maxhostdir );
 #endif /* VHOST_DIRLEVELS */
 
@@ -1482,9 +1511,10 @@ vhost_map( httpd_conn* hc )
     len = strlen( hc->expnfilename );
     httpd_realloc_str_cc( tempfilename, maxtempfilename, len );
     (void) xstrbcpy( tempfilename, hc->expnfilename, maxtempfilename );
+    size_t len_hostdir = strlen(hc->hostdir);
     httpd_realloc_str_cc(
 	hc->expnfilename, hc->maxexpnfilename,
-	strlen( hc->hostdir ) + 1 + len );
+	len_hostdir + 1 + len );
     (void) xstrbcpy( hc->expnfilename, hc->hostdir, hc->maxexpnfilename );
     (void) xstrbcat( hc->expnfilename, "/", hc->maxexpnfilename );
     (void) xstrbcat( hc->expnfilename, tempfilename, hc->maxexpnfilename );
@@ -2092,9 +2122,10 @@ httpd_parse_request( httpd_conn* hc )
 	}
 
     hc->encodedurl = url;
+    size_t enc_len = strlen(hc->encodedurl);
     httpd_realloc_str_cc(
-	hc->decodedurl, hc->maxdecodedurl, strlen( hc->encodedurl ) );
-    strdecode( hc->decodedurl, hc->encodedurl );
+	hc->decodedurl, hc->maxdecodedurl, enc_len );
+    strdecode( hc->decodedurl, hc->maxdecodedurl, hc->encodedurl );
 
     httpd_realloc_str_cc(
 	hc->origfilename, hc->maxorigfilename, strlen( hc->decodedurl ) );
@@ -3226,14 +3257,16 @@ make_argp( httpd_conn* hc )
 	    if ( *cp2 == '+' )
 		{
 		*cp2 = '\0';
-		strdecode( cp1, cp1 );
+                size_t s = strlen(cp1) _Where cp1 : bounds(cp1, cp1 + s);
+		strdecode( cp1, s, cp1 );
 		box.argp[argn++] = cp1;
 		cp1 = cp2 + 1;
 		}
 	    }
 	if ( cp2 != cp1 )
 	    {
-	    strdecode( cp1, cp1 );
+            size_t s = strlen(cp1) _Where cp1 : bounds(cp1, cp1 + s);
+	    strdecode( cp1, s, cp1 );
 	    box.argp[argn++] = cp1;
 	    }
 	}
