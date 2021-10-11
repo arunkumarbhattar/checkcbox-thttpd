@@ -32,37 +32,45 @@
 
 #include "match.h"
 
-static int match_one( const char* pattern, int patternlen, const char* string );
+static int match_one(const char *pattern : itype(_Array_ptr<const char>) count(patternlen), unsigned int patternlen, const char *string : itype(_Nt_array_ptr<const char>));
 
-int
-match( const char* pattern, const char* string )
+_Checked int
+match(const char *pattern : itype(_Nt_array_ptr<const char>), const char *string : itype(_Nt_array_ptr<const char>))
     {
-    const char* or;
-
     for (;;)
 	{
-	or = strchr( pattern, '|' );
-	if ( or == (char*) 0 )
-	    return match_one( pattern, strlen( pattern ), string );
-	if ( match_one( pattern, or - pattern, string ) )
+	_Nt_array_ptr<const char> or = strchr( pattern, '|' );
+	if ( or == 0 ) {
+            unsigned int slen = strlen(pattern);
+            _Array_ptr<char> tmp_p : count(slen) = 0;
+            _Unchecked { tmp_p = _Assume_bounds_cast<_Array_ptr<char>>(pattern, count(slen)); }
+	    return match_one( tmp_p, slen, string );
+        }
+
+        unsigned int len = or - pattern;
+        _Array_ptr<char> tmp : count(len) = _Dynamic_bounds_cast<_Array_ptr<char>>(pattern, count(len));
+	if ( match_one( tmp, len, string ) )
 	    return 1;
+
 	pattern = or + 1;
 	}
     }
 
 
-static int
-match_one( const char* pattern, int patternlen, const char* string )
+_Checked static int
+match_one(const char *pattern : itype(_Array_ptr<const char>) count(patternlen), unsigned int patternlen, const char *string : itype(_Nt_array_ptr<const char>))
     {
-    const char* p;
+    _Array_ptr<const char> __3c_tmp_p : count(patternlen) = ((void *)0);
+    _Array_ptr<const char> p : bounds(__3c_tmp_p, __3c_tmp_p + patternlen) = __3c_tmp_p;
 
-    for ( p = pattern; p - pattern < patternlen; ++p, ++string )
+    for ( __3c_tmp_p = pattern, p = __3c_tmp_p; p - pattern < patternlen; ++p, ++string )
 	{
 	if ( *p == '?' && *string != '\0' )
 	    continue;
 	if ( *p == '*' )
 	    {
-	    int i, pl;
+            unsigned int pl;
+            int i;
 	    ++p;
 	    if ( *p == '*' )
 		{
@@ -75,8 +83,12 @@ match_one( const char* pattern, int patternlen, const char* string )
 		i = strcspn( string, "/" );
 	    pl = patternlen - ( p - pattern );
 	    for ( ; i >= 0; --i )
-		if ( match_one( p, pl, &(string[i]) ) )
+                {
+                _Array_ptr<char> tmp_p : count(pl) = _Dynamic_bounds_cast<_Array_ptr<char>>(p, count(pl));
+                _Nt_array_ptr<const char> tmp_str = string + i;
+		if ( match_one( tmp_p, pl, tmp_str ) )
 		    return 1;
+                }
 	    return 0;
 	    }
 	if ( *p != *string )
