@@ -44,23 +44,23 @@
 #define ST_MINUS2 4
 
 
-static void read_file( char* vfilename, char* filename, FILE* fp );
+static void read_file(char *vfilename : itype(_Nt_array_ptr<char>), char *filename : itype(_Nt_array_ptr<char>), FILE *fp : itype(_Ptr<FILE>));
 
 
-static char* argv0;
-static char* url;
+static char *argv0 : itype(_Nt_array_ptr<char>) = ((void *)0);
+static char* url : itype(_Nt_array_ptr<char>);
 
-static char timefmt[100];
+static char timefmt[100] : itype(char _Nt_checked[100]);
 static int sizefmt;
 #define SF_BYTES 0
 #define SF_ABBREV 1
 static struct stat sb;
 
 
-static void
-internal_error( char* reason )
+_Checked static void
+internal_error(char *reason : itype(_Nt_array_ptr<char>))
     {
-    char* title = "500 Internal Error";
+    _Nt_array_ptr<char> title : byte_count(18) = "500 Internal Error";
 
     (void) printf( "\
 <HTML><HEAD><TITLE>%s</TITLE></HEAD>\n\
@@ -73,10 +73,10 @@ Something unusual went wrong during a server-side-includes request:\n\
     }
 
 
-static void
-not_found( char* filename )
+_Checked static void
+not_found(char *filename : itype(_Nt_array_ptr<char>))
     {
-    char* title = "404 Not Found";
+    _Nt_array_ptr<char> title : byte_count(13) = "404 Not Found";
 
     (void) printf( "\
 <HTML><HEAD><TITLE>%s</TITLE></HEAD>\n\
@@ -87,10 +87,10 @@ does not seem to exist.\n\
     }
 
 
-static void
-not_found2( char* directive, char* tag, char* filename2 )
+_Checked static void
+not_found2(char *directive : itype(_Nt_array_ptr<char>), char *tag : itype(_Nt_array_ptr<char>), char *filename2 : itype(_Nt_array_ptr<char>))
     {
-    char* title = "Not Found";
+    _Nt_array_ptr<char> title : byte_count(9) = "Not Found";
 
     (void) printf( "\
 <HR><H2>%s</H2>\n\
@@ -100,10 +100,10 @@ does not seem to exist.\n\
     }
 
 
-static void
-not_permitted( char* directive, char* tag, char* val )
+_Checked static void
+not_permitted(char *directive : itype(_Nt_array_ptr<char>), char *tag : itype(_Nt_array_ptr<char>), char *val : itype(_Nt_array_ptr<char>))
     {
-    char* title = "Not Permitted";
+    _Nt_array_ptr<char> title : byte_count(13) = "Not Permitted";
 
     (void) printf( "\
 <HR><H2>%s</H2>\n\
@@ -113,10 +113,10 @@ may not be fetched.\n\
     }
 
 
-static void
-unknown_directive( char* filename, char* directive )
+_Checked static void
+unknown_directive(char *filename : itype(_Nt_array_ptr<char>), char *directive : itype(_Nt_array_ptr<char>))
     {
-    char* title = "Unknown Directive";
+    _Nt_array_ptr<char> title : byte_count(17) = "Unknown Directive";
 
     (void) printf( "\
 <HR><H2>%s</H2>\n\
@@ -126,10 +126,10 @@ tried to use an unknown directive, %s.\n\
     }
 
 
-static void
-unknown_tag( char* filename, char* directive, char* tag )
+_Checked static void
+unknown_tag(char *filename : itype(_Nt_array_ptr<char>), char *directive : itype(_Nt_array_ptr<char>), char *tag : itype(_Nt_array_ptr<char>))
     {
-    char* title = "Unknown Tag";
+    _Nt_array_ptr<char> title : byte_count(11) = "Unknown Tag";
 
     (void) printf( "\
 <HR><H2>%s</H2>\n\
@@ -139,10 +139,10 @@ tried to use the directive %s with an unknown tag, %s.\n\
     }
 
 
-static void
-unknown_value( char* filename, char* directive, char* tag, char* val )
+_Checked static void
+unknown_value(char *filename : itype(_Nt_array_ptr<char>), char *directive : itype(_Nt_array_ptr<char>), char *tag : itype(_Nt_array_ptr<char>), char *val : itype(_Nt_array_ptr<char>))
     {
-    char* title = "Unknown Value";
+    _Nt_array_ptr<char> title : byte_count(13) = "Unknown Value";
 
     (void) printf( "\
 <HR><H2>%s</H2>\n\
@@ -152,11 +152,12 @@ tried to use the directive %s %s with an unknown value, %s.\n\
     }
 
 
-static int
-get_filename( char* vfilename, char* filename, char* directive, char* tag, char* val, char* fn, int fnsize )
+_Checked static int
+get_filename(char *_vfilename : itype(_Nt_array_ptr<char>), char *_filename : itype(_Nt_array_ptr<char>), char *directive : itype(_Nt_array_ptr<char>), char *tag : itype(_Nt_array_ptr<char>), char *val : itype(_Nt_array_ptr<char>), char *_fn : itype(_Nt_array_ptr<char>) count(fnsize), size_t fnsize)
     {
-    int vl, fl;
-    char* cp;
+    _Nt_array_ptr<char> vfilename = _vfilename;
+    _Nt_array_ptr<char> filename = _filename;
+    _Nt_array_ptr<char> fn : count(fnsize) = _fn;
 
     /* Used for the various commands that accept a file name.
     ** These commands accept two tags:
@@ -166,27 +167,30 @@ get_filename( char* vfilename, char* filename, char* directive, char* tag, char*
     **     Gives a pathname relative to the current directory. ../ cannot
     **     be used in this pathname, nor can absolute paths be used.
     */
-    vl = strlen( vfilename );
-    fl = strlen( filename );
+    size_t vl = strlen( vfilename ) _Where vfilename : bounds(vfilename, vfilename + vl);
+    size_t fl = strlen( filename ) _Where filename : bounds(filename, filename + fl);
     if ( strcmp( tag, "virtual" ) == 0 )
 	{
-	if ( strstr( val, "../" ) != (char*) 0 )
+	if ( strstr( val, "../" ) !=  0 )
 	    {
 	    not_permitted( directive, tag, val );
 	    return -1;
 	    }
 	/* Figure out root using difference between vfilename and filename. */
-	if ( vl > fl ||
-	     strcmp( vfilename, &filename[fl - vl] ) != 0 )
+        _Nt_array_ptr<char> tmp = _Dynamic_bounds_cast<_Nt_array_ptr<char>>(filename + (fl - vl), count(0));
+        int res =  strcmp( vfilename, tmp);
+	if ( vl > fl || res != 0 )
 	    return -1;
 	if ( fl - vl + strlen( val ) >= fnsize )
 	    return -1;
-	(void) xstrbcpy( fn, filename, fl - vl );
-	(void) xstrbcpy( &fn[fl - vl], val, fnsize - (fl - vl) );
+        _Nt_array_ptr<char> fntmp : count(fl - vl) = _Dynamic_bounds_cast<_Nt_array_ptr<char>>(fn, count(fl - vl));
+	(void) xstrbcpy( fntmp, filename, fl - vl );
+        _Nt_array_ptr<char> fntmp2 : count(fnsize - (fl - vl)) = _Dynamic_bounds_cast<_Nt_array_ptr<char>>(fn + (fl - vl), count(fnsize - (fl - vl)));
+	(void) xstrbcpy( fntmp2, val, fnsize - (fl - vl) );
 	}
     else if ( strcmp( tag, "file" ) == 0 )
 	{
-	if ( val[0] == '/' || strstr( val, "../" ) != (char*) 0 )
+	if ( val[0] == '/' || strstr( val, "../" ) !=  0 )
 	    {
 	    not_permitted( directive, tag, val );
 	    return -1;
@@ -194,15 +198,20 @@ get_filename( char* vfilename, char* filename, char* directive, char* tag, char*
 	if ( fl + 1 + strlen( val ) >= fnsize )
 	    return -1;
 	(void) xstrbcpy( fn, filename, fnsize );
-	cp = strrchr( fn, '/' );
-	if ( cp == (char*) 0 )
+        _Nt_array_ptr<char> cp : bounds(fn, fn + fnsize) = 0;
+        _Unchecked {
+          cp = _Assume_bounds_cast<_Nt_array_ptr<char>>(strrchr( fn, '/' ), bounds(fn, fn + fnsize));
+        }
+	if ( cp ==  0 )
 	    {
-	    cp = &fn[strlen( fn )];
+            size_t fn_len = strlen(fn);
+	    cp = fn + fn_len;
 	    *cp = '/';
 	    }
-        cp++;
-        size_t cp_size = fnsize - (cp - fn) - 1;
-	(void) xstrbcpy(cp, val, cp_size);
+        _Nt_array_ptr<char> new_cp : bounds(fn,  fn + fnsize) = cp + 1;
+        size_t cp_size = fnsize - (new_cp - fn) - 1;
+        _Nt_array_ptr<char> tmp : count(cp_size) = _Dynamic_bounds_cast<_Nt_array_ptr<char>>(new_cp, count(cp_size));
+	(void) xstrbcpy(tmp, val, cp_size);
 	}
     else
 	{
@@ -213,21 +222,21 @@ get_filename( char* vfilename, char* filename, char* directive, char* tag, char*
     }
 
 
-static int
-check_filename( char* filename )
+_Checked static int
+check_filename(char *_filename : itype(_Nt_array_ptr<char>))
     {
+    _Nt_array_ptr<char> filename = _filename;
+    size_t fnl = strlen(filename) _Where filename : bounds(filename, filename + fnl);
     static int inited = 0;
-    static char* cgi_pattern;
-    int fnl;
-    char* cp;
-    char* dirname;
+    static _Nt_array_ptr<char> cgi_pattern = ((void *)0);
+    _Nt_array_ptr<char> cp = ((void *)0);
     struct stat sb2;
     int r;
 
     if ( ! inited )
 	{
 	/* Get the cgi pattern. */
-	cgi_pattern = getenv( "CGI_PATTERN" );
+	cgi_pattern = ((_Nt_array_ptr<char> )getenv( "CGI_PATTERN" ));
 #ifdef CGI_PATTERN
 	if ( cgi_pattern == (char*) 0 )
 	    cgi_pattern = CGI_PATTERN;
@@ -236,15 +245,15 @@ check_filename( char* filename )
 	}
 
     /* ../ is not permitted. */
-    if ( strstr( filename, "../" ) != (char*) 0 )
+    if ( strstr( filename, "../" ) != 0 )
 	return 0;
 
 #ifdef AUTH_FILE
     /* Ensure that we are not reading a basic auth password file. */
-    fnl = strlen(filename);
+    _Nt_array_ptr<char> tmp = _Dynamic_bounds_cast<_Nt_array_ptr<char>>(filename + (fnl - sizeof(AUTH_FILE) + 1), count(0));
     if ( strcmp( filename, AUTH_FILE ) == 0 ||
 	 ( fnl >= sizeof(AUTH_FILE) &&
-	   strcmp( &filename[fnl - sizeof(AUTH_FILE) + 1], AUTH_FILE ) == 0 &&
+	   strcmp( tmp, AUTH_FILE ) == 0 &&
 	   filename[fnl - sizeof(AUTH_FILE)] == '/' ) )
 	return 0;
 
@@ -253,40 +262,43 @@ check_filename( char* filename )
     ** authorization header, for security reasons.  So instead we just
     ** prohibit access to all auth-protected files.
     */
-    dirname = strdup( filename );
-    if ( dirname == (char*) 0 )
+    _Nt_array_ptr<char> dirname_tmp = strdup(filename);
+    size_t dirname_len = strlen(dirname_tmp) _Where dirname_tmp : bounds(dirname_tmp, dirname_tmp + dirname_len);
+    _Nt_array_ptr<char> dirname : count(fnl) = _Dynamic_bounds_cast<_Nt_array_ptr<char>>(dirname_tmp, count(fnl));
+    if ( dirname ==  0 )
 	return 0;	/* out of memory */
     cp = strrchr( dirname, '/' );
-    if ( cp == (char*) 0 )
+    if ( cp ==  0 )
 	(void) xstrbcpy( dirname, ".", fnl );
     else
 	*cp = '\0';
-    char* authname;
+
     size_t authsize = strlen( dirname ) + 1 + sizeof(AUTH_FILE);
-    authname = malloc_nt( authsize );
-    if ( authname == (char*) 0 )
+    _Nt_array_ptr<char> authname : count(authsize) = ((void *)0);
+    authname = ((_Nt_array_ptr<char> )malloc_nt( authsize ));
+    if ( authname ==  0 )
 	return 0;	/* out of memory */
     (void) xsbprintf( authname, authsize - 1, "%s/%s", dirname, AUTH_FILE );
     r = stat( authname, &sb2 );
-    free( dirname );
-    free( authname );
+    free<char>( dirname );
+    free<char>( authname );
     if ( r == 0 )
 	return 0;
 #endif /* AUTH_FILE */
 
     /* Ensure that we are not reading a CGI file. */
-    if ( cgi_pattern != (char*) 0 && match( cgi_pattern, filename ) )
+    if ( cgi_pattern !=  0 && match( cgi_pattern, filename ) )
 	return 0;
 
     return 1;
     }
 
 
-static void
+_Checked static void
 show_time( time_t t, int gmt )
     {
-    struct tm* tmP;
-    char tbuf[500];
+    _Ptr<struct tm> tmP = ((void *)0);
+    char tbuf _Nt_checked[500];
 
     if ( gmt )
 	tmP = gmtime( &t );
@@ -297,7 +309,7 @@ show_time( time_t t, int gmt )
     }
 
 
-static void
+_Checked static void
 show_size( off_t size )
     {
     switch ( sizefmt )
@@ -319,8 +331,8 @@ show_size( off_t size )
     }
 
 
-static void
-do_config( char* vfilename, char* filename, FILE* fp, char* directive, char* tag, char* val )
+_Checked static void
+do_config(char *vfilename : itype(_Nt_array_ptr<char>), char *filename : itype(_Nt_array_ptr<char>), FILE *fp : itype(_Ptr<FILE>), char *directive : itype(_Nt_array_ptr<char>), char *tag : itype(_Nt_array_ptr<char>), char *val : itype(_Nt_array_ptr<char>))
     {
     /* The config directive controls various aspects of the file parsing.
     ** There are two valid tags:
@@ -336,7 +348,7 @@ do_config( char* vfilename, char* filename, FILE* fp, char* directive, char* tag
 
     if ( strcmp( tag, "timefmt" ) == 0 )
 	{
-	(void) strncpy( timefmt, val, sizeof(timefmt) - 1 );
+	(void) xstrbcpy( timefmt, val, sizeof(timefmt) - 1 );
 	timefmt[sizeof(timefmt) - 1] = '\0';
 	}
     else if ( strcmp( tag, "sizefmt" ) == 0 )
@@ -353,18 +365,18 @@ do_config( char* vfilename, char* filename, FILE* fp, char* directive, char* tag
     }
 
 
-static void
-do_include( char* vfilename, char* filename, FILE* fp, char* directive, char* tag, char* val )
+_Checked static void
+do_include(char *vfilename : itype(_Nt_array_ptr<char>), char *filename : itype(_Nt_array_ptr<char>), FILE *fp : itype(_Ptr<FILE>), char *directive : itype(_Nt_array_ptr<char>), char *tag : itype(_Nt_array_ptr<char>), char *val : itype(_Nt_array_ptr<char>))
     {
-    char vfilename2[1000];
-    char filename2[1000];
-    FILE* fp2;
+    char vfilename2 _Nt_checked[1000];
+    char filename2 _Nt_checked[1000];
+    _Ptr<FILE> fp2 = ((void *)0);
 
     /* Inserts the text of another document into the parsed document. */
 
     if ( get_filename(
 	     vfilename, filename, directive, tag, val, filename2,
-	     sizeof(filename2) ) < 0 )
+	     sizeof(filename2) - 1 ) < 0 )
 	return;
 
     if ( ! check_filename( filename2 ) )
@@ -374,7 +386,7 @@ do_include( char* vfilename, char* filename, FILE* fp, char* directive, char* ta
 	}
 
     fp2 = fopen( filename2, "r" );
-    if ( fp2 == (FILE*) 0 )
+    if ( fp2 ==  0 )
 	{
 	not_found2( directive, tag, filename2 );
 	return;
@@ -391,17 +403,22 @@ do_include( char* vfilename, char* filename, FILE* fp, char* directive, char* ta
 	{
 	if ( strlen( vfilename ) + 1 + strlen( val ) < sizeof(vfilename2) )
 	    {
-	    char* cp;
 	    (void) xstrbcpy( vfilename2, vfilename, sizeof(vfilename2) - 1);
-	    cp = strrchr( vfilename2, '/' );
-	    if ( cp == (char*) 0 )
+
+            _Nt_array_ptr<char> cp : bounds(vfilename2, vfilename2 + sizeof(vfilename2)) = 0;
+            _Unchecked {
+              cp = _Assume_bounds_cast<_Nt_array_ptr<char>>(strrchr( vfilename2, '/' ), bounds(vfilename2, vfilename2 + sizeof(vfilename2)));
+            }
+
+	    if ( cp == 0 )
 		{
 		cp = &vfilename2[strlen( vfilename2 )];
 		*cp = '/';
 		}
             cp++;
             size_t cp_count = sizeof(filename2) - 1 - (cp - vfilename2);
-	    (void) xstrbcpy( cp, val, cp_count );
+            _Nt_array_ptr<char> tmp : count(cp_count) = _Dynamic_bounds_cast<_Nt_array_ptr<char>>(cp, count(cp_count));
+	    (void) xstrbcpy( tmp, val, cp_count );
 	    }
 	else
 	    (void) xstrbcpy( vfilename2, filename2, sizeof(vfilename2) - 1);  /* same size, has to fit */
@@ -412,10 +429,10 @@ do_include( char* vfilename, char* filename, FILE* fp, char* directive, char* ta
     }
 
 
-static void
-do_echo( char* vfilename, char* filename, FILE* fp, char* directive, char* tag, char* val )
+_Checked static void
+do_echo(char *vfilename : itype(_Nt_array_ptr<char>), char *filename : itype(_Nt_array_ptr<char>), FILE *fp : itype(_Ptr<FILE>), char *directive : itype(_Nt_array_ptr<char>), char *tag : itype(_Nt_array_ptr<char>), char *val : itype(_Nt_array_ptr<char>))
     {
-    char* cp;
+    _Nt_array_ptr<char> cp = ((void *)0);
     time_t t;
 
     /* Prints the value of one of the include variables.  Any dates are
@@ -440,20 +457,20 @@ do_echo( char* vfilename, char* filename, FILE* fp, char* directive, char* tag, 
 	else if ( strcmp( val, "QUERY_STRING_UNESCAPED" ) == 0 )
 	    {
 	    /* The unescaped version of any search query the client sent. */
-	    cp = getenv( "QUERY_STRING" );
-	    if ( cp != (char*) 0 )
+	    cp = ((_Nt_array_ptr<char> )getenv( "QUERY_STRING" ));
+	    if ( cp !=  0 )
 		(void) fputs( cp, stdout );
 	    }
 	else if ( strcmp( val, "DATE_LOCAL" ) == 0 )
 	    {
 	    /* The current date, local time zone. */
-	    t = time( (time_t*) 0 );
+	    t = time(  0 );
 	    show_time( t, 0 );
 	    }
 	else if ( strcmp( val, "DATE_GMT" ) == 0 )
 	    {
 	    /* Same as DATE_LOCAL but in Greenwich mean time. */
-	    t = time( (time_t*) 0 );
+	    t = time(  0 );
 	    show_time( t, 1 );
 	    }
 	else if ( strcmp( val, "LAST_MODIFIED" ) == 0 )
@@ -465,8 +482,8 @@ do_echo( char* vfilename, char* filename, FILE* fp, char* directive, char* tag, 
 	else
 	    {
 	    /* Try an environment variable. */
-	    cp = getenv( val );
-	    if ( cp == (char*) 0 )
+	    cp = ((_Nt_array_ptr<char> )getenv( val ));
+	    if ( cp ==  0 )
 		unknown_value( filename, directive, tag, val );
 	    else
 		(void) fputs( cp, stdout );
@@ -475,16 +492,16 @@ do_echo( char* vfilename, char* filename, FILE* fp, char* directive, char* tag, 
     }
 
 
-static void
-do_fsize( char* vfilename, char* filename, FILE* fp, char* directive, char* tag, char* val )
+_Checked static void
+do_fsize(char *vfilename : itype(_Nt_array_ptr<char>), char *filename : itype(_Nt_array_ptr<char>), FILE *fp : itype(_Ptr<FILE>), char *directive : itype(_Nt_array_ptr<char>), char *tag : itype(_Nt_array_ptr<char>), char *val : itype(_Nt_array_ptr<char>))
     {
-    char filename2[1000];
+    char filename2 _Nt_checked[1000];
 
     /* Prints the size of the specified file. */
 
     if ( get_filename(
 	     vfilename, filename, directive, tag, val, filename2,
-	     sizeof(filename2) ) < 0 )
+	     sizeof(filename2) - 1 ) < 0 )
 	return;
     if ( stat( filename2, &sb ) < 0 )
 	{
@@ -495,16 +512,16 @@ do_fsize( char* vfilename, char* filename, FILE* fp, char* directive, char* tag,
     }
 
 
-static void
-do_flastmod( char* vfilename, char* filename, FILE* fp, char* directive, char* tag, char* val )
+_Checked static void
+do_flastmod(char *vfilename : itype(_Nt_array_ptr<char>), char *filename : itype(_Nt_array_ptr<char>), FILE *fp : itype(_Ptr<FILE>), char *directive : itype(_Nt_array_ptr<char>), char *tag : itype(_Nt_array_ptr<char>), char *val : itype(_Nt_array_ptr<char>))
     {
-    char filename2[1000];
+    char filename2 _Nt_checked[1000];
 
     /* Prints the last modification date of the specified file. */
 
     if ( get_filename(
 	     vfilename, filename, directive, tag, val, filename2,
-	     sizeof(filename2) ) < 0 )
+	     sizeof(filename2) - 1 ) < 0 )
 	return;
     if ( stat( filename2, &sb ) < 0 )
 	{
@@ -515,13 +532,12 @@ do_flastmod( char* vfilename, char* filename, FILE* fp, char* directive, char* t
     }
 
 
-static void
-parse( char* vfilename, char* filename, FILE* fp, char* str )
+_Checked static void
+parse(char *vfilename : itype(_Nt_array_ptr<char>), char *filename : itype(_Nt_array_ptr<char>), FILE *fp : itype(_Ptr<FILE>), char *str : itype(_Nt_array_ptr<char>))
     {
-    char* directive;
-    char* cp;
+    _Nt_array_ptr<char> cp = ((void *)0);
     int ntags;
-    char* tags[200];
+    _Nt_array_ptr<char> tags _Checked[200] = {((void *)0)};
     int dirn;
 #define DI_CONFIG 0
 #define DI_INCLUDE 1
@@ -529,31 +545,37 @@ parse( char* vfilename, char* filename, FILE* fp, char* str )
 #define DI_FSIZE 3
 #define DI_FLASTMOD 4
     int i;
-    char* val;
+    _Nt_array_ptr<char> val = 0;
 
-    directive = str;
-    directive += strspn( directive, " \t\n\r" );
+    _Nt_array_ptr<char> tmp_directive = str;
+    size_t space_spn = strspn( tmp_directive, " \t\n\r" ) _Where tmp_directive : bounds(tmp_directive, tmp_directive + space_spn);
+    _Nt_array_ptr<char> directive = tmp_directive + space_spn;
 
     ntags = 0;
     cp = directive;
     for (;;)
 	{
-	cp = strpbrk( cp, " \t\n\r\"" );
-	if ( cp == (char*) 0 )
+	cp = ((_Nt_array_ptr<char> )strpbrk( cp, " \t\n\r\"" ));
+	if ( cp == 0 )
 	    break;
-	if ( *cp == '"' )
+	if (*cp != '\0' &&  *cp == '"' )
 	    {
-	    cp = strpbrk( cp + 1, "\"" );
+	    cp = ((_Nt_array_ptr<char> )strpbrk( cp + 1, "\"" ));
 	    ++cp;
 	    if ( *cp == '\0' )
 		break;
 	    }
 	*cp++ = '\0';
-	cp += strspn( cp, " \t\n\r" );
+        _Nt_array_ptr<char> cp_tmp = cp;
+        size_t cp_space_spn = strspn( cp_tmp, " \t\n\r" ) _Where cp_tmp : bounds(cp_tmp, cp_tmp + cp_space_spn);
+	cp = cp_tmp + cp_space_spn;
 	if ( *cp == '\0' )
 	    break;
 	if ( ntags < sizeof(tags)/sizeof(*tags) )
-	    tags[ntags++] = cp;
+            {
+	    tags[ntags] = cp;
+            ntags++;
+            } 
 	}
     
     if ( strcmp( directive, "config" ) == 0 )
@@ -576,12 +598,15 @@ parse( char* vfilename, char* filename, FILE* fp, char* str )
 	{
 	if ( i > 0 )
 	    putchar( ' ' );
-	val = strchr( tags[i], '=' );
-	if ( val == (char*) 0 )
+	val = ((_Nt_array_ptr<char> )strchr( tags[i], '=' ));
+	if ( val ==  0 )
 	    val = "";
 	else
-	    *val++ = '\0';
-	if ( *val == '"' && val[strlen( val ) - 1] == '"' )
+            {
+            *val = '\0';
+            val++;
+            }
+	if ( *val != '\0' && *val == '"' && val[strlen( val ) - 1] == '"' )
 	    {
 	    val[strlen( val ) - 1] = '\0';
 	    ++val;
@@ -608,10 +633,10 @@ parse( char* vfilename, char* filename, FILE* fp, char* str )
     }
 
 
-static void
-slurp( char* vfilename, char* filename, FILE* fp )
+_Checked static void
+slurp(char *vfilename : itype(_Nt_array_ptr<char>), char *filename : itype(_Nt_array_ptr<char>), FILE *fp : itype(_Ptr<FILE>))
     {
-    char buf[1000];
+    char buf _Nt_checked[1000];
     int i;
     int state;
     int ich;
@@ -650,8 +675,8 @@ slurp( char* vfilename, char* filename, FILE* fp )
     }
 
 
-static void
-read_file( char* vfilename, char* filename, FILE* fp )
+_Checked static void
+read_file(char *vfilename : itype(_Nt_array_ptr<char>), char *filename : itype(_Nt_array_ptr<char>), FILE *fp : itype(_Ptr<FILE>))
     {
     int ich;
     int state;
@@ -702,47 +727,47 @@ read_file( char* vfilename, char* filename, FILE* fp )
     }
 
 
-int
-main( int argc, char** argv )
+_Checked int
+main(int argc, char **argv : itype(_Array_ptr<_Nt_array_ptr<char>>) count(argc))
     {
-    char* script_name;
-    char* path_info;
-    char* path_translated;
-    FILE* fp;
+    _Nt_array_ptr<char> script_name = ((void *)0);
+    _Nt_array_ptr<char> path_info : byte_count(0) = ((void *)0);
+    _Nt_array_ptr<char> path_translated = ((void *)0);
+    _Ptr<FILE> fp = ((void *)0);
 
     argv0 = argv[0];
 
     /* Default formats. */
     (void) xstrbcpy( timefmt, "%a %b %e %T %Z %Y", sizeof(timefmt) - 1 );
     sizefmt = SF_BYTES;
-
     /* The MIME type has to be text/html. */
     (void) fputs( "Content-type: text/html\n\n", stdout );
 
     /* Get the name that we were run as. */
-    script_name = getenv( "SCRIPT_NAME" );
-    if ( script_name == (char*) 0 )
+    script_name = ((_Nt_array_ptr<char> )getenv( "SCRIPT_NAME" ));
+    if ( script_name ==  0 )
 	{
 	internal_error( "Couldn't get SCRIPT_NAME environment variable." );
 	exit( 1 );
 	}
 
     /* Append the PATH_INFO, if any, to get the full URL. */
-    path_info = getenv( "PATH_INFO" );
-    if ( path_info == (char*) 0 )
+    path_info = ((_Nt_array_ptr<char> )getenv( "PATH_INFO" ));
+    if ( path_info ==  0 )
 	path_info = "";
     size_t urlsize = strlen( script_name ) + strlen( path_info ) + 1;
-    url = (char*) malloc( urlsize  );
-    if ( url == (char*) 0 )
+    _Nt_array_ptr<char> local_url : count(urlsize) =  malloc_nt( urlsize  );
+    url = local_url;
+    if ( url ==  0 )
 	{
 	internal_error( "Out of memory." );
 	exit( 1 );
 	}
-    (void) xsbprintf( url, urlsize, "%s%s", script_name, path_info );
+    (void) xsbprintf( local_url, urlsize, "%s%s", script_name, path_info );
 
     /* Get the name of the file to parse. */
-    path_translated = getenv( "PATH_TRANSLATED" );
-    if ( path_translated == (char*) 0 )
+    path_translated = ((_Nt_array_ptr<char> )getenv( "PATH_TRANSLATED" ));
+    if ( path_translated ==  0 )
 	{
 	internal_error( "Couldn't get PATH_TRANSLATED environment variable." );
 	exit( 1 );
@@ -756,7 +781,7 @@ main( int argc, char** argv )
 
     /* Open it. */
     fp = fopen( path_translated, "r" );
-    if ( fp == (FILE*) 0 )
+    if ( fp ==  0 )
 	{
 	not_found( path_translated );
 	exit( 1 );
