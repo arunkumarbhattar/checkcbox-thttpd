@@ -70,7 +70,7 @@
 #endif /* !FD_SET */
 #endif /* HAVE_SELECT */
 
-static int nfiles;
+static size_t nfiles;
 static long nwatches;
 static int* fd_rw: itype(_Array_ptr<int>) count(nfiles);
 static void** fd_data : itype(_Array_ptr<_Ptr<void>>) count(nfiles);
@@ -158,7 +158,7 @@ static int select_get_fd( int ridx );
 /* Figure out how many file descriptors the system allows, and
 ** initialize the fdwatch data structures.  Returns -1 on failure.
 */
-int
+_Checked int
 fdwatch_get_nfiles( void )
     {
     int i;
@@ -189,9 +189,9 @@ fdwatch_get_nfiles( void )
 
     /* Initialize the fdwatch data structures. */
     nwatches = 0;
-    fd_rw = (int*) malloc( sizeof(int) * nfiles );
-    fd_data = (void**) malloc( sizeof(void*) * nfiles );
-    if ( fd_rw == (int*) 0 || fd_data == (void**) 0 )
+    fd_rw = malloc<int>(sizeof(int) * nfiles );
+    fd_data = malloc<_Ptr<void>>( sizeof(void*) * nfiles );
+    if ( fd_rw ==  0 || fd_data == 0 )
 	return -1;
     for ( i = 0; i < nfiles; ++i )
 	fd_rw[i] = -1;
@@ -203,8 +203,7 @@ fdwatch_get_nfiles( void )
 
 
 /* Add a descriptor to the watch list.  rw is either FDW_READ or FDW_WRITE.  */
-void
-fdwatch_add_fd( int fd, void* client_data, int rw )
+_Checked _Itype_for_any(T) void fdwatch_add_fd(int fd, void* client_data : itype(_Ptr<T>), int rw)
     {
     if ( fd < 0 || fd >= nfiles || fd_rw[fd] != -1 )
 	{
@@ -218,7 +217,7 @@ fdwatch_add_fd( int fd, void* client_data, int rw )
 
 
 /* Remove a descriptor from the watch list. */
-void
+_Checked void
 fdwatch_del_fd( int fd )
     {
     if ( fd < 0 || fd >= nfiles || fd_rw[fd] == -1 )
@@ -235,7 +234,7 @@ fdwatch_del_fd( int fd )
 ** or 0 if the timeout expired, or -1 on errors.  A timeout of INFTIM means
 ** wait indefinitely.
 */
-int
+_Checked int
 fdwatch( long timeout_msecs )
     {
     ++nwatches;
@@ -246,7 +245,7 @@ fdwatch( long timeout_msecs )
 
 
 /* Check if a descriptor was ready. */
-int
+_Checked int
 fdwatch_check_fd( int fd )
     {
     if ( fd < 0 || fd >= nfiles || fd_rw[fd] == -1 )
@@ -258,22 +257,24 @@ fdwatch_check_fd( int fd )
     }
 
 
-void*
-fdwatch_get_next_client_data( void )
+_Checked _Itype_for_any(T) void* fdwatch_get_next_client_data( void ) : itype(_Ptr<T>)
     {
     int fd;
 
     if ( next_ridx >= nreturned )
-	return (void*) -1;
+	return -1;
     fd = GET_FD( next_ridx++ );
     if ( fd < 0 || fd >= nfiles )
 	return (void*) 0;
-    return fd_data[fd];
+    _Ptr<void> ret = fd_data[fd];
+    _Unchecked {
+      return _Assume_bounds_cast<_Ptr<T>>(ret);
+    }
     }
 
 
 /* Generate debugging statistics syslog message. */
-void
+_Checked void
 fdwatch_logstats( long secs )
     {
     if ( secs > 0 )
@@ -547,22 +548,24 @@ devpoll_get_fd( int ridx )
 
 #  ifdef HAVE_POLL
 
-static struct pollfd* pollfds;
-static int npoll_fds;
-static int* poll_fdidx;
-static int* poll_rfdidx;
+static size_t npoll_fds;
+
+static size_t pollfds_s, poll_fdidx_s, poll_rfdidx_s;
+static struct pollfd *pollfds : itype(_Array_ptr<struct pollfd>) count(pollfds_s) = ((void *)0);
+static int *poll_fdidx : itype(_Array_ptr<int>) count(poll_fdidx_s) = ((void *)0);
+static int *poll_rfdidx : itype(_Array_ptr<int>) count(poll_rfdidx_s) = ((void *)0);
 
 
-static int
+_Checked static int
 poll_init( int nf )
     {
     int i;
 
-    pollfds = (struct pollfd*) malloc( sizeof(struct pollfd) * nf );
-    poll_fdidx = (int*) malloc( sizeof(int) * nf );
-    poll_rfdidx = (int*) malloc( sizeof(int) * nf );
-    if ( pollfds == (struct pollfd*) 0 || poll_fdidx == (int*) 0 ||
-	 poll_rfdidx == (int*) 0 )
+    pollfds = malloc<struct pollfd>( sizeof(struct pollfd) * nf ), pollfds_s = nf;
+    poll_fdidx = malloc<int>( sizeof(int) * nf ), poll_fdidx_s = nf;
+    poll_rfdidx = malloc<int>( sizeof(int) * nf ), poll_rfdidx_s = nf;
+    if ( pollfds == 0 || poll_fdidx == 0 ||
+	 poll_rfdidx == 0 )
 	return -1;
     for ( i = 0; i < nf; ++i )
 	pollfds[i].fd = poll_fdidx[i] = -1;
@@ -570,7 +573,7 @@ poll_init( int nf )
     }
 
 
-static void
+_Checked static void
 poll_add_fd( int fd, int rw )
     {
     if ( npoll_fds >= nfiles )
@@ -590,7 +593,7 @@ poll_add_fd( int fd, int rw )
     }
 
 
-static void
+_Checked static void
 poll_del_fd( int fd )
     {
     int idx = poll_fdidx[fd];
@@ -608,12 +611,13 @@ poll_del_fd( int fd )
     }
 
 
-static int
+_Checked static int
 poll_watch( long timeout_msecs )
     {
     int r, ridx, i;
 
-    r = poll( pollfds, npoll_fds, (int) timeout_msecs );
+    _Array_ptr<struct pollfd> tmp : count(npoll_fds) = _Dynamic_bounds_cast<_Array_ptr<struct pollfd>>(pollfds, count(npoll_fds));
+    r = poll( tmp, npoll_fds, (int) timeout_msecs );
     if ( r <= 0 )
 	return r;
 
@@ -631,7 +635,7 @@ poll_watch( long timeout_msecs )
     }
 
 
-static int
+_Checked static int
 poll_check_fd( int fd )
     {
     int fdidx = poll_fdidx[fd];
@@ -652,7 +656,7 @@ poll_check_fd( int fd )
     }
 
 
-static int
+_Checked static int
 poll_get_fd( int ridx )
     {
     if ( ridx < 0 || ridx >= nfiles )
