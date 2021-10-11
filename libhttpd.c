@@ -501,72 +501,74 @@ httpd_unlisten(httpd_server *hs : itype(_Ptr<httpd_server>))
 #endif /* EXPLICIT_ERROR_PAGES */
 
 
-static char* ok200title = "OK";
-static char* ok206title = "Partial Content";
+static char *ok200title : itype(_Nt_array_ptr<char>) = "OK";
+static char *ok206title : itype(_Nt_array_ptr<char>) = "Partial Content";
 
-static char* err302title = "Found";
-static char* err302form = "The actual URL is '%.80s'.\n";
+static char *err302title : itype(_Nt_array_ptr<char>) = "Found";
+static char *err302form : itype(_Nt_array_ptr<char>) count(27) = "The actual URL is '%.80s'.\n";
 
-static char* err304title = "Not Modified";
+static char *err304title : itype(_Nt_array_ptr<char>) = "Not Modified";
 
-char* httpd_err400title = "Bad Request";
-char* httpd_err400form =
+char* httpd_err400title : itype(_Nt_array_ptr<char>) = "Bad Request";
+char* httpd_err400form : itype(_Nt_array_ptr<char>) =
     "Your request has bad syntax or is inherently impossible to satisfy.\n";
 
 #ifdef AUTH_FILE
-static char* err401title = "Unauthorized";
-static char* err401form =
+static char *err401title : itype(_Nt_array_ptr<char>) = "Unauthorized";
+static char *err401form : itype(_Nt_array_ptr<char>) count(44) =
     "Authorization required for the URL '%.80s'.\n";
 #endif /* AUTH_FILE */
 
-static char* err403title = "Forbidden";
+static char *err403title : itype(_Nt_array_ptr<char>) = "Forbidden";
 #ifndef EXPLICIT_ERROR_PAGES
-static char* err403form =
+static char* err403form : itype(_Nt_array_ptr<char>) =
     "You do not have permission to get URL '%.80s' from this server.\n";
 #endif /* !EXPLICIT_ERROR_PAGES */
 
-static char* err404title = "Not Found";
-static char* err404form =
+static char *err404title : itype(_Nt_array_ptr<char>) = "Not Found";
+static char *err404form : itype(_Nt_array_ptr<char>) count(56) =
     "The requested URL '%.80s' was not found on this server.\n";
 
-char* httpd_err408title = "Request Timeout";
-char* httpd_err408form =
+char* httpd_err408title : itype(_Nt_array_ptr<char>) = "Request Timeout";
+char* httpd_err408form : itype(_Nt_array_ptr<char>) =
     "No request appeared within a reasonable time period.\n";
 
-static char* err451title = "Unavailable For Legal Reasons";
-static char* err451form =
+static char *err451title : itype(_Nt_array_ptr<char>) = "Unavailable For Legal Reasons";
+static char *err451form : itype(_Nt_array_ptr<char>) =
     "You do not have legal permission to get URL '%.80s' from this server.\n";
 
-static char* err500title = "Internal Error";
-static char* err500form =
+static char *err500title : itype(_Nt_array_ptr<char>) = "Internal Error";
+static char *err500form : itype(_Nt_array_ptr<char>) count(64) =
     "There was an unusual problem serving the requested URL '%.80s'.\n";
 
-static char* err501title = "Not Implemented";
-static char* err501form =
+static char *err501title : itype(_Nt_array_ptr<char>) = "Not Implemented";
+static char *err501form : itype(_Nt_array_ptr<char>) count(64) =
     "The requested method '%.80s' is not implemented by this server.\n";
 
-char* httpd_err503title = "Service Temporarily Overloaded";
-char* httpd_err503form =
+char* httpd_err503title : itype(_Nt_array_ptr<char>) = "Service Temporarily Overloaded";
+char* httpd_err503form : itype(_Nt_array_ptr<char>) =
     "The requested URL '%.80s' is temporarily overloaded.  Please try again later.\n";
 
 
 /* Append a string to the buffer waiting to be sent as response. */
-static void
-add_response( httpd_conn* hc, char* str )
+_Checked static void
+add_response(httpd_conn *hc : itype(_Ptr<httpd_conn>), char *str : itype(_Nt_array_ptr<char>))
     {
     size_t len;
 
     len = strlen( str );
     size_t new_responselen = hc->responselen + len;
     httpd_realloc_str_cc( hc->response, hc->maxresponse, new_responselen);
-    _Array_ptr<void> tmp : byte_count(len) = _Assume_bounds_cast<_Array_ptr<void>>(&(hc->response[hc->responselen]), byte_count(len));
-    (void) memmove(tmp , str, len );
+    _Unchecked {
+      _Array_ptr<void> tmp : byte_count(len) = _Assume_bounds_cast<_Array_ptr<void>>(&(hc->response[hc->responselen]), byte_count(len));
+      (void) memmove(tmp , str, len );
+    }
     hc->responselen += len;
     }
 
 /* Send the buffered response. */
-void
-httpd_write_response( httpd_conn* hc )
+_Checked void
+httpd_write_response(httpd_conn *hc : itype(_Ptr<httpd_conn>))
     {
     /* If we are in a sub-process, turn off no-delay mode. */
     if ( sub_process )
@@ -613,15 +615,15 @@ httpd_clear_ndelay( int fd )
 
 
 static void
-send_mime( httpd_conn* hc, int status, char* title, char* encodings, char* extraheads, char* type, off_t length, time_t mod )
+send_mime(httpd_conn *hc : itype(_Ptr<httpd_conn>), int status, char *title : itype(_Ptr<char>), char *encodings : itype(_Array_ptr<char>) count(0), char *extraheads : itype(_Nt_array_ptr<char>) count(0), char *type : itype(_Nt_array_ptr<char>) count(21), off_t length, time_t mod)
     {
     time_t now, expires;
-    const char* rfc1123fmt = "%a, %d %b %Y %H:%M:%S GMT";
-    char nowbuf[100];
-    char modbuf[100];
-    char expbuf[100];
-    char fixed_type[500];
-    char buf[1000];
+    _Nt_array_ptr<const char> rfc1123fmt : byte_count(25) = "%a, %d %b %Y %H:%M:%S GMT";
+    char nowbuf _Nt_checked[100];
+    char modbuf _Nt_checked[100];
+    char expbuf _Nt_checked[100];
+    char fixed_type _Nt_checked[500];
+    char buf _Nt_checked[1000];
     int partial_content;
     int s100;
 
@@ -713,7 +715,7 @@ static int str_alloc_count = 0;
 static size_t str_alloc_size = 0;
 
 void
-httpd_realloc_str( char** strP, size_t* maxsizeP, size_t size )
+httpd_realloc_str(char **strP : itype(_Ptr<_Ptr<char>>), size_t *maxsizeP : itype(_Ptr<size_t>), size_t size)
     {
     if ( *maxsizeP == 0 )
 	{
@@ -747,7 +749,7 @@ httpd_realloc_strbuf(_Ptr<struct strbuf> sbuf, size_t size) : count(size) _Check
     if ( sbuf->maxsize == 0 )
 	{
 	size_t newsize = MAX( 200, size + 100 );
-	sbuf->maxsize = newsize, sbuf->str = malloc_nt(newsize); /* BOUNDS WARNING VERIFIED */
+	sbuf->maxsize = newsize, sbuf->str = ((_Nt_array_ptr<char> )malloc_nt(newsize)); /* BOUNDS WARNING VERIFIED */
         ret = sbuf->str; /* BOUNDS WARNING REVIEWED: Needs reasoning that newsize >= size */
 	++str_alloc_count;
 	str_alloc_size += sbuf->maxsize;
@@ -756,7 +758,7 @@ httpd_realloc_strbuf(_Ptr<struct strbuf> sbuf, size_t size) : count(size) _Check
 	{
 	str_alloc_size -= sbuf->maxsize;
         size_t newsize = MAX( sbuf->maxsize * 2, size * 5 / 4 );
-        sbuf->maxsize = newsize, sbuf->str = realloc_nt(sbuf->str, newsize); /* BOUNDS WARNING VERIFIED */
+        sbuf->maxsize = newsize, sbuf->str = ((_Nt_array_ptr<char> )realloc_nt(sbuf->str, newsize)); /* BOUNDS WARNING VERIFIED */
         ret = sbuf->str; /* BOUNDS WARNING REVIEWED: Needs reasoning that newsize >= size */
 	str_alloc_size += sbuf->maxsize;
 	}
@@ -778,9 +780,11 @@ httpd_realloc_strbuf(_Ptr<struct strbuf> sbuf, size_t size) : count(size) _Check
     }
 
 static void
-send_response( httpd_conn* hc, int status, char* title, char* extraheads, char* form, char* arg )
+send_response(httpd_conn *hc : itype(_Ptr<httpd_conn>), int status, char *title : itype(_Ptr<char>), char *extraheads : itype(_Nt_array_ptr<char>) count(0), char *form : itype(_Nt_array_ptr<char>) count(27), char *arg : itype(_Array_ptr<char>))
     {
-    char defanged_arg[1000], buf[2000];
+    char defanged_arg _Checked[1000];
+char buf _Nt_checked[2000];
+
 
     send_mime(
 	hc, status, title, "", extraheads, "text/html; charset=%s", (off_t) -1,
@@ -816,9 +820,9 @@ send_response( httpd_conn* hc, int status, char* title, char* extraheads, char* 
 
 
 static void
-send_response_tail( httpd_conn* hc )
+send_response_tail(httpd_conn *hc : itype(_Ptr<httpd_conn>))
     {
-    char buf[1000];
+    char buf _Nt_checked[1000];
 
     (void) my_snprintf( buf, sizeof(buf), "\
     <hr>\n\

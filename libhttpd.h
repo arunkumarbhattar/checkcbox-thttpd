@@ -124,7 +124,7 @@ typedef struct {
     char* hostdir : itype(_Nt_array_ptr<char>);
     char* authorization : itype(_Nt_array_ptr<char>);
     char* remoteuser : itype(_Nt_array_ptr<char>);
-    char* response : itype(_Nt_array_ptr<char>);
+    char* response : itype(_Nt_array_ptr<char>) count(maxresponse);
     size_t maxdecodedurl, maxorigfilename, maxexpnfilename, maxencodings,
 	maxpathinfo, maxquery, maxaccept, maxaccepte, maxreqhost, maxhostdir,
 	maxremoteuser, maxresponse;
