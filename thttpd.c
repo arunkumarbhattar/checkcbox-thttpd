@@ -1738,10 +1738,12 @@ handle_read(connecttab *c : itype(_Array_ptr<connecttab>) bounds(connects, conne
     c->conn_state = CNST_SENDING;
     c->started_at = tvP->tv_sec;
     c->wouldblock_delay = 0;
-    set_client_connecttab(&client_data, c);
+
+    _Ptr<connecttab> tmp_c = _Dynamic_bounds_cast<_Ptr<connecttab>>(c);
+    set_client_connecttab(&client_data, tmp_c);
 
     fdwatch_del_fd( hc->conn_fd );
-    fdwatch_add_fd<connecttab>( hc->conn_fd, c, FDW_WRITE );
+    fdwatch_add_fd<connecttab>( hc->conn_fd, tmp_c, FDW_WRITE );
     }
 
 
@@ -2150,7 +2152,8 @@ wakeup_connection(ClientData client_data, struct timeval *nowP : itype(_Ptr<stru
     {
     _Ptr<connecttab> c = ((void *)0);
 
-    c = get_client_connecttab(client_data);
+    _Array_ptr<connecttab> tmp_c : bounds(connects, connects + max_connects) = get_client_connecttab(client_data);
+    c = _Dynamic_bounds_cast<_Ptr<connecttab>>(tmp_c);
     c->wakeup_timer = (_Ptr<Timer>) 0;
     if ( c->conn_state == CNST_PAUSING )
 	{
