@@ -63,11 +63,11 @@ check_room( int size, int len )
 
 
 static void
-end_with_slash( char* str )
+end_with_slash( char* str, int alloc_len )
     {
     size_t len = strlen(str);
     if ( str[len - 1] != '/' )
-	(void) xstrbcat( str, "/", len );
+	(void) xstrbcat( str, "/", alloc_len );
     }
 
 
@@ -158,7 +158,7 @@ main( int argc, char** argv )
     check_room(
 	sizeof(dirname), strlen( homedir ) + strlen( TILDE_MAP_2 ) + 2 );
     (void) xstrbcpy( dirname, homedir, sizeof(dirname) - 1 );
-    end_with_slash( dirname );
+    end_with_slash( dirname, sizeof(dirname) - 1 );
     (void) xstrbcat( dirname, TILDE_MAP_2, sizeof(dirname) - 1 );
 
     check_dir( dirname, pwd->pw_uid, pwd->pw_gid );
@@ -178,18 +178,18 @@ main( int argc, char** argv )
 	sizeof(dirname),
 	strlen( webdir ) + strlen( prefix ) + strlen( username ) + 3 );
     (void) xstrbcpy( dirname, webdir, sizeof(dirname) - 1 );
-    end_with_slash( dirname );
+    end_with_slash( dirname, sizeof(dirname) - 1 );
     if ( strlen( prefix ) != 0 )
 	{
 	(void) xstrbcat( dirname, prefix, sizeof(dirname) - 1 );
-	end_with_slash( dirname );
+	end_with_slash( dirname, sizeof(dirname) - 1 );
 	}
     (void) xstrbcat( dirname, username, sizeof(dirname) - 1 );
 
     /* Assemble the link name. */
     check_room( sizeof(linkname), strlen( homedir ) + strlen( LINK ) + 2 );
     (void) xstrbcpy( linkname, homedir, sizeof(linkname) - 1 );
-    end_with_slash( linkname );
+    end_with_slash( linkname, sizeof(linkname) - 1 );
     (void) xstrbcat( linkname, LINK, sizeof(linkname) - 1 );
 
     check_dir( dirname, pwd->pw_uid, pwd->pw_gid );
