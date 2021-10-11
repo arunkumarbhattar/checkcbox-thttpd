@@ -127,11 +127,11 @@ static void send_response(httpd_conn *hc : itype(_Ptr<httpd_conn>), int status, 
 static void send_response_tail(httpd_conn *hc : itype(_Ptr<httpd_conn>));
 static void defang(char *str : itype(_Nt_array_ptr<char>), char *dfstr : itype(_Array_ptr<char>) count(dfsize), int dfsize);
 #ifdef ERR_DIR
-static int send_err_file(httpd_conn *hc : itype(_Ptr<httpd_conn>), int status, char *title : itype(_Ptr<char>), char *extraheads : itype(_Nt_array_ptr<char>) count(0), char *filename : itype(_Nt_array_ptr<char>) count(999));
+static int send_err_file(httpd_conn *hc : itype(_Ptr<httpd_conn>), int status, char *title : itype(_Nt_array_ptr<char>), char *extraheads : itype(_Nt_array_ptr<char>) count(0), char *filename : itype(_Nt_array_ptr<char>));
 #endif /* ERR_DIR */
 #ifdef AUTH_FILE
 static void send_authenticate(httpd_conn *hc : itype(_Ptr<httpd_conn>), char *realm : itype(_Nt_array_ptr<char>));
-static int b64_decode(const char *str : itype(_Array_ptr<const char>) byte_count(0), unsigned char *space : itype(_Array_ptr<unsigned char>) count(size), int size);
+static int b64_decode(const char *str : itype(_Nt_array_ptr<const char>), unsigned char *space : itype(_Array_ptr<unsigned char>) count(size), int size);
 static int auth_check(httpd_conn *hc : itype(_Ptr<httpd_conn>), char *dirname : itype(_Nt_array_ptr<char>));
 static int auth_check2(httpd_conn *hc : itype(_Ptr<httpd_conn>), char *dirname : itype(_Nt_array_ptr<char>));
 #endif /* AUTH_FILE */
@@ -872,13 +872,12 @@ _Array_ptr<char> cp2 : bounds(__3c_tmp_cp2, __3c_tmp_cp2 + dfsize) = __3c_tmp_cp
     *cp2 = '\0';
     }
 
-
-void
-httpd_send_err( httpd_conn* hc, int status, char* title, char* extraheads, char* form, char* arg )
+_Checked void
+httpd_send_err(httpd_conn *hc : itype(_Ptr<httpd_conn>), int status, char *title : itype(_Nt_array_ptr<char>), char *extraheads : itype(_Nt_array_ptr<char>) count(0), char *form : itype(_Nt_array_ptr<char>), char *arg : itype(_Nt_array_ptr<char>))
     {
 #ifdef ERR_DIR
 
-    char filename[1000];
+    char filename _Nt_checked[1000];
 
     /* Try virtual host error page. */
     if ( hc->hs->vhost && hc->hostdir[0] != '\0' )
@@ -907,15 +906,15 @@ httpd_send_err( httpd_conn* hc, int status, char* title, char* extraheads, char*
 
 
 #ifdef ERR_DIR
-static int
-send_err_file( httpd_conn* hc, int status, char* title, char* extraheads, char* filename )
+_Checked static int
+send_err_file(httpd_conn *hc : itype(_Ptr<httpd_conn>), int status, char *title : itype(_Nt_array_ptr<char>), char *extraheads : itype(_Nt_array_ptr<char>) count(0), char *filename : itype(_Nt_array_ptr<char>))
     {
-    FILE* fp;
-    char buf[1000];
+    _Ptr<FILE> fp = ((void *)0);
+    char buf _Nt_checked[1000];
     size_t r;
 
     fp = fopen( filename, "r" );
-    if ( fp == (FILE*) 0 )
+    if ( fp ==  0 )
 	return 0;
     send_mime(
 	hc, status, title, "", extraheads, "text/html; charset=%s", (off_t) -1,
@@ -941,15 +940,16 @@ send_err_file( httpd_conn* hc, int status, char* title, char* extraheads, char* 
 
 #ifdef AUTH_FILE
 
-static char* header : itype(_Nt_array_ptr<char>);
-static void
-send_authenticate( httpd_conn* hc, char* realm )
+_Checked static void
+send_authenticate(httpd_conn *hc : itype(_Ptr<httpd_conn>), char *realm : itype(_Nt_array_ptr<char>))
     {
+    static _Nt_array_ptr<char> header; 
     static size_t maxheader = 0;
-    static char headstr[] = "WWW-Authenticate: Basic realm=\"";
+    static char headstr _Nt_checked[] = "WWW-Authenticate: Basic realm=\"";
 
+    size_t r_len = strlen(realm);
     httpd_realloc_str_cc(
-	header, maxheader, sizeof(headstr) + strlen( realm ) + 3 );
+	header, maxheader, sizeof(headstr) + r_len + 3 );
     (void) my_snprintf( header, maxheader, "%s%s\"\015\012", headstr, realm );
     httpd_send_err( hc, 401, err401title, header, err401form, hc->encodedurl );
     /* If the request was a POST then there might still be data to be read,
@@ -971,7 +971,7 @@ send_authenticate( httpd_conn* hc, char* realm )
 ** Then the 6-bit values are represented using the characters "A-Za-z0-9+/".
 */
 
-static int b64_decode_table[256] = {
+static int b64_decode_table[256] : itype(int _Checked[256]) = {
     -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,  /* 00-0F */
     -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,  /* 10-1F */
     -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,62,-1,-1,-1,63,  /* 20-2F */
@@ -995,10 +995,10 @@ static int b64_decode_table[256] = {
 ** be at most 3/4 the size of the encoded, and may be smaller if there
 ** are padding characters (blanks, newlines).
 */
-static int
-b64_decode( const char* str, unsigned char* space, int size )
+_Checked static int
+b64_decode(const char *str : itype(_Nt_array_ptr<const char>), unsigned char *space : itype(_Array_ptr<unsigned char>) count(size), int size)
     {
-    const char* cp;
+    _Nt_array_ptr<const char> cp = 0;
     int space_idx, phase;
     int d, prev_d = 0;
     unsigned char c;
@@ -1042,12 +1042,12 @@ b64_decode( const char* str, unsigned char* space, int size )
 
 
 /* Returns -1 == unauthorized, 0 == no auth file, 1 = authorized. */
-static int
-auth_check( httpd_conn* hc, char* dirname  )
+_Checked static int
+auth_check(httpd_conn *hc : itype(_Ptr<httpd_conn>), char *dirname : itype(_Nt_array_ptr<char>))
     {
     if ( hc->hs->global_passwd )
 	{
-	char* topdir;
+	_Nt_array_ptr<char> topdir = ((void *)0);
 	if ( hc->hs->vhost && hc->hostdir[0] != '\0' )
 	    topdir = hc->hostdir;
 	else

@@ -249,7 +249,7 @@ void httpd_destroy_conn(httpd_conn *hc : itype(_Ptr<httpd_conn>));
 
 
 /* Send an error message back to the client. */
-void httpd_send_err(httpd_conn *hc : itype(_Ptr<httpd_conn>), int status, char *title : itype(_Nt_array_ptr<char>), char *extraheads : itype(_Nt_array_ptr<char>) count(0), char *form : itype(_Nt_array_ptr<char>), char *arg : itype(_Array_ptr<char>));
+void httpd_send_err(httpd_conn *hc : itype(_Ptr<httpd_conn>), int status, char *title : itype(_Nt_array_ptr<char>), char *extraheads : itype(_Nt_array_ptr<char>) count(0), char *form : itype(_Nt_array_ptr<char>), char *arg : itype(_Nt_array_ptr<char>));
 
 /* Some error messages. */
 extern char* httpd_err400title : itype(_Nt_array_ptr<char>);
