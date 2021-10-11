@@ -122,7 +122,7 @@ static void check_options( void );
 static void free_httpd_server(httpd_server *hs : itype(_Ptr<httpd_server>));
 static int initialize_listen_socket(httpd_sockaddr *saP : itype(_Ptr<httpd_sockaddr>));
 static void add_response(httpd_conn *hc : itype(_Ptr<httpd_conn>), char *str : itype(_Nt_array_ptr<char>));
-static void send_mime(httpd_conn *hc : itype(_Ptr<httpd_conn>), int status, char *title : itype(_Ptr<char>), char *encodings : itype(_Array_ptr<char>) count(0), char *extraheads : itype(_Nt_array_ptr<char>) count(0), char *type : itype(_Nt_array_ptr<char>) count(21), off_t length, time_t mod);
+static void send_mime(httpd_conn *hc : itype(_Ptr<httpd_conn>), int status, char *title : itype(_Nt_array_ptr<char>), char *encodings : itype(_Nt_array_ptr<char>), char *extraheads : itype(_Nt_array_ptr<char>), char *type : itype(_Nt_array_ptr<char>), off_t length, time_t mod);
 static void send_response(httpd_conn *hc : itype(_Ptr<httpd_conn>), int status, char *title : itype(_Ptr<char>), char *extraheads : itype(_Nt_array_ptr<char>) count(0), char *form : itype(_Nt_array_ptr<char>) count(27), char *arg : itype(_Array_ptr<char>));
 static void send_response_tail(httpd_conn *hc : itype(_Ptr<httpd_conn>));
 static void defang(char *str : itype(_Array_ptr<char>), char *dfstr : itype(_Array_ptr<char>) count(dfsize), int dfsize);
@@ -177,7 +177,7 @@ static int check_referrer(httpd_conn *hc : itype(_Ptr<httpd_conn>));
 static int really_check_referrer(httpd_conn *hc : itype(_Ptr<httpd_conn>));
 static int sockaddr_check(httpd_sockaddr *saP : itype(_Ptr<httpd_sockaddr>));
 static size_t sockaddr_len(httpd_sockaddr *saP : itype(_Ptr<httpd_sockaddr>));
-static int my_snprintf(char *str : itype(_Nt_array_ptr<char>), size_t size, const char *format : itype(_Nt_array_ptr<const char>), ...);
+static int my_snprintf(char *str : itype(_Nt_array_ptr<char>), size_t size, const char *format : itype(_Nt_array_ptr<const char>), ...) __attribute__((format(printf, 3, 4)));
 #ifndef HAVE_ATOLL
 static long long atoll( const char* str );
 #endif /* HAVE_ATOLL */
@@ -583,39 +583,39 @@ httpd_write_response(httpd_conn *hc : itype(_Ptr<httpd_conn>))
 
 
 /* Set no-delay / non-blocking mode on a socket. */
-void
+_Checked void
 httpd_set_ndelay( int fd )
     {
     int flags, newflags;
 
-    flags = fcntl( fd, F_GETFL, 0 );
+    _Unchecked { flags = fcntl( fd, F_GETFL, 0 ); }
     if ( flags != -1 )
 	{
 	newflags = flags | (int) O_NDELAY;
 	if ( newflags != flags )
-	    (void) fcntl( fd, F_SETFL, newflags );
+	    _Unchecked { (void) fcntl( fd, F_SETFL, newflags ); }
 	}
     }
 
 
 /* Clear no-delay / non-blocking mode on a socket. */
-void
+_Checked void
 httpd_clear_ndelay( int fd )
     {
     int flags, newflags;
 
-    flags = fcntl( fd, F_GETFL, 0 );
+    _Unchecked { flags = fcntl( fd, F_GETFL, 0 ); }
     if ( flags != -1 )
 	{
 	newflags = flags & ~ (int) O_NDELAY;
 	if ( newflags != flags )
-	    (void) fcntl( fd, F_SETFL, newflags );
+	    _Unchecked { (void) fcntl( fd, F_SETFL, newflags ); }
 	}
     }
 
 
-static void
-send_mime(httpd_conn *hc : itype(_Ptr<httpd_conn>), int status, char *title : itype(_Ptr<char>), char *encodings : itype(_Array_ptr<char>) count(0), char *extraheads : itype(_Nt_array_ptr<char>) count(0), char *type : itype(_Nt_array_ptr<char>) count(21), off_t length, time_t mod)
+_Checked static void
+send_mime(httpd_conn *hc : itype(_Ptr<httpd_conn>), int status, char *title : itype(_Nt_array_ptr<char>), char *encodings : itype(_Nt_array_ptr<char>), char *extraheads : itype(_Nt_array_ptr<char>), char *type : itype(_Nt_array_ptr<char>), off_t length, time_t mod)
     {
     time_t now, expires;
     _Nt_array_ptr<const char> rfc1123fmt : byte_count(25) = "%a, %d %b %Y %H:%M:%S GMT";
@@ -648,13 +648,15 @@ send_mime(httpd_conn *hc : itype(_Ptr<httpd_conn>), int status, char *title : it
 	    hc->got_range = 0;
 	    }
 
-	now = time( (time_t*) 0 );
+	now = time(  0 );
 	if ( mod == (time_t) 0 )
 	    mod = now;
 	(void) strftime( nowbuf, sizeof(nowbuf), rfc1123fmt, gmtime( &now ) );
 	(void) strftime( modbuf, sizeof(modbuf), rfc1123fmt, gmtime( &mod ) );
+        _Unchecked {
 	(void) my_snprintf(
 	    fixed_type, sizeof(fixed_type), type, hc->hs->charset );
+        }
 	(void) my_snprintf( buf, sizeof(buf),
 	    "%.20s %d %s\015\012Server: %s\015\012Content-Type: %s\015\012Date: %s\015\012Last-Modified: %s\015\012Accept-Ranges: bytes\015\012Connection: close\015\012",
 	    hc->protocol, status, title, EXPOSED_SERVER_SOFTWARE, fixed_type,
