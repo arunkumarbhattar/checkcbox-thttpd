@@ -263,7 +263,7 @@ extern char* httpd_err503form : itype(_Nt_array_ptr<char>);
 char *httpd_method_str(int method) : itype(_Nt_array_ptr<char>);
 
 /* Reallocate a string. */
-void httpd_realloc_str(char **strP : itype(_Ptr<_Ptr<char>>), size_t *maxsizeP : itype(_Ptr<size_t>), size_t size);
+void httpd_realloc_str(char **strP : itype(_Ptr<_Nt_array_ptr<char>>), size_t *maxsizeP : itype(_Ptr<size_t>), size_t size);
 
 // Test the new Checked C way starting at one call site.
 

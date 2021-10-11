@@ -123,7 +123,7 @@ static void free_httpd_server(httpd_server *hs : itype(_Ptr<httpd_server>));
 static int initialize_listen_socket(httpd_sockaddr *saP : itype(_Ptr<httpd_sockaddr>));
 static void add_response(httpd_conn *hc : itype(_Ptr<httpd_conn>), char *str : itype(_Nt_array_ptr<char>));
 static void send_mime(httpd_conn *hc : itype(_Ptr<httpd_conn>), int status, char *title : itype(_Nt_array_ptr<char>), char *encodings : itype(_Nt_array_ptr<char>), char *extraheads : itype(_Nt_array_ptr<char>), char *type : itype(_Nt_array_ptr<char>), off_t length, time_t mod);
-static void send_response(httpd_conn *hc : itype(_Ptr<httpd_conn>), int status, char *title : itype(_Ptr<char>), char *extraheads : itype(_Nt_array_ptr<char>) count(0), char *form : itype(_Nt_array_ptr<char>) count(27), char *arg : itype(_Array_ptr<char>));
+static void send_response(httpd_conn *hc : itype(_Ptr<httpd_conn>), int status, char *title : itype(_Nt_array_ptr<char>), char *extraheads : itype(_Nt_array_ptr<char>) count(0), char *form : itype(_Nt_array_ptr<char>), char *arg : itype(_Nt_array_ptr<char>));
 static void send_response_tail(httpd_conn *hc : itype(_Ptr<httpd_conn>));
 static void defang(char *str : itype(_Array_ptr<char>), char *dfstr : itype(_Array_ptr<char>) count(dfsize), int dfsize);
 #ifdef ERR_DIR
@@ -716,13 +716,13 @@ send_mime(httpd_conn *hc : itype(_Ptr<httpd_conn>), int status, char *title : it
 static int str_alloc_count = 0;
 static size_t str_alloc_size = 0;
 
-void
-httpd_realloc_str(char **strP : itype(_Ptr<_Ptr<char>>), size_t *maxsizeP : itype(_Ptr<size_t>), size_t size)
+_Checked void
+httpd_realloc_str(char **strP : itype(_Ptr<_Nt_array_ptr<char>>), size_t *maxsizeP : itype(_Ptr<size_t>), size_t size)
     {
     if ( *maxsizeP == 0 )
 	{
 	*maxsizeP = MAX( 200, size + 100 );
-	*strP = NEW( char, *maxsizeP + 1 );
+	*strP = malloc_nt(*maxsizeP + 1);
 	++str_alloc_count;
 	str_alloc_size += *maxsizeP;
 	}
@@ -730,12 +730,12 @@ httpd_realloc_str(char **strP : itype(_Ptr<_Ptr<char>>), size_t *maxsizeP : ityp
 	{
 	str_alloc_size -= *maxsizeP;
 	*maxsizeP = MAX( *maxsizeP * 2, size * 5 / 4 );
-	*strP = RENEW( *strP, char, *maxsizeP + 1 );
+	*strP = realloc_nt(*strP, *maxsizeP + 1 );
 	str_alloc_size += *maxsizeP;
 	}
     else
 	return;
-    if ( *strP == (char*) 0 )
+    if ( *strP == 0 )
 	{
 	syslog(
 	    LOG_ERR, "out of memory reallocating a string to %ld bytes",
@@ -781,8 +781,8 @@ httpd_realloc_strbuf(_Ptr<struct strbuf> sbuf, size_t size) : count(size) _Check
     return ret;
     }
 
-static void
-send_response(httpd_conn *hc : itype(_Ptr<httpd_conn>), int status, char *title : itype(_Ptr<char>), char *extraheads : itype(_Nt_array_ptr<char>) count(0), char *form : itype(_Nt_array_ptr<char>) count(27), char *arg : itype(_Array_ptr<char>))
+_Checked static void
+send_response(httpd_conn *hc : itype(_Ptr<httpd_conn>), int status, char *title : itype(_Nt_array_ptr<char>), char *extraheads : itype(_Nt_array_ptr<char>) count(0), char *form : itype(_Nt_array_ptr<char>), char *arg : itype(_Nt_array_ptr<char>))
     {
     char defanged_arg _Checked[1000];
 char buf _Nt_checked[2000];
@@ -807,7 +807,7 @@ char buf _Nt_checked[2000];
 	status, title, status, title );
     add_response( hc, buf );
     defang( arg, defanged_arg, sizeof(defanged_arg) );
-    (void) my_snprintf( buf, sizeof(buf), form, defanged_arg );
+    _Unchecked { (void) my_snprintf( buf, sizeof(buf), form, defanged_arg ); }
     add_response( hc, buf );
     if ( match( "**MSIE**", hc->useragent ) )
 	{
@@ -821,7 +821,7 @@ char buf _Nt_checked[2000];
     }
 
 
-static void
+_Checked static void
 send_response_tail(httpd_conn *hc : itype(_Ptr<httpd_conn>))
     {
     char buf _Nt_checked[1000];
