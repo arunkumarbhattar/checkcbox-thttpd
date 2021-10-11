@@ -125,7 +125,7 @@ static void add_response(httpd_conn *hc : itype(_Ptr<httpd_conn>), char *str : i
 static void send_mime(httpd_conn *hc : itype(_Ptr<httpd_conn>), int status, char *title : itype(_Nt_array_ptr<char>), char *encodings : itype(_Nt_array_ptr<char>), char *extraheads : itype(_Nt_array_ptr<char>), char *type : itype(_Nt_array_ptr<char>), off_t length, time_t mod);
 static void send_response(httpd_conn *hc : itype(_Ptr<httpd_conn>), int status, char *title : itype(_Nt_array_ptr<char>), char *extraheads : itype(_Nt_array_ptr<char>) count(0), char *form : itype(_Nt_array_ptr<char>), char *arg : itype(_Nt_array_ptr<char>));
 static void send_response_tail(httpd_conn *hc : itype(_Ptr<httpd_conn>));
-static void defang(char *str : itype(_Array_ptr<char>), char *dfstr : itype(_Array_ptr<char>) count(dfsize), int dfsize);
+static void defang(char *str : itype(_Nt_array_ptr<char>), char *dfstr : itype(_Array_ptr<char>) count(dfsize), int dfsize);
 #ifdef ERR_DIR
 static int send_err_file(httpd_conn *hc : itype(_Ptr<httpd_conn>), int status, char *title : itype(_Ptr<char>), char *extraheads : itype(_Nt_array_ptr<char>) count(0), char *filename : itype(_Nt_array_ptr<char>) count(999));
 #endif /* ERR_DIR */
@@ -839,13 +839,14 @@ send_response_tail(httpd_conn *hc : itype(_Ptr<httpd_conn>))
     }
 
 
-static void
-defang( char* str, char* dfstr, int dfsize )
+_Checked static void
+defang(char *str : itype(_Nt_array_ptr<char>), char *dfstr : itype(_Array_ptr<char>) count(dfsize), int dfsize)
     {
-    char* cp1;
-    char* cp2;
+    _Nt_array_ptr<char> cp1 = ((void *)0);
+    _Array_ptr<char> __3c_tmp_cp2 : count(dfsize) = ((void *)0);
+_Array_ptr<char> cp2 : bounds(__3c_tmp_cp2, __3c_tmp_cp2 + dfsize) = __3c_tmp_cp2;
 
-    for ( cp1 = str, cp2 = dfstr;
+    for ( cp1 = str, __3c_tmp_cp2 = dfstr, cp2 = __3c_tmp_cp2;
 	  *cp1 != '\0' && cp2 - dfstr < dfsize - 1;
 	  ++cp1, ++cp2 )
 	{
