@@ -48,10 +48,10 @@
 
 #define LINK "public_html"
 
-static char* argv0;
+static char *argv0 : itype(_Nt_array_ptr<char>) = ((void *)0);
 
 
-static void
+_Checked static void
 check_room( int size, int len )
     {
     if ( len > size )
@@ -62,17 +62,17 @@ check_room( int size, int len )
     }
 
 
-static void
-end_with_slash( char* str, int alloc_len )
+_Checked static void
+end_with_slash(char *str : itype(_Nt_array_ptr<char>) count(4999))
     {
     size_t len = strlen(str);
     if ( str[len - 1] != '/' )
-	(void) xstrbcat( str, "/", alloc_len );
+	(void) xstrbcat( str, "/", 4999 );
     }
 
 
-static void
-check_dir( char* dirname, uid_t uid, gid_t gid )
+_Checked static void
+check_dir(char *dirname : itype(_Nt_array_ptr<char>) count(4999), uid_t uid, gid_t gid)
     {
     struct stat sb;
 
@@ -97,7 +97,7 @@ This is probably a configuration error.\n", dirname );
 	    }
 	(void) printf( "Created web directory %s\n", dirname );
 	/* Try to change the group of the new dir to the user's group. */
-	(void) chown( dirname, -1, gid );
+	_Unchecked { (void) chown( (char*) dirname, -1, gid ); }
 	}
     else
 	{
@@ -121,17 +121,17 @@ This is probably a configuration error.\n", dirname );
     }
 
 
-int
-main( int argc, char** argv )
+_Checked int
+main(int argc, char **argv : itype(_Array_ptr<_Nt_array_ptr<char>>) count(argc))
     {
-    char* webdir;
-    char* prefix;
-    struct passwd* pwd;
-    char* username;
-    char* homedir;
-    char dirname[5000];
-    char linkname[5000];
-    char linkbuf[5000];
+    _Nt_array_ptr<char> webdir : byte_count(14) = ((void *)0);
+    _Nt_array_ptr<char> prefix : byte_count(0) = ((void *)0);
+    _Ptr<struct passwd> pwd = ((void *)0);
+    _Nt_array_ptr<char> username = 0;
+    _Nt_array_ptr<char> homedir = 0;
+    char dirname _Nt_checked[5000];
+    char linkname _Nt_checked[5000];
+    char linkbuf _Nt_checked[5000];
     struct stat sb;
 
     argv0 = argv[0];
@@ -141,14 +141,14 @@ main( int argc, char** argv )
 	exit( 1 );
 	}
 
-    pwd = getpwuid( getuid() );
-    if ( pwd == (struct passwd*) 0 )
+    _Unchecked { pwd = _Assume_bounds_cast<_Ptr<struct passwd>>(getpwuid( getuid() )); }
+    if ( pwd == 0 )
 	{
 	(void) fprintf( stderr, "%s: can't find your username\n", argv0 );
 	exit( 1 );
 	}
-    username = pwd->pw_name;
-    homedir = pwd->pw_dir;
+    _Unchecked { username = _Assume_bounds_cast<_Nt_array_ptr<char>>(pwd->pw_name, count(0)); }
+    _Unchecked { homedir = _Assume_bounds_cast<_Nt_array_ptr<char>>(pwd->pw_dir, count(0)); }
 
 #ifdef TILDE_MAP_2
 
@@ -178,18 +178,18 @@ main( int argc, char** argv )
 	sizeof(dirname),
 	strlen( webdir ) + strlen( prefix ) + strlen( username ) + 3 );
     (void) xstrbcpy( dirname, webdir, sizeof(dirname) - 1 );
-    end_with_slash( dirname, sizeof(dirname) - 1 );
+    end_with_slash(dirname);
     if ( strlen( prefix ) != 0 )
 	{
 	(void) xstrbcat( dirname, prefix, sizeof(dirname) - 1 );
-	end_with_slash( dirname, sizeof(dirname) - 1 );
+	end_with_slash(dirname);
 	}
     (void) xstrbcat( dirname, username, sizeof(dirname) - 1 );
 
     /* Assemble the link name. */
     check_room( sizeof(linkname), strlen( homedir ) + strlen( LINK ) + 2 );
     (void) xstrbcpy( linkname, homedir, sizeof(linkname) - 1 );
-    end_with_slash( linkname, sizeof(linkname) - 1 );
+    end_with_slash(linkname);
     (void) xstrbcat( linkname, LINK, sizeof(linkname) - 1 );
 
     check_dir( dirname, pwd->pw_uid, pwd->pw_gid );
@@ -204,7 +204,9 @@ main( int argc, char** argv )
 	    exit( 1 );
 	    }
 	/* Doesn't exist.  Try to make it. */
-	if ( symlink( dirname, linkname ) < 0 )
+        int res = 0;
+        _Unchecked { res = symlink((char*) dirname, (char*) linkname); }
+	if ( res < 0 )
 	    {
 	    if ( errno == ENOENT )
 		(void) printf( "\
@@ -232,7 +234,7 @@ contents.\n", linkname, argv0 );
 	    exit( 1 );
 	    }
 	/* Check the existing link's contents. */
-	if ( readlink( linkname, linkbuf, sizeof(linkbuf) ) < 0 )
+	if ( readlink( linkname, linkbuf, sizeof(linkbuf) - 1 ) < 0 )
 	    {
 	    perror( linkname );
 	    exit( 1 );
@@ -245,7 +247,9 @@ contents.\n", linkname, argv0 );
 Symbolic link %s already existed\n\
 but it points to the wrong place!  Attempting to remove and\n\
 recreate it.\n", linkname );
-	    if ( unlink( linkname ) < 0 )
+            int res = 0;
+            _Unchecked { unlink( (char*) linkname); }
+	    if ( res < 0 )
 		{
 		perror( linkname );
 		exit( 1 );
