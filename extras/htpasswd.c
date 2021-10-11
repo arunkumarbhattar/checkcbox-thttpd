@@ -24,22 +24,22 @@
 #define MAX_STRING_LEN 256
 
 int tfd;
-char temp_template[] = "/tmp/htp.XXXXXX";
+char temp_template[16] : itype(char _Nt_checked[16]) = "/tmp/htp.XXXXXX";
 
 void interrupted(int);
 
 // Obviously this whole function could just be replaced with strdup, but I want
 // to use it as a simple example for porting. ~ Matt
-static char * strd(char *s) {
+_Checked static char *strd(char *s : itype(_Nt_array_ptr<char>)) : itype(_Nt_array_ptr<char>) {
     size_t len = strlen(s);
-    char *d;
+    _Nt_array_ptr<char> d : count(len) = ((void *)0);
 
-    d=malloc_nt(len);
+    d=((_Nt_array_ptr<char> )malloc_nt(len));
     xstrbcpy(d,s,len);
     return(d);
 }
 
-static void getword(char *word, char *line, char stop) {
+_Checked static void getword(char *word : itype(_Array_ptr<char>) count(255), char *line : itype(_Array_ptr<char>) count(255), char stop) {
     int x = 0,y;
 
     for(x=0;((line[x]) && (line[x] != stop));x++)
@@ -52,7 +52,7 @@ static void getword(char *word, char *line, char stop) {
     while((line[y++] = line[x++]));
 }
 
-static int my_getline(char *s, int n, FILE *f) {
+_Checked static int my_getline(char *s : itype(_Array_ptr<char>) count(n), int n, FILE *f : itype(_Ptr<FILE>)) {
     int i=0;
 
     while(1) {
@@ -69,7 +69,7 @@ static int my_getline(char *s, int n, FILE *f) {
     }
 }
 
-static void putline(FILE *f,char *l) {
+_Checked static void putline(FILE *f : itype(_Ptr<FILE>), char *l : itype(_Array_ptr<char>) count(255)) {
     int x;
 
     for(x=0;l[x];x++) fputc(l[x],f);
@@ -78,10 +78,12 @@ static void putline(FILE *f,char *l) {
 
 
 /* From local_passwd.c (C) Regents of Univ. of California blah blah */
-static unsigned char itoa64[] =         /* 0 ... 63 => ascii - 64 */
+static unsigned char itoa64[65] : itype(unsigned char _Checked[65]) =         /* 0 ... 63 => ascii - 64 */
         "./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
-static void to64(char *s, long v, int n) {
+_Checked static void to64(char *__3c_tmp_s : itype(_Array_ptr<char>) count(__tmp_n), long v, int __tmp_n) {
+    int n = __tmp_n;
+    _Array_ptr<char> s : bounds(__3c_tmp_s, __3c_tmp_s + __tmp_n) =  __3c_tmp_s;
     while (--n >= 0) {
         *s++ = itoa64[v&0x3f];
         v >>= 6;
@@ -107,61 +109,64 @@ return (char *)&password;
 }
 #endif
 
-static void
-add_password( char* user, FILE* f )
+_Checked static void
+add_password(char *user : itype(_Nt_array_ptr<char>), FILE *f : itype(_Ptr<FILE>))
     {
-    char pass[100];
-    char* pw;
-    char* cpw;
-    char salt[3];
+    char pass _Nt_checked[100];
+    _Nt_array_ptr<char> pw = ((void *)0);
+    _Nt_array_ptr<char> cpw = ((void *)0);
+    char salt _Nt_checked[3];
 
     if ( ! isatty( fileno( stdin ) ) )
 	{
-	(void) fgets( pass, sizeof(pass), stdin );
+	(void) fgets( pass, sizeof(pass) - 1, stdin );
 	if ( pass[strlen(pass) - 1] == '\n' )
 	    pass[strlen(pass) - 1] = '\0';
 	pw = pass;
 	}
     else
 	{
-	pw = strd( (char*) getpass( "New password:" ) );
-	if ( strcmp( pw, (char*) getpass( "Re-type new password:" ) ) != 0 )
+	pw = strd( (_Nt_array_ptr<char>) getpass( "New password:" ) );
+	if ( strcmp( pw, (_Nt_array_ptr<char>) getpass( "Re-type new password:" ) ) != 0 )
 	    {
 	    (void) fprintf( stderr, "They don't match, sorry.\n" );
-	    if ( tfd != -1 )
-		unlink( temp_template );
+	    if ( tfd != -1 ) {
+                _Unchecked { unlink( temp_template ); }
+            }
 	    exit( 1 );
 	    }
 	}
-    (void) srandom( (int) time( (time_t*) 0 ) );
-    to64( &salt[0], random(), 2 );
-    cpw = crypt( pw, salt );
+    (void) srandom( (int) time( 0 ) );
+    to64( salt, random(), 2 );
+    cpw = ((_Nt_array_ptr<char> )crypt( pw, salt ));
     (void) fprintf( f, "%s:%s\n", user, cpw );
     }
 
-static void usage(void) {
+_Checked static void usage(void) {
     fprintf(stderr,"Usage: htpasswd [-c] passwordfile username\n");
     fprintf(stderr,"The -c flag creates a new file.\n");
     exit(1);
 }
 
-void interrupted(int signo) {
+_Checked void interrupted(int signo) {
     fprintf(stderr,"Interrupted.\n");
-    if(tfd != -1) unlink(temp_template);
+    if(tfd != -1) _Unchecked { unlink(temp_template); }
     exit(1);
 }
 
-int main(int argc, char *argv[]) {
-    FILE *tfp,*f;
-    char user[MAX_STRING_LEN];
-    char line[MAX_STRING_LEN];
-    char l[MAX_STRING_LEN];
-    char w[MAX_STRING_LEN];
-    char command[MAX_STRING_LEN];
+_Checked int main(int argc, char **argv : itype(_Array_ptr<_Nt_array_ptr<char>>) count(argc)) {
+    _Ptr<FILE> tfp = ((void *)0);
+_Ptr<FILE> f = ((void *)0);
+
+    char user _Nt_checked[MAX_STRING_LEN];
+    char line _Nt_checked[MAX_STRING_LEN];
+    char l _Nt_checked[MAX_STRING_LEN];
+    char w _Nt_checked[MAX_STRING_LEN];
+    char command _Nt_checked[MAX_STRING_LEN];
     int found;
 
     tfd = -1;
-    signal(SIGINT,(void (*)(int))interrupted);
+    signal(SIGINT,(_Ptr<void (int)>)interrupted);
     if(argc == 4) {
         if(strcmp(argv[1],"-c"))
             usage();
@@ -189,11 +194,11 @@ int main(int argc, char *argv[]) {
         fprintf(stderr,"Use -c option to create new one.\n");
         exit(1);
     }
-    strncpy(user,argv[2],sizeof(user)-1);
+    xstrbcpy(user,argv[2],sizeof(user)-1);
     user[sizeof(user)-1] = '\0';
 
     found = 0;
-    while(!(my_getline(line,MAX_STRING_LEN,f))) {
+    while(!(my_getline(line,MAX_STRING_LEN - 1,f))) {
         if(found || (line[0] == '#') || (!line[0])) {
             putline(tfp,line);
             continue;
@@ -216,8 +221,8 @@ int main(int argc, char *argv[]) {
     }
     fclose(f);
     fclose(tfp);
-    sprintf(command,"cp %s %s",temp_template,argv[1]);
+    xsbprintf(command, sizeof(command) - 1, "cp %s %s",temp_template,argv[1]);
     system(command);
-    unlink(temp_template);
+    _Unchecked { unlink(temp_template); }
     exit(0);
 }

@@ -53,7 +53,7 @@ size_t xstrbcat(char *restrict dest
 _Unchecked int xsbprintf(char *restrict s
                          : itype(restrict _Nt_array_ptr<char>) count(count),
                            size_t count, const char *restrict format
-                         : itype(restrict _Nt_array_ptr<const char>), ...);
+                         : itype(restrict _Nt_array_ptr<const char>), ...) __attribute__((format(printf, 3, 4)));
 
 typedef struct {
   char *ptr : itype(_Nt_array_ptr<char>);
