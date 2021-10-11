@@ -119,27 +119,27 @@ typedef int socklen_t;
 
 /* Forwards. */
 static void check_options( void );
-static void free_httpd_server( httpd_server* hs );
-static int initialize_listen_socket( httpd_sockaddr* saP );
-static void add_response( httpd_conn* hc, char* str );
-static void send_mime( httpd_conn* hc, int status, char* title, char* encodings, char* extraheads, char* type, off_t length, time_t mod );
-static void send_response( httpd_conn* hc, int status, char* title, char* extraheads, char* form, char* arg );
-static void send_response_tail( httpd_conn* hc );
-static void defang( char* str, char* dfstr, int dfsize );
+static void free_httpd_server(httpd_server *hs : itype(_Ptr<httpd_server>));
+static int initialize_listen_socket(httpd_sockaddr *saP : itype(_Ptr<httpd_sockaddr>));
+static void add_response(httpd_conn *hc : itype(_Ptr<httpd_conn>), char *str : itype(_Nt_array_ptr<char>));
+static void send_mime(httpd_conn *hc : itype(_Ptr<httpd_conn>), int status, char *title : itype(_Ptr<char>), char *encodings : itype(_Array_ptr<char>) count(0), char *extraheads : itype(_Nt_array_ptr<char>) count(0), char *type : itype(_Nt_array_ptr<char>) count(21), off_t length, time_t mod);
+static void send_response(httpd_conn *hc : itype(_Ptr<httpd_conn>), int status, char *title : itype(_Ptr<char>), char *extraheads : itype(_Nt_array_ptr<char>) count(0), char *form : itype(_Nt_array_ptr<char>) count(27), char *arg : itype(_Array_ptr<char>));
+static void send_response_tail(httpd_conn *hc : itype(_Ptr<httpd_conn>));
+static void defang(char *str : itype(_Array_ptr<char>), char *dfstr : itype(_Array_ptr<char>) count(dfsize), int dfsize);
 #ifdef ERR_DIR
-static int send_err_file( httpd_conn* hc, int status, char* title, char* extraheads, char* filename );
+static int send_err_file(httpd_conn *hc : itype(_Ptr<httpd_conn>), int status, char *title : itype(_Ptr<char>), char *extraheads : itype(_Nt_array_ptr<char>) count(0), char *filename : itype(_Nt_array_ptr<char>) count(999));
 #endif /* ERR_DIR */
 #ifdef AUTH_FILE
-static void send_authenticate( httpd_conn* hc, char* realm );
-static int b64_decode( const char* str, unsigned char* space, int size );
-static int auth_check( httpd_conn* hc, char* dirname  );
-static int auth_check2( httpd_conn* hc, char* dirname  );
+static void send_authenticate(httpd_conn *hc : itype(_Ptr<httpd_conn>), char *realm : itype(_Nt_array_ptr<char>));
+static int b64_decode(const char *str : itype(_Array_ptr<const char>) byte_count(0), unsigned char *space : itype(_Array_ptr<unsigned char>) count(size), int size);
+static int auth_check(httpd_conn *hc : itype(_Ptr<httpd_conn>), char *dirname : itype(_Nt_array_ptr<char>));
+static int auth_check2(httpd_conn *hc : itype(_Ptr<httpd_conn>), char *dirname : itype(_Nt_array_ptr<char>));
 #endif /* AUTH_FILE */
-static void send_dirredirect( httpd_conn* hc );
+static void send_dirredirect(httpd_conn *hc : itype(_Ptr<httpd_conn>));
 static int hexit( char c );
-static void strdecode( char* to, char* from );
+static void strdecode(char *to : itype(_Array_ptr<char>), char *from : itype(_Array_ptr<char>) byte_count(0));
 #ifdef GENERATE_INDEXES
-static void strencode( char* to, int tosize, char* from );
+static void strencode(char *to : itype(_Nt_array_ptr<char>) count(tosize), int tosize, char *from : itype(_Array_ptr<char>));
 #endif /* GENERATE_INDEXES */
 #ifdef TILDE_MAP_1
 static int tilde_map_1( httpd_conn* hc );
@@ -147,42 +147,42 @@ static int tilde_map_1( httpd_conn* hc );
 #ifdef TILDE_MAP_2
 static int tilde_map_2( httpd_conn* hc );
 #endif /* TILDE_MAP_2 */
-static int vhost_map( httpd_conn* hc );
-static char* expand_symlinks( char* path, nt_box *restP, int no_symlink_check, int tildemapped );
-static char* bufgets( httpd_conn* hc );
-static void de_dotdot( char* file );
+static int vhost_map(httpd_conn *hc : itype(_Ptr<httpd_conn>));
+static char *expand_symlinks(char *path : itype(_Nt_array_ptr<char>), nt_box *restP : itype(_Ptr<nt_box>), int no_symlink_check, int tildemapped) : itype(_Nt_array_ptr<char>);
+static char *bufgets(httpd_conn *hc : itype(_Ptr<httpd_conn>)) : itype(_Nt_array_ptr<char>);
+static void de_dotdot(char *file : itype(_Nt_array_ptr<char>));
 static void init_mime( void );
-static void figure_mime( httpd_conn* hc );
+static void figure_mime(httpd_conn *hc : itype(_Ptr<httpd_conn>));
 #ifdef CGI_TIMELIMIT
-static void cgi_kill2( ClientData client_data, struct timeval* nowP );
-static void cgi_kill( ClientData client_data, struct timeval* nowP );
+static void cgi_kill2(ClientData client_data, struct timeval *nowP : itype(_Ptr<struct timeval>));
+static void cgi_kill(ClientData client_data, struct timeval *nowP : itype(_Ptr<struct timeval>));
 #endif /* CGI_TIMELIMIT */
 #ifdef GENERATE_INDEXES
-static int ls( httpd_conn* hc );
+static int ls(httpd_conn *hc : itype(_Ptr<httpd_conn>));
 #endif /* GENERATE_INDEXES */
-static char* build_env( char* fmt, char* arg );
+static char *build_env(char *fmt : itype(_Nt_array_ptr<char>), char *arg : itype(_Nt_array_ptr<char>)) : itype(_Nt_array_ptr<char>);
 #ifdef SERVER_NAME_LIST
 static char* hostname_map( char* hostname );
 #endif /* SERVER_NAME_LIST */
-static char** make_envp( httpd_conn* hc );
-static char** make_argp( httpd_conn* hc );
-static void cgi_interpose_input( httpd_conn* hc, int wfd );
-static void post_post_garbage_hack( httpd_conn* hc );
-static void cgi_interpose_output( httpd_conn* hc, int rfd );
-static void cgi_child( httpd_conn* hc );
-static int cgi( httpd_conn* hc );
-static int really_start_request( httpd_conn* hc, struct timeval* nowP );
-static void make_log_entry( httpd_conn* hc, struct timeval* nowP );
-static int check_referrer( httpd_conn* hc );
-static int really_check_referrer( httpd_conn* hc );
-static int sockaddr_check( httpd_sockaddr* saP );
-static size_t sockaddr_len( httpd_sockaddr* saP );
-static int my_snprintf( char* str, size_t size, const char* format, ... );
+static char **make_envp(httpd_conn *hc : itype(_Ptr<httpd_conn>)) : itype(_Nt_array_ptr<_Nt_array_ptr<char>>);
+static char **make_argp(httpd_conn *hc : itype(_Ptr<httpd_conn>)) : itype(_Nt_array_ptr<char *>);
+static void cgi_interpose_input(httpd_conn *hc : itype(_Ptr<httpd_conn>), int wfd);
+static void post_post_garbage_hack(httpd_conn *hc : itype(_Ptr<httpd_conn>));
+static void cgi_interpose_output(httpd_conn *hc : itype(_Ptr<httpd_conn>), int rfd);
+static void cgi_child(httpd_conn *hc : itype(_Ptr<httpd_conn>));
+static int cgi(httpd_conn *hc : itype(_Ptr<httpd_conn>));
+static int really_start_request(httpd_conn *hc : itype(_Ptr<httpd_conn>), struct timeval *nowP : itype(_Ptr<struct timeval>));
+static void make_log_entry(httpd_conn *hc : itype(_Ptr<httpd_conn>), struct timeval *nowP : itype(_Ptr<struct timeval>));
+static int check_referrer(httpd_conn *hc : itype(_Ptr<httpd_conn>));
+static int really_check_referrer(httpd_conn *hc : itype(_Ptr<httpd_conn>));
+static int sockaddr_check(httpd_sockaddr *saP : itype(_Ptr<httpd_sockaddr>));
+static size_t sockaddr_len(httpd_sockaddr *saP : itype(_Ptr<httpd_sockaddr>));
+static int my_snprintf(char *str : itype(_Nt_array_ptr<char>), size_t size, const char *format : itype(_Nt_array_ptr<const char>), ...);
 #ifndef HAVE_ATOLL
 static long long atoll( const char* str );
 #endif /* HAVE_ATOLL */
 
-char *ol_strcpy(char *dst, char *src) {
+char *ol_strcpy(char *dst : itype(_Array_ptr<char>), char *src : itype(_Nt_array_ptr<char>)) : itype(_Ptr<char>) {
   return memmove(dst,src,strlen(src)+1);
 }
 
