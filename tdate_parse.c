@@ -44,33 +44,40 @@
 
 
 struct strlong {
-    char* s;
+    char *s : itype(_Nt_array_ptr<char>);
     long l;
     };
 
 
-static void
-pound_case( char* str )
+_Checked static void
+pound_case(char *_str : itype(_Nt_array_ptr<char>))
     {
+    _Nt_array_ptr<char> str = _str;
     for ( ; *str != '\0'; ++str )
 	{
-	if ( isupper( (int) *str ) )
-	    *str = tolower( (int) *str );
+        char c = *str;
+        char isupper_c = 0;
+        _Unchecked { isupper_c = isupper((int) c); }
+	if ( isupper_c )
+            {
+            char lower = 0;
+            _Unchecked { lower = tolower(c); };
+            *str = lower;
+            }
 	}
     }
 
 
-static int
-strlong_compare( const void* v1, const void* v2 )
+_Checked static int
+__strlong_compare( _Ptr<const struct strlong> v1, _Ptr<const struct strlong> v2 )
     {
-    const struct strlong* s1 = (const struct strlong*) v1;
-    const struct strlong* s2 = (const struct strlong*) v2;
-    return strcmp( s1->s, s2->s );
+    return strcmp( v1->s, v2->s );
     }
+int ((*strlong_compare)(const void*, const void*)) : itype(_Ptr<int (_Ptr<const void>, _Ptr<const void>)>) = (int (*)(const void *, const void *)) __strlong_compare;
 
 
-static int
-strlong_search( char* str, struct strlong* tab, int n, long* lP )
+_Checked static int
+strlong_search(char *str : itype(_Nt_array_ptr<char>), struct strlong *tab : itype(_Array_ptr<struct strlong>) count(n), int n, long *lP : itype(_Ptr<long>))
     {
     int i, h, l, r;
 
@@ -95,10 +102,10 @@ strlong_search( char* str, struct strlong* tab, int n, long* lP )
     }
 
 
-static int
-scan_wday( char* str_wday, long* tm_wdayP )
+_Checked static int
+scan_wday(char *str_wday : itype(_Nt_array_ptr<char>), long *tm_wdayP : itype(_Ptr<long>))
     {
-    static struct strlong wday_tab[] = {
+    static struct strlong wday_tab _Checked[] = {
 	{ "sun", 0 }, { "sunday", 0 },
 	{ "mon", 1 }, { "monday", 1 },
 	{ "tue", 2 }, { "tuesday", 2 },
@@ -112,7 +119,7 @@ scan_wday( char* str_wday, long* tm_wdayP )
     if ( ! sorted )
 	{
 	(void) qsort(
-	    wday_tab, sizeof(wday_tab)/sizeof(struct strlong),
+	    (_Array_ptr<void>) wday_tab, sizeof(wday_tab)/sizeof(struct strlong),
 	    sizeof(struct strlong), strlong_compare );
 	sorted = 1;
 	}
@@ -122,10 +129,10 @@ scan_wday( char* str_wday, long* tm_wdayP )
     }
 
 
-static int
-scan_mon( char* str_mon, long* tm_monP )
+_Checked static int
+scan_mon(char *str_mon : itype(_Nt_array_ptr<char>), long *tm_monP : itype(_Ptr<long>))
     {
-    static struct strlong mon_tab[] = {
+    static struct strlong mon_tab _Checked[] = {
 	{ "jan", 0 }, { "january", 0 },
 	{ "feb", 1 }, { "february", 1 },
 	{ "mar", 2 }, { "march", 2 },
@@ -144,7 +151,7 @@ scan_mon( char* str_mon, long* tm_monP )
     if ( ! sorted )
 	{
 	(void) qsort(
-	    mon_tab, sizeof(mon_tab)/sizeof(struct strlong),
+	    (_Array_ptr<void>) mon_tab, sizeof(mon_tab)/sizeof(struct strlong),
 	    sizeof(struct strlong), strlong_compare );
 	sorted = 1;
 	}
@@ -154,7 +161,7 @@ scan_mon( char* str_mon, long* tm_monP )
     }
 
 
-static int
+_Checked static int
 is_leap( int year )
     {
     return year % 400? ( year % 100 ? ( year % 4 ? 0 : 1 ) : 0 ) : 1;
@@ -162,11 +169,11 @@ is_leap( int year )
 
 
 /* Basically the same as mktime(). */
-static time_t
-tm_to_time( struct tm* tmP )
+_Checked static time_t
+tm_to_time(struct tm *tmP : itype(_Ptr<struct tm>))
     {
     time_t t;
-    static int monthtab[12] = {
+    static int monthtab _Checked[12] = {
 	0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334 };
 
     /* Years since epoch, converted to days. */
@@ -190,17 +197,19 @@ tm_to_time( struct tm* tmP )
 
 
 time_t
-tdate_parse( char* str )
+tdate_parse(char *str : itype(_Nt_array_ptr<char>))
     {
     struct tm tm;
-    char* cp;
-    char str_mon[500], str_wday[500];
+    _Nt_array_ptr<char> cp = ((void *)0);
+    char str_mon _Nt_checked[500];
+char str_wday _Nt_checked[500];
+
     int tm_sec, tm_min, tm_hour, tm_mday, tm_year;
     long tm_mon, tm_wday;
     time_t t;
 
     /* Initialize. */
-    (void) memset( (char*) &tm, 0, sizeof(struct tm) );
+    (void) memset( &tm, 0, sizeof(struct tm) );
 
     /* Skip initial whitespace ourselves - sscanf is clumsy at this. */
     for ( cp = str; *cp == ' ' || *cp == '\t'; ++cp )
