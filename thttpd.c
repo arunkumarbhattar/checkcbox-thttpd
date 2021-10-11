@@ -156,7 +156,7 @@ static int handle_newconnect(struct timeval *tvP : itype(_Ptr<struct timeval>), 
 static void handle_read(connecttab *c : itype(_Array_ptr<connecttab>) bounds(connects, connects + max_connects), struct timeval *tvP : itype(_Ptr<struct timeval>));
 static void handle_send(connecttab *c : itype(_Array_ptr<connecttab>) bounds(connects, connects + max_connects), struct timeval *tvP : itype(_Ptr<struct timeval>));
 static void handle_linger(connecttab *c : itype(_Array_ptr<connecttab>) bounds(connects, connects + max_connects), struct timeval *tvP : itype(_Ptr<struct timeval>));
-static int check_throttles(connecttab *c : itype(_Ptr<connecttab>));
+static int check_throttles(connecttab *c : itype(_Array_ptr<connecttab>) bounds(connects, connects + max_connects));
 static void clear_throttles(connecttab *c : itype(_Ptr<connecttab>), struct timeval *tvP : itype(_Ptr<struct timeval>));
 static void update_throttles(ClientData client_data, struct timeval *nowP : itype(_Ptr<struct timeval>));
 static void finish_connection(connecttab *c : itype(_Array_ptr<connecttab>) bounds(connects, connects + max_connects), struct timeval *tvP : itype(_Ptr<struct timeval>));
@@ -172,7 +172,7 @@ static void show_stats(ClientData client_data, struct timeval *nowP : itype(_Ptr
 static void logstats(struct timeval *nowP : itype(_Ptr<struct timeval>));
 static void thttpd_logstats( long secs );
 
-static connecttab *get_client_connecttab(ClientData client_data) : itype(_Array_ptr<connecttab>) {
+static connecttab *get_client_connecttab(ClientData client_data) : itype(_Array_ptr<connecttab>) bounds(connects, connects + max_connects) {
   return client_data.p;
 }
 
@@ -1621,12 +1621,12 @@ handle_newconnect(struct timeval *tvP : itype(_Ptr<struct timeval>), int listen_
     }
 
 
-static void
-handle_read( connecttab* c, struct timeval* tvP )
+_Checked static void
+handle_read(connecttab *c : itype(_Array_ptr<connecttab>) bounds(connects, connects + max_connects), struct timeval *tvP : itype(_Ptr<struct timeval>))
     {
     int sz;
     ClientData client_data;
-    httpd_conn* hc = c->hc;
+    _Ptr<httpd_conn> hc = c->hc;
 
     /* Is there room in our buffer to read more bytes? */
     if ( hc->read_idx >= hc->read_size )
@@ -1642,9 +1642,11 @@ handle_read( connecttab* c, struct timeval* tvP )
 	}
 
     /* Read some more bytes. */
+    size_t read_size_diff = hc->read_size - hc->read_idx;
+    _Array_ptr<char> tmp_read_buf : count(read_size_diff) = _Dynamic_bounds_cast<_Array_ptr<char>>(hc->read_buf + hc->read_idx, count(read_size_diff));
     sz = read(
-	hc->conn_fd, &(hc->read_buf[hc->read_idx]),
-	hc->read_size - hc->read_idx );
+	hc->conn_fd, tmp_read_buf,
+	read_size_diff);
     if ( sz == 0 )
 	{
 	httpd_send_err( hc, 400, httpd_err400title, "", httpd_err400form, "" );
@@ -1715,7 +1717,7 @@ handle_read( connecttab* c, struct timeval* tvP )
 	c->end_byte_index = hc->bytes_to_send;
 
     /* Check if it's already handled. */
-    if ( hc->file_address == (char*) 0 )
+    if ( hc->file_address == 0 )
 	{
 	/* No file address means someone else is handling it. */
 	int tind;
@@ -1739,18 +1741,18 @@ handle_read( connecttab* c, struct timeval* tvP )
     set_client_connecttab(&client_data, c);
 
     fdwatch_del_fd( hc->conn_fd );
-    fdwatch_add_fd( hc->conn_fd, c, FDW_WRITE );
+    fdwatch_add_fd<connecttab>( hc->conn_fd, c, FDW_WRITE );
     }
 
 
 static void
-handle_send( connecttab* c, struct timeval* tvP )
+handle_send(connecttab *c : itype(_Array_ptr<connecttab>) bounds(connects, connects + max_connects), struct timeval *tvP : itype(_Ptr<struct timeval>))
     {
     size_t max_bytes;
     int sz, coast;
     ClientData client_data;
     time_t elapsed;
-    httpd_conn* hc = c->hc;
+    _Ptr<httpd_conn> hc = c->hc;
     int tind;
 
     if ( c->max_limit == THROTTLE_NOLIMIT )
@@ -1776,10 +1778,10 @@ handle_send( connecttab* c, struct timeval* tvP )
           size_t iov_len;
         } iv[2];
 
-	iv[0].iov_base = _Assume_bounds_cast<_Array_ptr<void>>(hc->response, byte_count(hc->responselen)),
+	iv[0].iov_base = hc->response,
           iv[0].iov_len = hc->responselen;
         size_t s = MIN( c->end_byte_index - c->next_byte_index, max_bytes );
-	iv[1].iov_base = _Assume_bounds_cast<_Array_ptr<void>>(&(hc->file_address[c->next_byte_index]), byte_count(s)),
+	iv[1].iov_base = &(hc->file_address[c->next_byte_index]),
           iv[1].iov_len = s;
 	sz = writev( hc->conn_fd, (struct iovec*) iv, 2 );
 	}
@@ -1845,7 +1847,7 @@ handle_send( connecttab* c, struct timeval* tvP )
 	    {
 	    /* Yes; move the unwritten part to the front of the buffer. */
 	    int newlen = hc->responselen - sz;
-	    (void) memmove( _Assume_bounds_cast<_Array_ptr<void>>(hc->response, byte_count(newlen)), _Assume_bounds_cast<_Array_ptr<void>>(&(hc->response[sz]), byte_count(newlen)), newlen );
+	    (void) memmove( hc->response, &(hc->response[sz]), newlen );
 	    hc->responselen = newlen;
 	    sz = 0;
 	    }
@@ -1905,10 +1907,10 @@ handle_send( connecttab* c, struct timeval* tvP )
     }
 
 
-static void
-handle_linger( connecttab* c, struct timeval* tvP )
+_Checked static void
+handle_linger(connecttab *c : itype(_Array_ptr<connecttab>) bounds(connects, connects + max_connects), struct timeval *tvP : itype(_Ptr<struct timeval>))
     {
-    char buf[4096];
+    char buf _Checked[4096];
     int r;
 
     /* In lingering-close mode we just read and ignore bytes.  An error
@@ -1922,8 +1924,8 @@ handle_linger( connecttab* c, struct timeval* tvP )
     }
 
 
-static int
-check_throttles( connecttab* c )
+_Checked static int
+check_throttles(connecttab *c : itype(_Array_ptr<connecttab>) bounds(connects, connects + max_connects))
     {
     int tnum;
     long l;
@@ -1962,8 +1964,8 @@ check_throttles( connecttab* c )
     }
 
 
-static void
-clear_throttles( connecttab* c, struct timeval* tvP )
+_Checked static void
+clear_throttles(connecttab *c : itype(_Ptr<connecttab>), struct timeval *tvP : itype(_Ptr<struct timeval>))
     {
     int tind;
 
@@ -1972,12 +1974,11 @@ clear_throttles( connecttab* c, struct timeval* tvP )
     }
 
 
-static void
-update_throttles( ClientData client_data, struct timeval* nowP )
+_Checked static void
+update_throttles(ClientData client_data, struct timeval *nowP : itype(_Ptr<struct timeval>))
     {
     int tnum, tind;
-    int cnum;
-    connecttab* c;
+    _Ptr<connecttab> c = ((void *)0);
     long l;
 
     /* Update the average sending rate for each throttle.  This is only used
@@ -2004,9 +2005,9 @@ update_throttles( ClientData client_data, struct timeval* nowP )
     /* Now update the sending rate on all the currently-sending connections,
     ** redistributing it evenly.
     */
-    for ( cnum = 0; cnum < max_connects; ++cnum )
+    for ( unsigned int cnum = 0; cnum < max_connects; ++cnum )
 	{
-	c = &connects[cnum];
+	c = _Dynamic_bounds_cast<_Ptr<connecttab>>(connects + cnum);
 	if ( c->conn_state == CNST_SENDING || c->conn_state == CNST_PAUSING )
 	    {
 	    c->max_limit = THROTTLE_NOLIMIT;
@@ -2024,8 +2025,8 @@ update_throttles( ClientData client_data, struct timeval* nowP )
     }
 
 
-static void
-finish_connection( connecttab* c, struct timeval* tvP )
+_Checked static void
+finish_connection(connecttab *c : itype(_Array_ptr<connecttab>) bounds(connects, connects + max_connects), struct timeval *tvP : itype(_Ptr<struct timeval>))
     {
     /* If we haven't actually sent the buffered response yet, do so now. */
     httpd_write_response( c->hc );
@@ -2035,12 +2036,12 @@ finish_connection( connecttab* c, struct timeval* tvP )
     }
 
 
-static void
-clear_connection( connecttab* c, struct timeval* tvP )
+_Checked static void
+clear_connection(connecttab *c : itype(_Array_ptr<connecttab>) bounds(connects, connects + max_connects), struct timeval *tvP : itype(_Ptr<struct timeval>))
     {
     ClientData client_data;
 
-    if ( c->wakeup_timer != (Timer*) 0 )
+    if ( c->wakeup_timer != 0 )
 	{
 	tmr_cancel( c->wakeup_timer );
 	c->wakeup_timer = 0;
@@ -2061,7 +2062,7 @@ clear_connection( connecttab* c, struct timeval* tvP )
 	{
 	/* If we were already lingering, shut down for real. */
 	tmr_cancel( c->linger_timer );
-	c->linger_timer = (Timer*) 0;
+	c->linger_timer = (_Ptr<Timer>) 0;
 	c->hc->should_linger = 0;
 	}
     if ( c->hc->should_linger )
@@ -2070,13 +2071,14 @@ clear_connection( connecttab* c, struct timeval* tvP )
 	    fdwatch_del_fd( c->hc->conn_fd );
 	c->conn_state = CNST_LINGERING;
 	shutdown( c->hc->conn_fd, SHUT_WR );
-	fdwatch_add_fd( c->hc->conn_fd, c, FDW_READ );
-        set_client_connecttab(&client_data, c);
-	if ( c->linger_timer != (Timer*) 0 )
+        _Ptr<connecttab> tmp_c = _Dynamic_bounds_cast<_Ptr<connecttab>>(c);
+	fdwatch_add_fd<connecttab>( c->hc->conn_fd, tmp_c, FDW_READ );
+        set_client_connecttab(&client_data, tmp_c);
+	if ( c->linger_timer != 0 )
 	    syslog( LOG_ERR, "replacing non-null linger_timer!" );
 	c->linger_timer = tmr_create(
 	    tvP, linger_clear_connection, client_data, LINGER_TIME, 0 );
-	if ( c->linger_timer == (Timer*) 0 )
+	if ( c->linger_timer == 0 )
 	    {
 	    syslog( LOG_CRIT, "tmr_create(linger_clear_connection) failed" );
 	    exit( 1 );
@@ -2087,15 +2089,16 @@ clear_connection( connecttab* c, struct timeval* tvP )
     }
 
 
-static void
-really_clear_connection( connecttab* c, struct timeval* tvP )
+_Checked static void
+really_clear_connection(connecttab *c : itype(_Array_ptr<connecttab>) bounds(connects, connects + max_connects), struct timeval *tvP : itype(_Ptr<struct timeval>))
     {
     stats_bytes += c->hc->bytes_sent;
     if ( c->conn_state != CNST_PAUSING )
 	fdwatch_del_fd( c->hc->conn_fd );
     httpd_close_conn( c->hc, tvP );
-    clear_throttles( c, tvP );
-    if ( c->linger_timer != (Timer*) 0 )
+    _Ptr<connecttab> tmp_c = _Dynamic_bounds_cast<_Ptr<connecttab>>(c);
+    clear_throttles( tmp_c, tvP );
+    if ( c->linger_timer != 0 )
 	{
 	tmr_cancel( c->linger_timer );
 	c->linger_timer = 0;
@@ -2107,15 +2110,14 @@ really_clear_connection( connecttab* c, struct timeval* tvP )
     }
 
 
-static void
-idle( ClientData client_data, struct timeval* nowP )
+_Checked static void
+idle(ClientData client_data, struct timeval *nowP : itype(_Ptr<struct timeval>))
     {
-    int cnum;
-    connecttab* c;
+    _Array_ptr<connecttab> c : bounds(connects, connects + max_connects) = ((void *)0);
 
-    for ( cnum = 0; cnum < max_connects; ++cnum )
+    for ( unsigned int cnum = 0; cnum < max_connects; ++cnum )
 	{
-	c = &connects[cnum];
+	c = _Dynamic_bounds_cast<_Array_ptr<connecttab>>(&connects[cnum], bounds(connects, connects + max_connects));
 	switch ( c->conn_state )
 	    {
 	    case CNST_READING:
@@ -2123,7 +2125,7 @@ idle( ClientData client_data, struct timeval* nowP )
 		{
 		syslog( LOG_INFO,
 		    "%.80s connection timed out reading",
-		    httpd_ntoa( &c->hc->client_addr ) );
+		    ((_Nt_array_ptr<char> )httpd_ntoa( &c->hc->client_addr )) );
 		httpd_send_err(
 		    c->hc, 408, httpd_err408title, "", httpd_err408form, "" );
 		finish_connection( c, nowP );
@@ -2135,7 +2137,7 @@ idle( ClientData client_data, struct timeval* nowP )
 		{
 		syslog( LOG_INFO,
 		    "%.80s connection timed out sending",
-		    httpd_ntoa( &c->hc->client_addr ) );
+		    ((_Nt_array_ptr<char> )httpd_ntoa( &c->hc->client_addr )) );
 		clear_connection( c, nowP );
 		}
 	    break;
@@ -2143,33 +2145,33 @@ idle( ClientData client_data, struct timeval* nowP )
 	}
     }
 
-static void
-wakeup_connection( ClientData client_data, struct timeval* nowP )
+_Checked static void
+wakeup_connection(ClientData client_data, struct timeval *nowP : itype(_Ptr<struct timeval>))
     {
-    connecttab* c;
+    _Ptr<connecttab> c = ((void *)0);
 
     c = get_client_connecttab(client_data);
-    c->wakeup_timer = (Timer*) 0;
+    c->wakeup_timer = (_Ptr<Timer>) 0;
     if ( c->conn_state == CNST_PAUSING )
 	{
 	c->conn_state = CNST_SENDING;
-	fdwatch_add_fd( c->hc->conn_fd, c, FDW_WRITE );
+	fdwatch_add_fd<connecttab>( c->hc->conn_fd, c, FDW_WRITE );
 	}
     }
 
-static void
-linger_clear_connection( ClientData client_data, struct timeval* nowP )
+_Checked static void
+linger_clear_connection(ClientData client_data, struct timeval *nowP : itype(_Ptr<struct timeval>))
     {
-    connecttab* c;
+    _Array_ptr<connecttab> c : bounds(connects, connects + max_connects) = ((void *)0);
 
     c = get_client_connecttab(client_data);
-    c->linger_timer = (Timer*) 0;
+    c->linger_timer = (_Ptr<Timer>) 0;
     really_clear_connection( c, nowP );
     }
 
 
-static void
-occasional( ClientData client_data, struct timeval* nowP )
+_Checked static void
+occasional(ClientData client_data, struct timeval *nowP : itype(_Ptr<struct timeval>))
     {
     mmc_cleanup( nowP );
     tmr_cleanup();
@@ -2178,8 +2180,8 @@ occasional( ClientData client_data, struct timeval* nowP )
 
 
 #ifdef STATS_TIME
-static void
-show_stats( ClientData client_data, struct timeval* nowP )
+_Checked static void
+show_stats(ClientData client_data, struct timeval *nowP : itype(_Ptr<struct timeval>))
     {
     logstats( nowP );
     }
@@ -2187,16 +2189,16 @@ show_stats( ClientData client_data, struct timeval* nowP )
 
 
 /* Generate debugging statistics syslog messages for all packages. */
-static void
-logstats( struct timeval* nowP )
+_Checked static void
+logstats(struct timeval *nowP : itype(_Ptr<struct timeval>))
     {
     struct timeval tv;
     time_t now;
     long up_secs, stats_secs;
 
-    if ( nowP == (struct timeval*) 0 )
+    if ( nowP ==  0 )
 	{
-	(void) gettimeofday( &tv, (struct timezone*) 0 );
+	(void) gettimeofday( &tv,  0 );
 	nowP = &tv;
 	}
     now = nowP->tv_sec;
@@ -2217,7 +2219,7 @@ logstats( struct timeval* nowP )
 
 
 /* Generate debugging statistics syslog message. */
-static void
+_Checked static void
 thttpd_logstats( long secs )
     {
     if ( secs > 0 )

@@ -97,7 +97,7 @@ typedef struct {
     int initialized;
     httpd_server* hs : itype(_Ptr<httpd_server>);
     httpd_sockaddr client_addr;
-    char* read_buf : itype(_Nt_array_ptr<char>);
+    char* read_buf : itype(_Nt_array_ptr<char>) count(read_size);
     size_t read_size, read_idx, checked_idx;
     int checked_state;
     int method;
@@ -146,7 +146,7 @@ typedef struct {
     int should_linger;
     struct stat sb;
     int conn_fd;
-    char* file_address;
+    char* file_address : itype(_Nt_array_ptr<char>);
     } httpd_conn;
 
 /* Methods. */
@@ -249,7 +249,7 @@ void httpd_destroy_conn(httpd_conn *hc : itype(_Ptr<httpd_conn>));
 
 
 /* Send an error message back to the client. */
-void httpd_send_err(httpd_conn *hc : itype(_Ptr<httpd_conn>), int status, char *title : itype(_Ptr<char>), char *extraheads : itype(_Nt_array_ptr<char>) count(0), char *form : itype(_Nt_array_ptr<char>) count(27), char *arg : itype(_Array_ptr<char>));
+void httpd_send_err(httpd_conn *hc : itype(_Ptr<httpd_conn>), int status, char *title : itype(_Nt_array_ptr<char>), char *extraheads : itype(_Nt_array_ptr<char>) count(0), char *form : itype(_Nt_array_ptr<char>), char *arg : itype(_Array_ptr<char>));
 
 /* Some error messages. */
 extern char* httpd_err400title : itype(_Nt_array_ptr<char>);
@@ -306,8 +306,7 @@ _Nt_array_ptr<char> httpd_realloc_strbuf(_Ptr<struct strbuf> sbuf, size_t size) 
   /*_Checked*/ { \
     struct strbuf _sbuf = {_strL, _maxsizeL}; \
     httpd_realloc_strbuf(&_sbuf, _size); \
-    _maxsizeL = _sbuf.maxsize; \
-    _strL = _sbuf.str; /* BOUNDS WARNING REVIEWED */ \
+    _maxsizeL = _sbuf.maxsize, _strL = _sbuf.str; /* BOUNDS WARNING REVIEWED */ \
   }
 
 /* Format a network socket to a string representation. */
