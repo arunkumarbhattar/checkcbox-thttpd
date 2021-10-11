@@ -370,8 +370,8 @@ _Checked httpd_server *httpd_initialize(char *hostname : itype(_Nt_array_ptr<cha
     }
 
 
-static int
-initialize_listen_socket( httpd_sockaddr* saP )
+_Checked static int
+initialize_listen_socket(httpd_sockaddr *saP : itype(_Ptr<httpd_sockaddr>))
     {
     int listen_fd;
     int on, flags;
@@ -387,15 +387,15 @@ initialize_listen_socket( httpd_sockaddr* saP )
     listen_fd = socket( saP->sa.sa_family, SOCK_STREAM, 0 );
     if ( listen_fd < 0 )
 	{
-	syslog( LOG_CRIT, "socket %.80s - %m", httpd_ntoa( saP ) );
+	syslog( LOG_CRIT, "socket %.80s - %m", ((_Nt_array_ptr<char> )httpd_ntoa( saP )) );
 	return -1;
 	}
-    (void) fcntl( listen_fd, F_SETFD, 1 );
+    _Unchecked { (void) fcntl( listen_fd, F_SETFD, 1 ); }
 
     /* Allow reuse of local addresses. */
     on = 1;
     if ( setsockopt(
-	     listen_fd, SOL_SOCKET, SO_REUSEADDR, (char*) &on,
+	     listen_fd, SOL_SOCKET, SO_REUSEADDR, &on,
 	     sizeof(on) ) < 0 )
 	syslog( LOG_CRIT, "setsockopt SO_REUSEADDR - %m" );
 
@@ -403,20 +403,22 @@ initialize_listen_socket( httpd_sockaddr* saP )
     if ( bind( listen_fd, &saP->sa, sockaddr_len( saP ) ) < 0 )
 	{
 	syslog(
-	    LOG_CRIT, "bind %.80s - %m", httpd_ntoa( saP ) );
+	    LOG_CRIT, "bind %.80s - %m", ((_Nt_array_ptr<char> )httpd_ntoa( saP )) );
 	(void) close( listen_fd );
 	return -1;
 	}
 
     /* Set the listen file descriptor to no-delay / non-blocking mode. */
-    flags = fcntl( listen_fd, F_GETFL, 0 );
+    _Unchecked { flags = fcntl( listen_fd, F_GETFL, 0 ); }
     if ( flags == -1 )
 	{
 	syslog( LOG_CRIT, "fcntl F_GETFL - %m" );
 	(void) close( listen_fd );
 	return -1;
 	}
-    if ( fcntl( listen_fd, F_SETFL, flags | O_NDELAY ) < 0 )
+    int res = 0;
+    _Unchecked { fcntl( listen_fd, F_SETFL, flags | O_NDELAY ); }
+    if (res < 0)
 	{
 	syslog( LOG_CRIT, "fcntl O_NDELAY - %m" );
 	(void) close( listen_fd );
@@ -452,27 +454,27 @@ initialize_listen_socket( httpd_sockaddr* saP )
     }
 
 
-void
-httpd_set_logfp( httpd_server* hs, FILE* logfp )
+_Checked void
+httpd_set_logfp(httpd_server *hs : itype(_Ptr<httpd_server>), FILE *logfp : itype(_Ptr<FILE>))
     {
-    if ( hs->logfp != (FILE*) 0 )
+    if ( hs->logfp != 0 )
 	(void) fclose( hs->logfp );
     hs->logfp = logfp;
     }
 
 
-void
-httpd_terminate( httpd_server* hs )
+_Checked void
+httpd_terminate(httpd_server *hs : itype(_Ptr<httpd_server>))
     {
     httpd_unlisten( hs );
-    if ( hs->logfp != (FILE*) 0 )
+    if ( hs->logfp != 0 )
 	(void) fclose( hs->logfp );
     free_httpd_server( hs );
     }
 
 
-void
-httpd_unlisten( httpd_server* hs )
+_Checked void
+httpd_unlisten(httpd_server *hs : itype(_Ptr<httpd_server>))
     {
     if ( hs->listen4_fd != -1 )
 	{
