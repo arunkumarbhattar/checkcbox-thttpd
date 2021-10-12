@@ -3536,13 +3536,13 @@ cgi_interpose_output(httpd_conn *hc : itype(_Ptr<httpd_conn>), int rfd)
 
 /* CGI child process. */
 static void
-cgi_child( httpd_conn* hc )
+cgi_child(httpd_conn *hc : itype(_Ptr<httpd_conn>))
     {
     int r;
-    char** argp;
-    char** envp;
-    char* binary;
-    char* directory;
+    _Nt_array_ptr<_Nt_array_ptr<char>> argp = ((void *)0);
+    _Nt_array_ptr<_Nt_array_ptr<char>> envp = ((void *)0);
+    _Nt_array_ptr<char> binary = ((void *)0);
+    _Nt_array_ptr<char> directory = ((void *)0);
 
     /* Unset close-on-exec flag for this socket.  This actually shouldn't
     ** be necessary, according to POSIX a dup()'d file descriptor does
@@ -3579,10 +3579,10 @@ cgi_child( httpd_conn* hc )
 	}
 
     /* Make the environment vector. */
-    envp = make_envp( hc );
+    _Checked { envp = make_envp( hc ); }
 
     /* Make the argument vector. */
-    argp = make_argp( hc );
+    _Checked { argp = make_argp( hc ); }
 
     /* Set up stdin.  For POSTs we may have to set up a pipe from an
     ** interposer process, depending on if we've read some of the data
@@ -3700,12 +3700,12 @@ cgi_child( httpd_conn* hc )
     ** to the program's own directory.  This isn't in the CGI 1.1
     ** spec, but it's what other HTTP servers do.
     */
-    directory = strdup( hc->expnfilename );
+    directory = ((_Nt_array_ptr<char> )strdup( hc->expnfilename ));
     if ( directory == (char*) 0 )
 	binary = hc->expnfilename;      /* ignore errors */
     else
 	{
-	binary = strrchr( directory, '/' );
+	binary = ((_Nt_array_ptr<char> )strrchr( directory, '/' ));
 	if ( binary == (char*) 0 )
 	    binary = hc->expnfilename;
 	else
@@ -3786,17 +3786,17 @@ cgi(httpd_conn *hc : itype(_Ptr<httpd_conn>))
 static char* indexname : itype(_Nt_array_ptr<char>);
 static char* dirname : itype(_Nt_array_ptr<char>);
 static int
-really_start_request( httpd_conn* hc, struct timeval* nowP )
+really_start_request(httpd_conn *hc : itype(_Ptr<httpd_conn>), struct timeval *nowP : itype(_Ptr<struct timeval>))
     {
     static size_t maxindexname = 0;
-    static const char* index_names[] = { INDEX_NAMES };
+    static _Nt_array_ptr<const char> index_names _Checked[] = { INDEX_NAMES };
     int i;
 #ifdef AUTH_FILE
     static size_t maxdirname = 0;
 #endif /* AUTH_FILE */
     size_t expnlen, indxlen;
-    char* cp;
-    nt_box pi;
+    _Nt_array_ptr<char> cp = ((void *)0);
+    nt_box pi = {};
 
     expnlen = strlen( hc->expnfilename );
 
@@ -3904,7 +3904,7 @@ really_start_request( httpd_conn* hc, struct timeval* nowP )
 	/* Got an index file.  Expand symlinks again.  More pathinfo means
 	** something went wrong.
 	*/
-	cp = expand_symlinks( indexname, &pi, hc->hs->no_symlink_check, hc->tildemapped );
+	cp = (_Nt_array_ptr<char>) expand_symlinks( indexname, &pi, hc->hs->no_symlink_check, hc->tildemapped );
 	if ( cp == (char*) 0 || pi.ptr[0] != '\0' )
 	    {
 	    httpd_send_err( hc, 500, err500title, "", err500form, hc->encodedurl );
@@ -3933,7 +3933,7 @@ really_start_request( httpd_conn* hc, struct timeval* nowP )
     /* Check authorization for this directory. */
     httpd_realloc_str_cc( dirname, maxdirname, expnlen );
     (void) xstrbcpy( dirname, hc->expnfilename, maxdirname );
-    cp = strrchr( dirname, '/' );
+    cp = ((_Nt_array_ptr<char> )strrchr( dirname, '/' ));
     if ( cp == (char*) 0 )
 	(void) xstrbcpy( dirname, ".", maxdirname );
     else
@@ -4039,7 +4039,7 @@ really_start_request( httpd_conn* hc, struct timeval* nowP )
 	}
     else
 	{
-	hc->file_address = mmc_map( hc->expnfilename, &(hc->sb), nowP );
+	hc->file_address = mmc_map<char>( hc->expnfilename, &(hc->sb), nowP );
 	if ( hc->file_address == (char*) 0 )
 	    {
 	    httpd_send_err( hc, 500, err500title, "", err500form, hc->encodedurl );
@@ -4199,20 +4199,20 @@ check_referrer(httpd_conn *hc : itype(_Ptr<httpd_conn>))
 /* Returns 1 if ok to serve the url, 0 if not. */
 static char* refhost : itype(_Nt_array_ptr<char>);
 static int
-really_check_referrer( httpd_conn* hc )
+really_check_referrer(httpd_conn *hc : itype(_Ptr<httpd_conn>))
     {
-    httpd_server* hs;
-    char* cp1;
-    char* cp2;
-    char* cp3;
+    _Ptr<httpd_server> hs = ((void *)0);
+    _Nt_array_ptr<char> cp1 = ((void *)0);
+    _Nt_array_ptr<char> cp2 = ((void *)0);
+    _Nt_array_ptr<char> cp3 = ((void *)0);
     static size_t refhost_size = 0;
-    char *lp;
+    _Nt_array_ptr<char> lp = ((void *)0);
 
     hs = hc->hs;
 
     /* Check for an empty referrer. */
     if ( hc->referrer == (char*) 0 || hc->referrer[0] == '\0' ||
-	 ( cp1 = strstr( hc->referrer, "//" ) ) == (char*) 0 )
+	 ( cp1 = (_Nt_array_ptr<char>) strstr( hc->referrer, "//" ) ) == (char*) 0 )
 	{
 	/* Disallow if we require a referrer and the url matches. */
 	if ( hs->no_empty_referrers && match( hs->url_pattern, hc->origfilename ) )
