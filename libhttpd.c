@@ -2639,24 +2639,21 @@ static const int n_typ_tab = sizeof(typ_tab) / sizeof(*typ_tab);
 
 
 /* qsort comparison routine */
-static int
-ext_compare( const void* v1, const void* v2 )
+_Checked static int
+__ext_compare( _Ptr<const struct mime_entry> v1, _Ptr<const struct mime_entry> v2 )
     {
-    const struct mime_entry* m1 = (const struct mime_entry*) v1;
-    const struct mime_entry* m2 = (const struct mime_entry*) v2;
-
-    return strcmp( m1->ext, m2->ext );
+    return strcmp( v1->ext, v2->ext );
     }
+int ((*ext_compare)(const void*, const void*)) : itype(_Ptr<int (_Ptr<const void>, _Ptr<const void>)>) = (int (*)(const void*, const void*)) &__ext_compare;
 
-
-static void
+_Checked static void
 init_mime( void )
     {
     int i;
 
     /* Sort the tables so we can do binary search. */
-    qsort( enc_tab, n_enc_tab, sizeof(*enc_tab), ext_compare );
-    qsort( typ_tab, n_typ_tab, sizeof(*typ_tab), ext_compare );
+    qsort( (_Array_ptr<void>) enc_tab, n_enc_tab, sizeof(*enc_tab), ext_compare );
+    qsort( (_Array_ptr<void>) typ_tab, n_typ_tab, sizeof(*typ_tab), ext_compare );
 
     /* Fill in the lengths. */
     for ( i = 0; i < n_enc_tab; ++i )
@@ -2677,17 +2674,20 @@ init_mime( void )
 ** encodings are separated by commas, and are listed in the order in
 ** which they were applied to the file.
 */
-static void
-figure_mime( httpd_conn* hc )
+_Checked static void
+figure_mime(httpd_conn *hc : itype(_Ptr<httpd_conn>))
     {
-    char* prev_dot;
-    char* dot;
-    char* ext;
-    int me_indexes[100], n_me_indexes;
+    size_t expnfn_len = strlen(hc->expnfilename);
+    _Nt_array_ptr<char> prev_dot : bounds(hc->expnfilename, hc->expnfilename + expnfn_len) = ((void *)0);
+    _Nt_array_ptr<char> dot : bounds(hc->expnfilename, hc->expnfilename + expnfn_len)  = ((void *)0);
+    _Nt_array_ptr<char> ext : bounds(hc->expnfilename, hc->expnfilename + expnfn_len) = ((void *)0);
+    int me_indexes _Checked[100];
+int n_me_indexes;
+
     size_t ext_len, encodings_len;
     int i, top, bot, mid;
     int r;
-    char* default_type = "text/plain; charset=%s";
+    _Nt_array_ptr<char> default_type : byte_count(22) = "text/plain; charset=%s";
 
     /* Peel off encoding extensions until there aren't any more. */
     n_me_indexes = 0;
@@ -2762,10 +2762,10 @@ figure_mime( httpd_conn* hc )
 	    encodings_len + enc_tab[me_indexes[i]].val_len + 1 );
 	if ( hc->encodings[0] != '\0' )
 	    {
-	    (void) xstrbcpy( &hc->encodings[encodings_len], ",", hc->maxencodings - encodings_len );
+	    (void) xstrbcpy( hc->encodings + encodings_len, ",", hc->maxencodings - encodings_len );
 	    ++encodings_len;
 	    }
-	(void) xstrbcpy( &hc->encodings[encodings_len], enc_tab[me_indexes[i]].val, hc->maxencodings - encodings_len );
+	(void) xstrbcpy( hc->encodings + encodings_len, enc_tab[me_indexes[i]].val, hc->maxencodings - encodings_len );
 	encodings_len += enc_tab[me_indexes[i]].val_len;
 	}
 
@@ -2773,8 +2773,8 @@ figure_mime( httpd_conn* hc )
 
 
 #ifdef CGI_TIMELIMIT
-static void
-cgi_kill2( ClientData client_data, struct timeval* nowP )
+_Checked static void
+cgi_kill2(ClientData client_data, struct timeval *nowP : itype(_Ptr<struct timeval>))
     {
     pid_t pid;
 
@@ -2783,8 +2783,8 @@ cgi_kill2( ClientData client_data, struct timeval* nowP )
 	syslog( LOG_WARNING, "hard-killed CGI process %d", pid );
     }
 
-static void
-cgi_kill( ClientData client_data, struct timeval* nowP )
+_Checked static void
+cgi_kill(ClientData client_data, struct timeval *nowP : itype(_Ptr<struct timeval>))
     {
     pid_t pid;
 
@@ -2793,7 +2793,7 @@ cgi_kill( ClientData client_data, struct timeval* nowP )
 	{
 	syslog( LOG_WARNING, "killed CGI process %d", pid );
 	/* In case this isn't enough, schedule an uncatchable kill. */
-	if ( tmr_create( nowP, cgi_kill2, client_data, 5 * 1000L, 0 ) == (Timer*) 0 )
+	if ( tmr_create( nowP, cgi_kill2, client_data, 5 * 1000L, 0 ) == 0 )
 	    {
 	    syslog( LOG_CRIT, "tmr_create(cgi_kill2) failed" );
 	    exit( 1 );
@@ -2806,13 +2806,12 @@ cgi_kill( ClientData client_data, struct timeval* nowP )
 #ifdef GENERATE_INDEXES
 
 /* qsort comparison routine */
-static int
-name_compare( const void* v1, const void* v2 )
+_Checked static int
+__name_compare( _Ptr<const _Nt_array_ptr<char>> v1, _Ptr<const _Nt_array_ptr<char>> v2 )
     {
-    const char** c1 = (const char**) v1;
-    const char** c2 = (const char**) v2;
-    return strcmp( *c1, *c2 );
+    return strcmp( *v1, *v2 );
     }
+int ((*name_compare)(const void*, const void*)) : itype(_Ptr<int (_Ptr<const void>, _Ptr<const void>)>) = (int (*)(const void*, const void*)) &__name_compare;
 
 
 static char* name : itype(_Nt_array_ptr<char>);
