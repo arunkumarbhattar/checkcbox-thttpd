@@ -130,6 +130,12 @@ _Checked _Nt_array_ptr<char> get_after_spn(_Nt_array_ptr<char> str, _Nt_array_pt
   return _Dynamic_bounds_cast<_Nt_array_ptr<char>>(out, count(0));
 }
 
+_Nt_array_ptr<char> get_after_cspn(_Nt_array_ptr<char> str, _Nt_array_ptr<char> search) {
+  size_t spn = strcspn(str, search) _Where str : bounds(str, str + spn);
+  _Nt_array_ptr<char> out : bounds(str, str + spn) = str + spn;
+  return _Dynamic_bounds_cast<_Nt_array_ptr<char>>(out, count(0));
+}
+
 int __isxdigit(char c) _Unchecked {
   return isxdigit(c);
 }

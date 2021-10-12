@@ -60,6 +60,7 @@ typedef struct {
 } nt_box;
 
 _Nt_array_ptr<char> get_after_spn(_Nt_array_ptr<char> str, _Nt_array_ptr<char> search);
+_Nt_array_ptr<char> get_after_cspn(_Nt_array_ptr<char> str, _Nt_array_ptr<char> search);
 
 int __isxdigit(char c);
 int __isdigit(char c);

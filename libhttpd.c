@@ -3348,22 +3348,25 @@ make_argp(httpd_conn *hc : itype(_Ptr<httpd_conn>)) : itype(_Nt_array_ptr<_Nt_ar
 ** directly is that we have already read part of the data into our
 ** buffer.
 */
-static void
-cgi_interpose_input( httpd_conn* hc, int wfd )
+_Checked static void
+cgi_interpose_input(httpd_conn *hc : itype(_Ptr<httpd_conn>), int wfd)
     {
     size_t c;
-    ssize_t r;
-    char buf[1024];
+    size_t r;
+    char buf _Checked[1024];
 
     c = hc->read_idx - hc->checked_idx;
     if ( c > 0 )
 	{
-	if ( httpd_write_fully( wfd, &(hc->read_buf[hc->checked_idx]), c ) != c )
+        _Array_ptr<char> tmp : count(c) = _Dynamic_bounds_cast<_Array_ptr<char>>(hc->read_buf + hc->checked_idx, count(c));
+	if ( httpd_write_fully( wfd, tmp, c ) != c )
 	    return;
 	}
     while ( c < hc->contentlength )
 	{
-	r = read( hc->conn_fd, buf, MIN( sizeof(buf), hc->contentlength - c ) );
+        size_t read_size = MIN( sizeof(buf), hc->contentlength - c ); 
+        _Array_ptr<char> tmp0 : count(read_size) = _Dynamic_bounds_cast<_Array_ptr<char>>(buf, count(read_size));;
+	r = read( hc->conn_fd, tmp0,  read_size);
 	if ( r < 0 && ( errno == EINTR || errno == EAGAIN ) )
 	    {
 	    sleep( 1 );
@@ -3371,7 +3374,8 @@ cgi_interpose_input( httpd_conn* hc, int wfd )
 	    }
 	if ( r <= 0 )
 	    return;
-	if ( httpd_write_fully( wfd, buf, r ) != r )
+        _Array_ptr<char> tmp : count(r) = _Dynamic_bounds_cast<_Array_ptr<char>>(buf, count(r));
+	if ( httpd_write_fully( wfd, tmp, r ) != r )
 	    return;
 	c += r;
 	}
@@ -3387,10 +3391,10 @@ cgi_interpose_input( httpd_conn* hc, int wfd )
 ** unacceptably expensive.  The eventual fix will come when interposing
 ** gets integrated into the main loop as a tasklet instead of a process.
 */
-static void
-post_post_garbage_hack( httpd_conn* hc )
+_Checked static void
+post_post_garbage_hack(httpd_conn *hc : itype(_Ptr<httpd_conn>))
     {
-    char buf[2];
+    char buf _Checked[2];
 
     /* If we are in a sub-process, turn on no-delay mode in case we
     ** previously cleared it.
@@ -3409,17 +3413,16 @@ post_post_garbage_hack( httpd_conn* hc )
 ** and check for the special ones before writing the status.  Then we write
 ** out the saved headers and proceed to echo the rest of the response.
 */
-static char* headers : itype(_Nt_array_ptr<char>);
-static void
-cgi_interpose_output( httpd_conn* hc, int rfd )
+_Checked static void
+cgi_interpose_output(httpd_conn *hc : itype(_Ptr<httpd_conn>), int rfd)
     {
     int r;
-    char buf[1024];
+    char buf _Nt_checked[1024];
     size_t headers_size, headers_len;
-    char* br;
+    static _Nt_array_ptr<char> headers : count(headers_size);
+    _Nt_array_ptr<char> br = ((void *)0);
     int status;
-    char* title;
-    char* cp;
+    _Nt_array_ptr<char> title = ((void *)0);
 
     /* Make sure the connection is in blocking mode.  It should already
     ** be blocking, but we might as well be sure.
@@ -3427,12 +3430,11 @@ cgi_interpose_output( httpd_conn* hc, int rfd )
     httpd_clear_ndelay( hc->conn_fd );
 
     /* Slurp in all headers. */
-    headers_size = 0;
     httpd_realloc_str_cc( headers, headers_size, 500 );
     headers_len = 0;
     for (;;)
 	{
-	r = read( rfd, buf, sizeof(buf) );
+	r = read( rfd, buf, sizeof(buf) - 1 );
 	if ( r < 0 && ( errno == EINTR || errno == EAGAIN ) )
 	    {
 	    sleep( 1 );
@@ -3444,12 +3446,13 @@ cgi_interpose_output( httpd_conn* hc, int rfd )
 	    break;
 	    }
 	httpd_realloc_str_cc(headers, headers_size, headers_len + r );
-        _Array_ptr<void> tmp : byte_count(r) = _Assume_bounds_cast<_Array_ptr<void>>(&(headers[headers_len]), byte_count(r));
-	(void) memmove(tmp, buf, r );
+        _Array_ptr<void> tmp : byte_count(r) = _Dynamic_bounds_cast<_Array_ptr<void>>(&(headers[headers_len]), byte_count(r));
+        _Array_ptr<void> buf_tmp : byte_count(r) = _Dynamic_bounds_cast<_Array_ptr<void>>(buf, byte_count(r));
+	(void) memmove(tmp, buf_tmp, r );
 	headers_len += r;
 	headers[headers_len] = '\0';
-	if ( ( br = strstr( headers, "\015\012\015\012" ) ) != (char*) 0 ||
-	     ( br = strstr( headers, "\012\012" ) ) != (char*) 0 )
+	if ( ( br = strstr( headers, "\015\012\015\012" ) ) !=  0 ||
+	     ( br = strstr( headers, "\012\012" ) ) != 0 )
 	    break;
 	}
 
@@ -3462,23 +3465,26 @@ cgi_interpose_output( httpd_conn* hc, int rfd )
     ** default to 200.
     */
     status = 200;
+    _Nt_array_ptr<char> cp : bounds(headers, headers + headers_size) = ((void *)0);
     if ( strncmp( headers, "HTTP/", 5 ) == 0 )
 	{
 	cp = headers;
-	cp += strcspn( cp, " \t" );
-	status = atoi( cp );
+	cp = get_after_cspn( cp, " \t" );
+        _Nt_array_ptr<char> tmp = _Dynamic_bounds_cast<_Nt_array_ptr<char>>(cp, count(0));
+	status = atoi( tmp );
 	}
-    if ( ( cp = strstr( headers, "Location:" ) ) != (char*) 0 &&
+    if ( ( cp = ((_Nt_array_ptr<char> )strstr( headers, "Location:" )) ) !=  0 &&
 	 cp < br &&
 	 ( cp == headers || *(cp-1) == '\012' ) )
 	status = 302;
-    if ( ( cp = strstr( headers, "Status:" ) ) != (char*) 0 &&
+    if ( ( cp = ((_Nt_array_ptr<char> )strstr( headers, "Status:" )) ) !=  0 &&
 	 cp < br &&
 	 ( cp == headers || *(cp-1) == '\012' ) )
 	{
 	cp += 7;
-	cp += strspn( cp, " \t" );
-	status = atoi( cp );
+        _Nt_array_ptr<char> tmp = _Dynamic_bounds_cast<_Nt_array_ptr<char>>(cp, count(0));
+	tmp = get_after_spn( tmp, " \t" );
+	status = atoi( tmp );
 	}
 
     /* Write the status line. */
@@ -3501,15 +3507,18 @@ cgi_interpose_output( httpd_conn* hc, int rfd )
 	default: title = "Something"; break;
 	}
     (void) my_snprintf( buf, sizeof(buf), "HTTP/1.0 %d %s\015\012", status, title );
-    (void) httpd_write_fully( hc->conn_fd, buf, strlen( buf ) );
+    size_t buf_len = strlen(buf);
+    _Nt_array_ptr<char> buf_tmp : count(buf_len) = _Dynamic_bounds_cast<_Nt_array_ptr<char>>(buf, count(buf_len));
+    (void) httpd_write_fully( hc->conn_fd, buf_tmp, buf_len );
 
     /* Write the saved headers. */
-    (void) httpd_write_fully( hc->conn_fd, headers, headers_len );
+    _Nt_array_ptr<char> head_tmp : count(headers_len) = _Dynamic_bounds_cast<_Nt_array_ptr<char>>(headers, count(headers_len));
+    (void) httpd_write_fully( hc->conn_fd, head_tmp, headers_len );
 
     /* Echo the rest of the output. */
     for (;;)
 	{
-	r = read( rfd, buf, sizeof(buf) );
+	r = read( rfd, buf, sizeof(buf) - 1 );
 	if ( r < 0 && ( errno == EINTR || errno == EAGAIN ) )
 	    {
 	    sleep( 1 );
@@ -3517,7 +3526,8 @@ cgi_interpose_output( httpd_conn* hc, int rfd )
 	    }
 	if ( r <= 0 )
 	    break;
-	if ( httpd_write_fully( hc->conn_fd, buf, r ) != r )
+        _Nt_array_ptr<char> buf_tmp : count(r) = _Dynamic_bounds_cast<_Nt_array_ptr<char>>(buf, count(r));
+	if ( httpd_write_fully( hc->conn_fd, buf_tmp, r ) != r )
 	    break;
 	}
     shutdown( hc->conn_fd, SHUT_WR );
