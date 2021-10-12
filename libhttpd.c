@@ -165,7 +165,7 @@ static char *build_env(char *fmt : itype(_Nt_array_ptr<char>), char *arg : itype
 static char* hostname_map( char* hostname );
 #endif /* SERVER_NAME_LIST */
 static char **make_envp(httpd_conn *hc : itype(_Ptr<httpd_conn>)) : itype(_Nt_array_ptr<_Nt_array_ptr<char>>);
-static char **make_argp(httpd_conn *hc : itype(_Ptr<httpd_conn>)) : itype(_Nt_array_ptr<char *>);
+static char **make_argp(httpd_conn *hc : itype(_Ptr<httpd_conn>)) : itype(_Nt_array_ptr<_Nt_array_ptr<char>>);
 static void cgi_interpose_input(httpd_conn *hc : itype(_Ptr<httpd_conn>), int wfd);
 static void post_post_garbage_hack(httpd_conn *hc : itype(_Ptr<httpd_conn>));
 static void cgi_interpose_output(httpd_conn *hc : itype(_Ptr<httpd_conn>), int rfd);
@@ -3281,8 +3281,8 @@ _Checked static char **make_envp(httpd_conn *hc : itype(_Ptr<httpd_conn>)) : ity
 ** since we're a sub-process.  This gets done after make_envp() because we
 ** scribble on hc->query.
 */
-static char**
-make_argp( httpd_conn* hc )
+_Checked static char**
+make_argp(httpd_conn *hc : itype(_Ptr<httpd_conn>)) : itype(_Nt_array_ptr<_Nt_array_ptr<char>>)
     {
     typedef struct {
       char **argp : itype(_Array_ptr<_Nt_array_ptr<char>>) count(max_args);
@@ -3291,20 +3291,20 @@ make_argp( httpd_conn* hc )
     int max_args = strlen( hc->query ) + 2;
     argp_box box ={0, max_args};
     int argn;
-    char* cp1;
-    char* cp2;
+    _Nt_array_ptr<char> cp1 = ((void *)0);
+    _Nt_array_ptr<char> cp2 = ((void *)0);
 
     /* By allocating an arg slot for every character in the query, plus
     ** one for the filename and one for the NULL, we are guaranteed to
     ** have enough.  We could actually use strlen/2.
     */
-    box.argp = NEW(_Nt_array_ptr<char>,  max_args);
-    if ( box.argp == (char**) 0 )
-	return (char**) 0;
+    box.max_args = max_args, box.argp = NEW(_Nt_array_ptr<char>,  max_args);
+    if ( box.argp ==  0 )
+	return  0;
 
-    box.argp[0] = strrchr( hc->expnfilename, '/' );
-    if ( box.argp[0] != (char*) 0 )
-	++box.argp[0];
+    box.argp[0] = ((_Nt_array_ptr<char> )strrchr( hc->expnfilename, '/' ));
+    if ( box.argp[0] !=  0 && *box.argp[0] != '\0' )
+        box.argp[0] = box.argp[0] + 1;
     else
 	box.argp[0] = hc->expnfilename;
 
@@ -3314,7 +3314,7 @@ make_argp( httpd_conn* hc )
     ** character to determine if the command line is to be used, if it finds
     ** one, the command line is not to be used."
     */
-    if ( strchr( hc->query, '=' ) == (char*) 0 )
+    if ( strchr( hc->query, '=' ) == 0 )
 	{
 	for ( cp1 = cp2 = hc->query; *cp2 != '\0'; ++cp2 )
 	    {
@@ -3323,7 +3323,8 @@ make_argp( httpd_conn* hc )
 		*cp2 = '\0';
                 size_t s = strlen(cp1) _Where cp1 : bounds(cp1, cp1 + s);
 		strdecode( cp1, s, cp1 );
-		box.argp[argn++] = cp1;
+		box.argp[argn] = cp1;
+                argn++;
 		cp1 = cp2 + 1;
 		}
 	    }
@@ -3331,12 +3332,13 @@ make_argp( httpd_conn* hc )
 	    {
             size_t s = strlen(cp1) _Where cp1 : bounds(cp1, cp1 + s);
 	    strdecode( cp1, s, cp1 );
-	    box.argp[argn++] = cp1;
+	    box.argp[argn] = cp1;
+            argn++;
 	    }
 	}
 
-    box.argp[argn] = (char*) 0;
-    return (char**) box.argp;
+    box.argp[argn] = (_Nt_array_ptr<char>) 0;
+    _Unchecked { return _Assume_bounds_cast<_Nt_array_ptr<_Nt_array_ptr<char>>>(box.argp, count(0)); }
     }
 
 
