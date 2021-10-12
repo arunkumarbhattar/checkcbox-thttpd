@@ -295,8 +295,7 @@ _Nt_array_ptr<char> httpd_realloc_strbuf(_Ptr<struct strbuf> sbuf, size_t size) 
   /*_Checked*/ { \
     struct strbuf _sbuf = {_strL, _maxsizeL}; \
     _tmp_str_var = httpd_realloc_strbuf(&_sbuf, _size); \
-    _maxsizeL = _sbuf.maxsize; \
-    _strL = _sbuf.str; /* BOUNDS WARNING REVIEWED */ \
+    _maxsizeL = _sbuf.maxsize, _strL = _sbuf.str; /* BOUNDS WARNING REVIEWED */ \
   }
 
 // Same but don't generate the local variable. Use if you're going to access

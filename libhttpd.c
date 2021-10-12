@@ -1530,18 +1530,15 @@ vhost_map(httpd_conn *hc : itype(_Ptr<httpd_conn>))
 ** This is a fairly nice little routine.  It handles any size filenames
 ** without excessive mallocs.
 */
-static char* checked : itype(_Nt_array_ptr<char>);
-static char* rest : itype(_Nt_array_ptr<char>);
-static char*
-expand_symlinks( char* path, nt_box *restP, int no_symlink_check, int tildemapped )
+_Checked static char *expand_symlinks(char *path : itype(_Nt_array_ptr<char>), nt_box *restP : itype(_Ptr<nt_box>), int no_symlink_check, int tildemapped) : itype(_Nt_array_ptr<char>)
     {
-    char lnk[5000];
+    char lnk _Nt_checked[5000];
     static size_t maxchecked = 0, maxrest = 0;
+    static _Nt_array_ptr<char> checked : count(maxchecked);
+    static _Nt_array_ptr<char> rest : count (maxrest);
     size_t checkedlen, restlen, linklen, prevcheckedlen, prevrestlen;
-    int nlinks, i;
-    char* r;
-    char* cp1;
-    char* cp2;
+    int nlinks;
+    size_t i;
 
     if ( no_symlink_check )
 	{
@@ -1587,12 +1584,14 @@ expand_symlinks( char* path, nt_box *restP, int no_symlink_check, int tildemappe
 	rest[--restlen] = '\0';         /* trim trailing slash */
     if ( ! tildemapped )
 	/* Remove any leading slashes. */
-	while ( rest[0] == '/' )
+	while (rest[0] == '/' )
 	    {
-	    (void) ol_strcpy( rest, &(rest[1]) );
+	    (void) ol_strcpy( rest, rest + 1 );
 	    --restlen;
 	    }
-    r = rest;
+    size_t init_maxrest = maxrest;
+    _Nt_array_ptr<char> init_rest : count(init_maxrest) = rest;
+    _Nt_array_ptr<char> r : bounds(init_rest, init_rest + init_maxrest) = init_rest; 
     nlinks = 0;
 
     /* While there are still components to check... */
@@ -1605,15 +1604,20 @@ expand_symlinks( char* path, nt_box *restP, int no_symlink_check, int tildemappe
 	prevrestlen = restlen;
 
 	/* Grab one component from r and transfer it to checked. */
-	cp1 = strchr( r, '/' );
-	if ( cp1 != (char*) 0 )
+
+        _Nt_array_ptr<char> cp1 = strchr( r, '/' );
+	if ( cp1 != 0 )
 	    {
 	    i = cp1 - r;
 	    if ( i == 0 )
 		{
 		/* Special case for absolute paths. */
-		httpd_realloc_str_cc( checked, maxchecked, checkedlen + 1 );
-		(void) strncpy( &checked[checkedlen], r, 1 );
+                /* local scope */
+                    {
+		    httpd_realloc_str_ccl(checked_tmp, checked, maxchecked, checkedlen + 1 );
+                    _Nt_array_ptr<char> checked_tmp2 : count(1) = _Dynamic_bounds_cast<_Nt_array_ptr<char>>(checked_tmp + checkedlen, count(1));
+		    (void) xstrbcpy( checked_tmp2, r, 1 );
+                    }
 		checkedlen += 1;
 		}
 	    else if ( strncmp( r, "..", MAX( i, 2 ) ) == 0 )
@@ -1621,8 +1625,9 @@ expand_symlinks( char* path, nt_box *restP, int no_symlink_check, int tildemappe
 		/* Ignore ..'s that go above the start of the path. */
 		if ( checkedlen != 0 )
 		    {
-		    cp2 = strrchr( checked, '/' );
-		    if ( cp2 == (char*) 0 )
+
+                    _Nt_array_ptr<char> cp2 = strrchr( checked, '/' );
+		    if ( cp2 == 0 )
 			checkedlen = 0;
 		    else if ( cp2 == checked )
 			checkedlen = 1;
@@ -1635,7 +1640,11 @@ expand_symlinks( char* path, nt_box *restP, int no_symlink_check, int tildemappe
 		httpd_realloc_str_cc( checked, maxchecked, checkedlen + 1 + i );
 		if ( checkedlen > 0 && checked[checkedlen-1] != '/' )
 		    checked[checkedlen++] = '/';
-		(void) strncpy( &checked[checkedlen], r, i );
+                {
+                _Nt_array_ptr<char> tmp : count(checkedlen + i) = _Dynamic_bounds_cast<_Nt_array_ptr<char>>(checked, count(checkedlen + i));
+                _Nt_array_ptr<char> tmp2 : count(i) = _Dynamic_bounds_cast<_Nt_array_ptr<char>>(tmp + checkedlen, count(i));
+		(void) xstrbcpy( tmp2, r, i );
+                }
 		checkedlen += i;
 		}
 	    checked[checkedlen] = '\0';
@@ -1650,8 +1659,8 @@ expand_symlinks( char* path, nt_box *restP, int no_symlink_check, int tildemappe
 		/* Ignore ..'s that go above the start of the path. */
 		if ( checkedlen != 0 )
 		    {
-		    cp2 = strrchr( checked, '/' );
-		    if ( cp2 == (char*) 0 )
+                    _Nt_array_ptr<char> cp2 = strrchr( checked, '/' );
+		    if ( cp2 == 0 )
 			checkedlen = 0;
 		    else if ( cp2 == checked )
 			checkedlen = 1;
@@ -1666,7 +1675,10 @@ expand_symlinks( char* path, nt_box *restP, int no_symlink_check, int tildemappe
 		    checked, maxchecked, checkedlen + 1 + restlen );
 		if ( checkedlen > 0 && checked[checkedlen-1] != '/' )
 		    checked[checkedlen++] = '/';
-		(void) xstrbcpy( &checked[checkedlen], r, maxchecked - checkedlen);
+                {
+                _Nt_array_ptr<char> tmp : count(maxchecked - checkedlen) = _Dynamic_bounds_cast<_Nt_array_ptr<char>>(checked + checkedlen, count(maxchecked - checkedlen));
+		(void) xstrbcpy( tmp, r, maxchecked - checkedlen);
+                }
 		checkedlen += restlen;
 		}
 	    r += restlen;
@@ -1684,7 +1696,8 @@ expand_symlinks( char* path, nt_box *restP, int no_symlink_check, int tildemappe
 	    if ( errno == EACCES || errno == ENOENT || errno == ENOTDIR )
 		{
 		/* That last component was bogus.  Restore and return. */
-		restP->ptr = r - ( prevrestlen - restlen );
+                _Nt_array_ptr<char> tmp = _Dynamic_bounds_cast<_Nt_array_ptr<char>>(r - (prevrestlen - restlen), count(0));;
+		restP->ptr = tmp;
 		if ( prevcheckedlen == 0 )
 		    (void) xstrbcpy( checked, ".",  maxchecked );
 		else
@@ -1692,13 +1705,13 @@ expand_symlinks( char* path, nt_box *restP, int no_symlink_check, int tildemappe
 		return checked;
 		}
 	    syslog( LOG_ERR, "readlink %.80s - %m", checked );
-	    return (char*) 0;
+	    return (_Nt_array_ptr<char>) 0;
 	    }
 	++nlinks;
 	if ( nlinks > MAX_LINKS )
 	    {
 	    syslog( LOG_ERR, "too many symlinks in %.80s", path );
-	    return (char*) 0;
+	    return (_Nt_array_ptr<char>) 0;
 	    }
 	lnk[linklen] = '\0';
 	if ( lnk[linklen - 1] == '/' )
@@ -1707,14 +1720,15 @@ expand_symlinks( char* path, nt_box *restP, int no_symlink_check, int tildemappe
 	/* Insert the link contents in front of the rest of the filename. */
 	if ( restlen != 0 )
 	    {
-	    (void) ol_strcpy( rest, r );
+            _Nt_array_ptr<char> tmp = _Dynamic_bounds_cast<_Nt_array_ptr<char>>(r, count(0));
+	    (void) ol_strcpy( rest, tmp );
 	    httpd_realloc_str_cc( rest, maxrest, restlen + linklen + 1 );
 	    for ( i = restlen; i >= 0; --i )
 		rest[i + linklen + 1] = rest[i];
 	    (void) xstrbcpy( rest, lnk, maxrest );
 	    rest[linklen] = '/';
 	    restlen += linklen + 1;
-	    r = rest;
+            init_rest = rest, init_maxrest = maxrest, r = init_rest;
 	    }
 	else
 	    {
@@ -1724,7 +1738,7 @@ expand_symlinks( char* path, nt_box *restP, int no_symlink_check, int tildemappe
 	    httpd_realloc_str_cc( rest, maxrest, linklen );
 	    (void) xstrbcpy( rest, lnk, maxrest );
 	    restlen = linklen;
-	    r = rest;
+            init_rest = rest, init_maxrest = maxrest, r = init_rest;
 	    }
 
 	if ( rest[0] == '/' )
@@ -1742,7 +1756,7 @@ expand_symlinks( char* path, nt_box *restP, int no_symlink_check, int tildemappe
 	}
 
     /* Ok. */
-    restP->ptr = r;
+    restP->ptr = _Dynamic_bounds_cast<_Nt_array_ptr<char>>(r, count(0));
     if ( checked[0] == '\0' )
 	(void) xstrbcpy( checked, ".", maxchecked );
     return checked;
