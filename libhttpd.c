@@ -3126,20 +3126,19 @@ mode  links    bytes  last-changed  name\n\
 #endif /* GENERATE_INDEXES */
 
 
-static char* buf : itype(_Nt_array_ptr<char>);
-static char*
-build_env( char* fmt, char* arg )
+_Checked static char *build_env(char *fmt : itype(_Nt_array_ptr<char>), char *arg : itype(_Nt_array_ptr<char>)) : itype(_Nt_array_ptr<char>)
     {
-    char* cp;
+    _Nt_array_ptr<char> cp = ((void *)0);
     size_t size;
     static size_t maxbuf = 0;
+    static _Nt_array_ptr<char> buf : count(maxbuf);
 
     size = strlen( fmt ) + strlen( arg );
     if ( size > maxbuf )
 	httpd_realloc_str_cc( buf, maxbuf, size );
-    (void) my_snprintf( buf, maxbuf, fmt, arg );
-    cp = strdup( buf );
-    if ( cp == (char*) 0 )
+    _Unchecked { (void) my_snprintf( buf, maxbuf, fmt, arg ); }
+    cp = ((_Nt_array_ptr<char> )strdup( buf ));
+    if ( cp == 0 )
 	{
 	syslog( LOG_ERR, "out of memory copying environment variable" );
 	exit( 1 );
