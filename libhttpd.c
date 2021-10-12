@@ -3168,91 +3168,111 @@ hostname_map( char* hostname )
 ** letting malicious clients overrun a buffer.  We don't have
 ** to worry about freeing stuff since we're a sub-process.
 */
-static char**
-make_envp( httpd_conn* hc )
+_Checked static char **make_envp(httpd_conn *hc : itype(_Ptr<httpd_conn>)) : itype(_Nt_array_ptr<_Nt_array_ptr<char>>)
     {
-    static char* envp[50];
+    static _Nt_array_ptr<char> envp _Nt_checked[50] = {((void *)0)};
     int envn;
-    char* cp;
-    char buf[256];
+    _Nt_array_ptr<char> cp = ((void *)0);
+    char buf _Nt_checked[256];
 
     envn = 0;
-    envp[envn++] = build_env( "PATH=%s", CGI_PATH );
+    envp[envn] = build_env( "PATH=%s", CGI_PATH );
+    envn++;
 #ifdef CGI_LD_LIBRARY_PATH
-    envp[envn++] = build_env( "LD_LIBRARY_PATH=%s", CGI_LD_LIBRARY_PATH );
+    envp[envn] = build_env( "LD_LIBRARY_PATH=%s", CGI_LD_LIBRARY_PATH );
+    envn++;
 #endif /* CGI_LD_LIBRARY_PATH */
-    envp[envn++] = build_env( "SERVER_SOFTWARE=%s", SERVER_SOFTWARE );
-    if ( hc->hs->vhost && hc->hostname != (char*) 0 && hc->hostname[0] != '\0' )
+    envp[envn] = build_env( "SERVER_SOFTWARE=%s", SERVER_SOFTWARE );
+    envn++;
+    if ( hc->hs->vhost && hc->hostname !=  0 && hc->hostname[0] != '\0' )
 	cp = hc->hostname;
-    else if ( hc->hdrhost != (char*) 0 && hc->hdrhost[0] != '\0' )
+    else if ( hc->hdrhost !=  0 && hc->hdrhost[0] != '\0' )
 	cp = hc->hdrhost;
-    else if ( hc->reqhost != (char*) 0 && hc->reqhost[0] != '\0' )
+    else if ( hc->reqhost !=  0 && hc->reqhost[0] != '\0' )
 	cp = hc->reqhost;
     else
 	cp = hc->hs->server_hostname;
-    if ( cp != (char*) 0 )
-	envp[envn++] = build_env( "SERVER_NAME=%s", cp );
-    envp[envn++] = "GATEWAY_INTERFACE=CGI/1.1";
-    envp[envn++] = build_env("SERVER_PROTOCOL=%s", hc->protocol);
+    if ( cp !=  0 ) {
+	envp[envn] = build_env( "SERVER_NAME=%s", cp );
+        envn++;
+    }
+    envp[envn] = "GATEWAY_INTERFACE=CGI/1.1";
+    envn++;
+    envp[envn] = build_env("SERVER_PROTOCOL=%s", hc->protocol);
+    envn++;
     (void) my_snprintf( buf, sizeof(buf), "%d", (int) hc->hs->port );
-    envp[envn++] = build_env( "SERVER_PORT=%s", buf );
-    envp[envn++] = build_env(
+    envp[envn] = build_env( "SERVER_PORT=%s", buf );
+    envn++;
+    envp[envn] = build_env(
 	"REQUEST_METHOD=%s", httpd_method_str( hc->method ) );
+    envn++;
     if ( hc->pathinfo[0] != '\0' )
 	{
-	char* cp2;
-	size_t l;
-	envp[envn++] = build_env( "PATH_INFO=/%s", hc->pathinfo );
-	l = strlen( hc->hs->cwd ) + strlen( hc->pathinfo ) + 1;
-	cp2 = NEW( char, l );
-	if ( cp2 != (char*) 0 )
+	envp[envn] = build_env( "PATH_INFO=/%s", hc->pathinfo );
+        envn++;
+	size_t l = strlen( hc->hs->cwd ) + strlen( hc->pathinfo ) + 1;
+	_Nt_array_ptr<char> cp2 : count(l) =  malloc_nt( l );
+	if ( cp2 != 0 )
 	    {
 	    (void) my_snprintf( cp2, l, "%s%s", hc->hs->cwd, hc->pathinfo );
-	    envp[envn++] = build_env( "PATH_TRANSLATED=%s", cp2 );
+	    envp[envn] = build_env( "PATH_TRANSLATED=%s", cp2 );
+            envn++;
 	    }
 	}
-    envp[envn++] = build_env(
-	"SCRIPT_NAME=/%s", strcmp( hc->origfilename, "." ) == 0 ?
-	"" : hc->origfilename );
-    if ( hc->query[0] != '\0')
-	envp[envn++] = build_env( "QUERY_STRING=%s", hc->query );
-    envp[envn++] = build_env(
-	"REMOTE_ADDR=%s", httpd_ntoa( &hc->client_addr ) );
+    _Nt_array_ptr<char> filename = 0;
+    if (strcmp( hc->origfilename, "." ) == 0 )
+      filename = "";
+    else
+      filename = hc->origfilename;
+    envp[envn] = build_env(
+	"SCRIPT_NAME=/%s", filename);
+    envn++;
+    if ( hc->query[0] != '\0') {
+	envp[envn] = build_env( "QUERY_STRING=%s", hc->query );
+        envn++;
+    }
+    envp[envn] = build_env(
+	"REMOTE_ADDR=%s", ((_Nt_array_ptr<char> )httpd_ntoa( &hc->client_addr )) );
+    envn++;
     if ( hc->referrer[0] != '\0' )
 	{
-	envp[envn++] = build_env( "HTTP_REFERER=%s", hc->referrer );
-	envp[envn++] = build_env( "HTTP_REFERRER=%s", hc->referrer );
+	envp[envn] = build_env( "HTTP_REFERER=%s", hc->referrer );
+        envn++;
+	envp[envn] = build_env( "HTTP_REFERRER=%s", hc->referrer );
+        envn++;
 	}
     if ( hc->useragent[0] != '\0' )
-	envp[envn++] = build_env( "HTTP_USER_AGENT=%s", hc->useragent );
+	envp[envn] = build_env( "HTTP_USER_AGENT=%s", hc->useragent ), envn++;
     if ( hc->accept[0] != '\0' )
-	envp[envn++] = build_env( "HTTP_ACCEPT=%s", hc->accept );
+	envp[envn] = build_env( "HTTP_ACCEPT=%s", hc->accept ), envn++;
     if ( hc->accepte[0] != '\0' )
-	envp[envn++] = build_env( "HTTP_ACCEPT_ENCODING=%s", hc->accepte );
+	envp[envn] = build_env( "HTTP_ACCEPT_ENCODING=%s", hc->accepte ), envn++;
     if ( hc->acceptl[0] != '\0' )
-	envp[envn++] = build_env( "HTTP_ACCEPT_LANGUAGE=%s", hc->acceptl );
+	envp[envn] = build_env( "HTTP_ACCEPT_LANGUAGE=%s", hc->acceptl ), envn++;
     if ( hc->cookie[0] != '\0' )
-	envp[envn++] = build_env( "HTTP_COOKIE=%s", hc->cookie );
+	envp[envn] = build_env( "HTTP_COOKIE=%s", hc->cookie ), envn++;
     if ( hc->contenttype[0] != '\0' )
-	envp[envn++] = build_env( "CONTENT_TYPE=%s", hc->contenttype );
+	envp[envn] = build_env( "CONTENT_TYPE=%s", hc->contenttype ), envn++;
     if ( hc->hdrhost[0] != '\0' )
-	envp[envn++] = build_env( "HTTP_HOST=%s", hc->hdrhost );
+	envp[envn] = build_env( "HTTP_HOST=%s", hc->hdrhost ), envn++;
     if ( hc->contentlength != -1 )
 	{
 	(void) my_snprintf(
 	    buf, sizeof(buf), "%lu", (unsigned long) hc->contentlength );
-	envp[envn++] = build_env( "CONTENT_LENGTH=%s", buf );
+	envp[envn] = build_env( "CONTENT_LENGTH=%s", buf );
+        envn++;
 	}
     if ( hc->remoteuser[0] != '\0' )
-	envp[envn++] = build_env( "REMOTE_USER=%s", hc->remoteuser );
+	envp[envn] = build_env( "REMOTE_USER=%s", hc->remoteuser ), envn++;
     if ( hc->authorization[0] != '\0' )
-	envp[envn++] = build_env( "AUTH_TYPE=%s", "Basic" );
+	envp[envn] = build_env( "AUTH_TYPE=%s", "Basic" ), envn++;
 	/* We only support Basic auth at the moment. */
-    if ( getenv( "TZ" ) != (char*) 0 )
-	envp[envn++] = build_env( "TZ=%s", getenv( "TZ" ) );
-    envp[envn++] = build_env( "CGI_PATTERN=%s", hc->hs->cgi_pattern );
+    if ( getenv( "TZ" ) !=  0 )
+	envp[envn] = build_env( "TZ=%s", ((_Nt_array_ptr<char> )getenv( "TZ" )) ), envn++;
+    envp[envn] = build_env( "CGI_PATTERN=%s", hc->hs->cgi_pattern );
+    envn++;
 
-    envp[envn] = (char*) 0;
+    envp[envn] = (_Nt_array_ptr<char>) 0;
     return envp;
     }
 
