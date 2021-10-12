@@ -4054,8 +4054,8 @@ really_start_request( httpd_conn* hc, struct timeval* nowP )
     }
 
 
-int
-httpd_start_request( httpd_conn* hc, struct timeval* nowP )
+_Checked int
+httpd_start_request(httpd_conn *hc : itype(_Ptr<httpd_conn>), struct timeval *nowP : itype(_Ptr<struct timeval>))
     {
     int r;
 
@@ -4068,11 +4068,11 @@ httpd_start_request( httpd_conn* hc, struct timeval* nowP )
 
 
 static void
-make_log_entry( httpd_conn* hc, struct timeval* nowP )
+make_log_entry(httpd_conn *hc : itype(_Ptr<httpd_conn>), struct timeval *nowP : itype(_Ptr<struct timeval>))
     {
-    char* ru;
-    char url[305];
-    char bytes[40];
+    _Nt_array_ptr<char> ru : byte_count(1) = ((void *)0);
+    char url _Nt_checked[305];
+    char bytes _Nt_checked[40];
 
     if ( hc->hs->no_log )
 	return;
@@ -4111,12 +4111,12 @@ make_log_entry( httpd_conn* hc, struct timeval* nowP )
     if ( hc->hs->logfp != (FILE*) 0 )
 	{
 	time_t now;
-	struct tm* t;
-	const char* cernfmt_nozone = "%d/%b/%Y:%H:%M:%S";
-	char date_nozone[100];
+	_Ptr<struct tm> t = ((void *)0);
+	_Nt_array_ptr<const char> cernfmt_nozone : byte_count(17) = "%d/%b/%Y:%H:%M:%S";
+	char date_nozone _Nt_checked[100];
 	int zone;
 	char sign;
-	char date[100];
+	char date _Nt_checked[100];
 
 	/* Get the current time, if necessary. */
 	if ( nowP != (struct timeval*) 0 )
@@ -4147,7 +4147,7 @@ make_log_entry( httpd_conn* hc, struct timeval* nowP )
 	/* And write the log entry. */
 	(void) fprintf( hc->hs->logfp,
 	    "%.80s - %.80s [%s] \"%.80s %.300s %.80s\" %d %s \"%.200s\" \"%.200s\"\n",
-	    httpd_ntoa( &hc->client_addr ), ru, date,
+	    ((_Nt_array_ptr<char> )httpd_ntoa( &hc->client_addr )), ru, date,
 	    httpd_method_str( hc->method ), url, hc->protocol,
 	    hc->status, bytes, hc->referrer, hc->useragent );
 #ifdef FLUSH_LOG_EVERY_TIME
@@ -4157,36 +4157,36 @@ make_log_entry( httpd_conn* hc, struct timeval* nowP )
     else
 	syslog( LOG_INFO,
 	    "%.80s - %.80s \"%.80s %.200s %.80s\" %d %s \"%.200s\" \"%.200s\"",
-	    httpd_ntoa( &hc->client_addr ), ru,
+	    ((_Nt_array_ptr<char> )httpd_ntoa( &hc->client_addr )), ru,
 	    httpd_method_str( hc->method ), url, hc->protocol,
 	    hc->status, bytes, hc->referrer, hc->useragent );
     }
 
 
 /* Returns 1 if ok to serve the url, 0 if not. */
-static int
-check_referrer( httpd_conn* hc )
+_Checked static int
+check_referrer(httpd_conn *hc : itype(_Ptr<httpd_conn>))
     {
     int r;
-    char* cp;
+    _Nt_array_ptr<char> cp : byte_count(0) = ((void *)0);
 
     /* Are we doing referrer checking at all? */
-    if ( hc->hs->url_pattern == (char*) 0 )
+    if ( hc->hs->url_pattern == 0 )
 	return 1;
 
     r = really_check_referrer( hc );
 
     if ( ! r )
 	{
-	if ( hc->hs->vhost && hc->hostname != (char*) 0 )
+	if ( hc->hs->vhost && hc->hostname != 0 )
 	    cp = hc->hostname;
 	else
 	    cp = hc->hs->server_hostname;
-	if ( cp == (char*) 0 )
+	if ( cp == 0 )
 	    cp = "";
 	syslog(
 	    LOG_INFO, "%.80s non-local referrer \"%.80s%.80s\" \"%.80s\"",
-	    httpd_ntoa( &hc->client_addr ), cp, hc->encodedurl, hc->referrer );
+	    ((_Nt_array_ptr<char> )httpd_ntoa( &hc->client_addr )), cp, hc->encodedurl, hc->referrer );
 	httpd_send_err(
 	    hc, 403, err403title, "",
 	    ERROR_FORM( err403form, "You must supply a local referrer to get URL '%.80s' from this server.\n" ),
@@ -4271,18 +4271,22 @@ really_check_referrer( httpd_conn* hc )
     }
 
 
-char*
-httpd_ntoa( httpd_sockaddr* saP )
+_Checked char*
+httpd_ntoa(httpd_sockaddr *saP : itype(_Ptr<httpd_sockaddr>)) : itype(_Nt_array_ptr<char>)
     {
 #ifdef USE_IPV6
-    static char str[200];
+    static char str _Nt_checked[200];
 
-    if ( getnameinfo( &saP->sa, sockaddr_len( saP ), str, sizeof(str), 0, 0, NI_NUMERICHOST ) != 0 )
+    int res = 0;
+    _Unchecked { res = getnameinfo( &saP->sa, sockaddr_len( saP ), (char*) str, sizeof(str) - 1, 0, 0, NI_NUMERICHOST ) != 0; }
+    int res2 = 0;
+    _Unchecked { res2 = IN6_IS_ADDR_V4MAPPED( &saP->sa_in6.sin6_addr ); }
+    if ( res )
 	{
 	str[0] = '?';
 	str[1] = '\0';
 	}
-    else if ( IN6_IS_ADDR_V4MAPPED( &saP->sa_in6.sin6_addr ) && strncmp( str, "::ffff:", 7 ) == 0 )
+    else if (res2 && strncmp( str, "::ffff:", 7 ) == 0 )
 	/* Elide IPv6ish prefix for IPv4 addresses. */
 	(void) ol_strcpy( str, &str[7] );
 
