@@ -2814,37 +2814,36 @@ __name_compare( _Ptr<const _Nt_array_ptr<char>> v1, _Ptr<const _Nt_array_ptr<cha
 int ((*name_compare)(const void*, const void*)) : itype(_Ptr<int (_Ptr<const void>, _Ptr<const void>)>) = (int (*)(const void*, const void*)) &__name_compare;
 
 
-static char* name : itype(_Nt_array_ptr<char>);
-static char* rname : itype(_Nt_array_ptr<char>);
-static char* encrname : itype(_Nt_array_ptr<char>);
-static int
-ls( httpd_conn* hc )
+_Checked static int
+ls(httpd_conn *hc : itype(_Ptr<httpd_conn>))
     {
-    DIR* dirp;
-    struct dirent* de;
-    int namlen;
-    static int maxnames = 0;
-    int nnames;
-    static char* names;
-    static char** nameptrs;
+    _Ptr<DIR> dirp = 0;
+    _Ptr<struct dirent> de = 0;
+    size_t namlen;
+    static size_t maxnames = 0;
+    size_t nnames;
+    static _Nt_array_ptr<char> names : count(maxnames * ( MAXPATHLEN + 1 ));
+    static _Array_ptr<_Nt_array_ptr<char>> nameptrs : count(maxnames);
     static size_t maxname = 0;
     static size_t maxrname = 0;
     static size_t maxencrname = 0;
-    FILE* fp;
+    static _Nt_array_ptr<char> name : count(maxname);
+    static _Nt_array_ptr<char> rname : count(maxrname);
+    static _Nt_array_ptr<char> encrname : count(maxencrname);
+    _Ptr<FILE> fp = ((void *)0);
     int i, r;
     struct stat sb;
     struct stat lsb;
-    char modestr[20];
-    char* linkprefix;
-    char lnk[MAXPATHLEN+1];
+    char modestr _Nt_checked[20];
+    _Nt_array_ptr<char> linkprefix = ((void *)0);
+    char lnk _Nt_checked[MAXPATHLEN+1];
     int linklen;
-    char* fileclass;
+    _Nt_array_ptr<char> fileclass = ((void *)0);
     time_t now;
-    char* timestr;
     ClientData client_data;
 
     dirp = opendir( hc->expnfilename );
-    if ( dirp == (DIR*) 0 )
+    if ( dirp == 0 )
 	{
 	syslog( LOG_ERR, "opendir %.80s - %m", hc->expnfilename );
 	httpd_send_err( hc, 404, err404title, "", err404form, hc->encodedurl );
@@ -2899,7 +2898,7 @@ ls( httpd_conn* hc )
 	    ** we're in a subprocess.
 	    */
 	    fp = fdopen( hc->conn_fd, "w" );
-	    if ( fp == (FILE*) 0 )
+	    if ( fp == 0 )
 		{
 		syslog( LOG_ERR, "fdopen - %m" );
 		httpd_send_err(
@@ -2929,24 +2928,24 @@ mode  links    bytes  last-changed  name\n\
 		hc->encodedurl, hc->encodedurl );
 
 	    /* Read in names. */
-	    nnames = 0;
+	    nnames = 0, nameptrs = 0;
 	    while ( ( de = readdir( dirp ) ) != 0 )     /* dirent or direct */
 		{
 		if ( nnames >= maxnames )
 		    {
 		    if ( maxnames == 0 )
 			{
-			maxnames = 100;
-			names = NEW( char, maxnames * ( MAXPATHLEN + 1 ) );
-			nameptrs = NEW( char*, maxnames );
+			nameptrs=0, names=0, maxnames = 100;
+			names = malloc_nt(maxnames * ( MAXPATHLEN + 1 ) );
+			nameptrs = NEW( _Nt_array_ptr<char>, maxnames );
 			}
 		    else
 			{
-			maxnames *= 2;
-			names = RENEW( names, char, maxnames * ( MAXPATHLEN + 1 ) );
-			nameptrs = RENEW( nameptrs, char*, maxnames );
+			maxnames *= 2,
+                          names = realloc_nt( names, maxnames * ( MAXPATHLEN + 1 ) ),
+                          nameptrs = RENEW( nameptrs, _Nt_array_ptr<char>, maxnames );
 			}
-		    if ( names == (char*) 0 || nameptrs == (char**) 0 )
+		    if ( names == 0 || nameptrs == 0 )
 			{
 			syslog( LOG_ERR, "out of memory reallocating directory names" );
 			exit( 1 );
@@ -2954,25 +2953,32 @@ mode  links    bytes  last-changed  name\n\
 		    for ( i = 0; i < maxnames; ++i )
 			nameptrs[i] = &names[i * ( MAXPATHLEN + 1 )];
 		    }
-		namlen = NAMLEN(de);
-		(void) strncpy( nameptrs[nnames], de->d_name, namlen );
+                _Unchecked { namlen = NAMLEN(de); }
+                _Nt_array_ptr<char> d_name = 0;
+                _Unchecked { d_name = _Assume_bounds_cast<_Nt_array_ptr<char>>(de->d_name, count(0)); }
+                _Nt_array_ptr<char> name = nameptrs[nnames];
+                size_t name_len = strlen(name) _Where name : bounds(name, name + name_len);
+                _Nt_array_ptr<char> name_tmp : count(namlen) = _Dynamic_bounds_cast<_Nt_array_ptr<char>>(name, count(namlen));
+		(void) xstrbcpy( name_tmp, d_name, namlen );
 		nameptrs[nnames][namlen] = '\0';
 		++nnames;
 		}
 	    closedir( dirp );
 
 	    /* Sort the names. */
-	    qsort( nameptrs, nnames, sizeof(*nameptrs), name_compare );
+	    qsort( (_Array_ptr<void>) nameptrs, nnames, sizeof(*nameptrs), name_compare );
 
 	    /* Generate output. */
 	    for ( i = 0; i < nnames; ++i )
 		{
+                size_t new_maxname =  strlen( hc->expnfilename ) + 1 + strlen( nameptrs[i] ) ;
 		httpd_realloc_str_cc(
 		    name, maxname,
-		    strlen( hc->expnfilename ) + 1 + strlen( nameptrs[i] ) );
+		    new_maxname);
+                size_t new_maxrname = strlen( hc->origfilename ) + 1 + strlen( nameptrs[i] );
 		httpd_realloc_str_cc(
 		    rname, maxrname,
-		    strlen( hc->origfilename ) + 1 + strlen( nameptrs[i] ) );
+                    new_maxrname);
 		if ( hc->expnfilename[0] == '\0' ||
 		     strcmp( hc->expnfilename, "." ) == 0 )
 		    {
@@ -2990,8 +2996,9 @@ mode  links    bytes  last-changed  name\n\
 			(void) my_snprintf( rname, maxrname,
 			    "%s%s", hc->origfilename, nameptrs[i] );
 		    }
+                size_t new_maxencrname = 3 * strlen( rname ) + 1;
 		httpd_realloc_str_cc(
-		    encrname, maxencrname, 3 * strlen( rname ) + 1 );
+		    encrname, maxencrname, new_maxencrname );
 		strencode( encrname, maxencrname, rname );
 
 		if ( stat( name, &sb ) < 0 || lstat( name, &lsb ) < 0 )
@@ -3033,8 +3040,10 @@ mode  links    bytes  last-changed  name\n\
 		*/
 
 		/* Get time string. */
-		now = time( (time_t*) 0 );
-		timestr = ctime( &lsb.st_mtime );
+		now = time( 0 );
+                _Nt_array_ptr<char> timestr = ((_Nt_array_ptr<char> )ctime( &lsb.st_mtime ));
+                size_t time_len = strlen(timestr) _Where timestr : bounds(timestr, timestr + time_len);
+
 		timestr[ 0] = timestr[ 4];
 		timestr[ 1] = timestr[ 5];
 		timestr[ 2] = timestr[ 6];
@@ -3067,7 +3076,10 @@ mode  links    bytes  last-changed  name\n\
 		    case S_IFSOCK: fileclass = "="; break;
 		    case S_IFLNK:  fileclass = "@"; break;
 		    default:
-		    fileclass = ( sb.st_mode & S_IXOTH ) ? "*" : "";
+                    if ( sb.st_mode & S_IXOTH )
+                      fileclass = "*";
+                    else
+                      fileclass = "";
 		    break;
 		    }
 
@@ -3090,7 +3102,7 @@ mode  links    bytes  last-changed  name\n\
 #ifdef CGI_TIMELIMIT
 	/* Schedule a kill for the child process, in case it runs too long */
 	client_data.i = r;
-	if ( tmr_create( (struct timeval*) 0, cgi_kill, client_data, CGI_TIMELIMIT * 1000L, 0 ) == (Timer*) 0 )
+	if ( tmr_create( (_Ptr<struct timeval>) 0, cgi_kill, client_data, CGI_TIMELIMIT * 1000L, 0 ) == 0 )
 	    {
 	    syslog( LOG_CRIT, "tmr_create(cgi_kill ls) failed" );
 	    exit( 1 );
