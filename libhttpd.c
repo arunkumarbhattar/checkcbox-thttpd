@@ -4300,8 +4300,8 @@ httpd_ntoa(httpd_sockaddr *saP : itype(_Ptr<httpd_sockaddr>)) : itype(_Nt_array_
     }
 
 
-static int
-sockaddr_check( httpd_sockaddr* saP )
+_Checked static int
+sockaddr_check(httpd_sockaddr *saP : itype(_Ptr<httpd_sockaddr>))
     {
     switch ( saP->sa.sa_family )
 	{
@@ -4315,8 +4315,8 @@ sockaddr_check( httpd_sockaddr* saP )
     }
 
 
-static size_t
-sockaddr_len( httpd_sockaddr* saP )
+_Checked static size_t
+sockaddr_len(httpd_sockaddr *saP : itype(_Ptr<httpd_sockaddr>))
     {
     switch ( saP->sa.sa_family )
 	{
@@ -4336,7 +4336,7 @@ sockaddr_len( httpd_sockaddr* saP )
 ** Upgrade!
 */
 static int
-my_snprintf( char* str, size_t size, const char* format, ... )
+my_snprintf(char *str : itype(_Nt_array_ptr<char>), size_t size, const char *format : itype(_Nt_array_ptr<const char>), ...)
     {
     va_list ap;
     int r;
@@ -4379,9 +4379,11 @@ atoll( const char* str )
 
 
 /* Read the requested buffer completely, accounting for interruptions. */
-int
-httpd_read_fully( int fd, void* buf, size_t nbytes )
+_Checked _Itype_for_any(T) int httpd_read_fully(int fd, void *buf : itype(_Array_ptr<T>) byte_count(nbytes), size_t nbytes)
     {
+    // If we just use `buf` below, the Checked C compiler crashes.
+    // TODO: File a bug.
+    _Array_ptr<char> char_buf : count(nbytes) = (_Array_ptr<char>) buf;
     int nread;
 
     nread = 0;
@@ -4389,7 +4391,10 @@ httpd_read_fully( int fd, void* buf, size_t nbytes )
 	{
 	int r;
 
-	r = read( fd, (char*) buf + nread, nbytes - nread );
+        {
+        _Array_ptr<char> tmp : byte_count(nbytes - nread) = _Dynamic_bounds_cast<_Array_ptr<char>>(char_buf + nread, count(nbytes - nread));
+	r = read( fd,  tmp, nbytes - nread );
+        }
 	if ( r < 0 && ( errno == EINTR || errno == EAGAIN ) )
 	    {
 	    sleep( 1 );
@@ -4407,17 +4412,20 @@ httpd_read_fully( int fd, void* buf, size_t nbytes )
 
 
 /* Write the requested buffer completely, accounting for interruptions. */
-int
-httpd_write_fully( int fd, const char* buf, size_t nbytes )
+_Checked int
+httpd_write_fully(int fd, const char *buf : itype(_Array_ptr<const char>) count(nbytes), size_t nbytes)
     {
-    int nwritten;
+    size_t nwritten;
 
     nwritten = 0;
     while ( nwritten < nbytes )
 	{
 	int r;
 
-	r = write( fd, buf + nwritten, nbytes - nwritten );
+        {
+        _Array_ptr<char> tmp : count(nbytes - nwritten) = _Dynamic_bounds_cast<_Array_ptr<char>>(buf + nwritten, count(nbytes - nwritten));
+	r = write( fd, tmp, nbytes - nwritten );
+        }
 	if ( r < 0 && ( errno == EINTR || errno == EAGAIN ) )
 	    {
 	    sleep( 1 );
@@ -4435,7 +4443,7 @@ httpd_write_fully( int fd, const char* buf, size_t nbytes )
 
 
 /* Generate debugging statistics syslog message. */
-void
+_Checked void
 httpd_logstats( long secs )
     {
     if ( str_alloc_count > 0 )
