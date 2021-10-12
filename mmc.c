@@ -112,7 +112,7 @@ static unsigned int hash( ino_t ino, dev_t dev, off_t size, time_t ct );
 
 
 _Checked _Itype_for_any(T) void*
-mmc_map(char *filename : itype(_Nt_array_ptr<char>), struct stat *sbP : itype(_Ptr<struct stat>), struct timeval *nowP : itype(_Ptr<struct timeval>)) : itype(_Ptr<T>)
+mmc_map(char *filename : itype(_Nt_array_ptr<char>), struct stat *sbP : itype(_Ptr<struct stat>), struct timeval *nowP : itype(_Ptr<struct timeval>)) : itype(_Array_ptr<T>)
     {
     time_t now;
     struct stat sb;
@@ -271,7 +271,7 @@ mmc_map(char *filename : itype(_Nt_array_ptr<char>), struct stat *sbP : itype(_P
     }
 
 
-_Itype_for_any(T) void mmc_unmap(void* addr : itype(_Ptr<T>), struct stat *sbP : itype(_Ptr<struct stat>), struct timeval *nowP : itype(_Ptr<struct timeval>))
+_Itype_for_any(T) void mmc_unmap(void* addr : itype(_Array_ptr<T>), struct stat *sbP : itype(_Ptr<struct stat>), struct timeval *nowP : itype(_Ptr<struct timeval>))
     {
     _Ptr<Map> m = (_Ptr<Map>) 0;
 

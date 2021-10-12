@@ -32,13 +32,13 @@
 ** If you have a stat buffer on the file, pass it in, otherwise pass 0.
 ** Same for the current time.
 */
-_Itype_for_any(T) void* mmc_map(char *filename : itype(_Nt_array_ptr<char>), struct stat *sbP : itype(_Ptr<struct stat>), struct timeval *nowP : itype(_Ptr<struct timeval>)) : itype(_Ptr<T>);
+_Itype_for_any(T) void* mmc_map(char *filename : itype(_Nt_array_ptr<char>), struct stat *sbP : itype(_Ptr<struct stat>), struct timeval *nowP : itype(_Ptr<struct timeval>)) : itype(_Array_ptr<T>);
 
 /* Done with an mmap()ed area that was returned by mmc_map().
 ** If you have a stat buffer on the file, pass it in, otherwise pass 0.
 ** Same for the current time.
 */
-_Itype_for_any(T) void mmc_unmap(void *addr : itype(_Ptr<T>), struct stat *sbP : itype(_Ptr<struct stat>), struct timeval *nowP : itype(_Ptr<struct timeval>));
+_Itype_for_any(T) void mmc_unmap(void *addr : itype(_Array_ptr<T>), struct stat *sbP : itype(_Ptr<struct stat>), struct timeval *nowP : itype(_Ptr<struct timeval>));
 
 /* Clean up the mmc package, freeing any unused storage.
 ** This should be called periodically, say every five minutes.

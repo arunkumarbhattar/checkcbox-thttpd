@@ -2492,8 +2492,7 @@ httpd_parse_request(httpd_conn *hc : itype(_Ptr<httpd_conn>))
     }
 
 
-static char*
-bufgets( httpd_conn* hc )
+_Checked static char *bufgets(httpd_conn *hc : itype(_Ptr<httpd_conn>)) : itype(_Nt_array_ptr<char>)
     {
     int i;
     char c;
@@ -2511,23 +2510,23 @@ bufgets( httpd_conn* hc )
 		hc->read_buf[hc->checked_idx] = '\0';
 		++hc->checked_idx;
 		}
-	    return &(hc->read_buf[i]);
+            _Nt_array_ptr<char> ret = _Dynamic_bounds_cast<_Nt_array_ptr<char>>(hc->read_buf + i, count(0));
+            return ret;
 	    }
 	}
-    return (char*) 0;
+    return (_Nt_array_ptr<char>) 0;
     }
 
 
 static void
-de_dotdot( char* file )
+de_dotdot(char *file : itype(_Nt_array_ptr<char>))
     {
-    char* cp;
-    char* cp2;
-    int l;
+    _Nt_array_ptr<char> cp = ((void *)0);
 
     /* Collapse any multiple / sequences. */
-    while ( ( cp = strstr( file, "//") ) != (char*) 0 )
+    while ( ( cp = ((_Nt_array_ptr<char> )strstr( file, "//")) ) !=  0 )
 	{
+        _Nt_array_ptr<char> cp2 = 0;
 	for ( cp2 = cp + 2; *cp2 == '/'; ++cp2 )
 	    continue;
 	(void) ol_strcpy( cp + 1, cp2 );
@@ -2536,7 +2535,7 @@ de_dotdot( char* file )
     /* Remove leading ./ and any /./ sequences. */
     while ( strncmp( file, "./", 2 ) == 0 )
 	(void) ol_strcpy( file, file + 2 );
-    while ( ( cp = strstr( file, "/./") ) != (char*) 0 )
+    while ( ( cp = ((_Nt_array_ptr<char> )strstr( file, "/./")) ) !=  0 )
 	(void) ol_strcpy( cp, cp + 2 );
 
     /* Alternate between removing leading ../ and removing xxx/../ */
@@ -2544,36 +2543,51 @@ de_dotdot( char* file )
 	{
 	while ( strncmp( file, "../", 3 ) == 0 )
 	    (void) ol_strcpy( file, file + 3 );
-	cp = strstr( file, "/../" );
+	cp = ((_Nt_array_ptr<char> )strstr( file, "/../" ));
 	if ( cp == (char*) 0 )
 	    break;
+        _Nt_array_ptr<char> cp2 = ((void *)0);
 	for ( cp2 = cp - 1; cp2 >= file && *cp2 != '/'; --cp2 )
 	    continue;
 	(void) ol_strcpy( cp2 + 1, cp + 4 );
 	}
 
     /* Also elide any xxx/.. at the end. */
-    while ( ( l = strlen( file ) ) > 3 &&
-	    strcmp( ( cp = file + l - 3 ), "/.." ) == 0 )
+    size_t l = strlen(file) _Where file : bounds(file, file + l);
+    char loop = 0;
+    if ( l > 3) {
+      cp = file + l - 3;
+      loop = strcmp( cp, "/.." ) ;
+    }
+
+    while ( loop )
 	{
+        _Nt_array_ptr<char> cp2 = ((void *)0);
 	for ( cp2 = cp - 1; cp2 >= file && *cp2 != '/'; --cp2 )
 	    continue;
 	if ( cp2 < file )
 	    break;
 	*cp2 = '\0';
 	}
+
+        l = strlen(file) _Where file : bounds(file, file + l);
+        loop = 0;
+        if ( l > 3) {
+          cp = file + l - 3;
+          loop = strcmp( cp, "/.." ) ;
+        }
     }
 
 
-void
-httpd_close_conn( httpd_conn* hc, struct timeval* nowP )
+_Checked void
+httpd_close_conn(httpd_conn *hc : itype(_Ptr<httpd_conn>), struct timeval *nowP : itype(_Ptr<struct timeval>))
     {
     make_log_entry( hc, nowP );
 
-    if ( hc->file_address != (char*) 0 )
+    if ( hc->file_address != 0 )
 	{
-	mmc_unmap( hc->file_address, &(hc->sb), nowP );
-	hc->file_address = (char*) 0;
+	mmc_unmap<char>( hc->file_address, &(hc->sb), nowP );
+	hc->file_address = (_Nt_array_ptr<char>) 0;
 	}
     if ( hc->conn_fd >= 0 )
 	{
@@ -2582,24 +2596,24 @@ httpd_close_conn( httpd_conn* hc, struct timeval* nowP )
 	}
     }
 
-void
-httpd_destroy_conn( httpd_conn* hc )
+_Checked void
+httpd_destroy_conn(httpd_conn *hc : itype(_Ptr<httpd_conn>))
     {
     if ( hc->initialized )
 	{
-	free( hc->read_buf );
-	free( hc->decodedurl );
-	free( hc->origfilename );
-	free( hc->expnfilename );
-	free( hc->encodings );
-	free( hc->pathinfo );
-	free( hc->query );
-	free( hc->accept );
-	free( hc->accepte );
-	free( hc->reqhost );
-	free( hc->hostdir );
-	free( hc->remoteuser );
-	free( hc->response );
+	free<char>( hc->read_buf );
+	free<char>( hc->decodedurl );
+	free<char>( hc->origfilename );
+	free<char>( hc->expnfilename );
+	free<char>( hc->encodings );
+	free<char>( hc->pathinfo );
+	free<char>( hc->query );
+	free<char>( hc->accept );
+	free<char>( hc->accepte );
+	free<char>( hc->reqhost );
+	free<char>( hc->hostdir );
+	free<char>( hc->remoteuser );
+	free<char>( hc->response );
 #ifdef TILDE_MAP_2
 	free( hc->altdir );
 #endif /* TILDE_MAP_2 */
@@ -2609,16 +2623,16 @@ httpd_destroy_conn( httpd_conn* hc )
 
 
 struct mime_entry {
-    char* ext;
+    char *ext : itype(_Nt_array_ptr<char>) count(ext_len);
     size_t ext_len;
-    char* val;
+    char *val : itype(_Nt_array_ptr<char>) byte_count(0);
     size_t val_len;
     };
-static struct mime_entry enc_tab[] = {
+static struct mime_entry enc_tab[3] : itype(struct mime_entry _Checked[3]) = {
 #include "mime_encodings.h"
     };
 static const int n_enc_tab = sizeof(enc_tab) / sizeof(*enc_tab);
-static struct mime_entry typ_tab[] = {
+static struct mime_entry typ_tab[193] : itype(struct mime_entry _Checked[193]) = {
 #include "mime_types.h"
     };
 static const int n_typ_tab = sizeof(typ_tab) / sizeof(*typ_tab);
