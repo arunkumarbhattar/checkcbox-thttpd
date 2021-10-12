@@ -1,6 +1,8 @@
 #include "checkedc_utils.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
 
 #pragma CHECKED_SCOPE on
 
@@ -121,3 +123,26 @@ _Unchecked int xsbprintf(char *restrict s
   _Dynamic_check(ret <= size);
   return ret;
 }
+
+_Checked _Nt_array_ptr<char> get_after_spn(_Nt_array_ptr<char> str, _Nt_array_ptr<char> search) {
+  size_t spn = strspn(str, search) _Where str : bounds(str, str + spn);
+  _Nt_array_ptr<char> out : bounds(str, str + spn) = str + spn;
+  return _Dynamic_bounds_cast<_Nt_array_ptr<char>>(out, count(0));
+}
+
+int __isxdigit(char c) _Unchecked {
+  return isxdigit(c);
+}
+
+int __isdigit(char c) _Unchecked {
+  return isdigit(c);
+}
+
+int __isupper(char c) _Unchecked {
+  return isupper(c);
+}
+
+int __tolower(char c) _Unchecked {
+  return tolower(c);
+}
+

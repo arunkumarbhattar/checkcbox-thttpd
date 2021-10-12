@@ -1293,9 +1293,6 @@ hexit( char c )
 ** same string.
 */
 
-static int _isxdigit(char c) _Unchecked {
-  return isxdigit(c);
-}
 _Checked static void
 strdecode(char *__to : itype(_Array_ptr<char>) count(to_size), size_t to_size, char *__from : itype(_Nt_array_ptr<char>))
     {
@@ -1303,7 +1300,7 @@ strdecode(char *__to : itype(_Array_ptr<char>) count(to_size), size_t to_size, c
     _Array_ptr<char> to : bounds(__to, __to + to_size) = __to;
     for ( ; *from != '\0'; ++to, ++from )
 	{
-	if ( from[0] == '%' && from[0] != '\0' && from[1] != '\0' &&  _isxdigit( from[1] ) && _isxdigit( from[2] ) )
+	if ( from[0] == '%' && from[0] != '\0' && from[1] != '\0' &&  __isxdigit( from[1] ) && __isxdigit( from[2] ) )
 	    {
 	    *to = hexit( from[1] ) * 16 + hexit( from[2] );
 	    from += 2;
@@ -1428,13 +1425,6 @@ tilde_map_2( httpd_conn* hc )
     }
 #endif /* TILDE_MAP_2 */
 
-static int __isupper(char c) _Unchecked {
-  return isupper(c);
-}
-
-static int __tolower(char c) _Unchecked {
-  return tolower(c);
-}
 /* Virtual host mapping. */
 _Checked static int
 vhost_map(httpd_conn *hc : itype(_Ptr<httpd_conn>))
@@ -1763,21 +1753,15 @@ _Checked static char *expand_symlinks(char *path : itype(_Nt_array_ptr<char>), n
     }
 
 
-int
-httpd_get_conn( httpd_server* hs, int listen_fd, httpd_conn* hc )
+_Checked int
+httpd_get_conn(httpd_server *hs : itype(_Ptr<httpd_server>), int listen_fd, httpd_conn *hc : itype(_Ptr<httpd_conn>))
     {
     httpd_sockaddr sa;
     socklen_t sz;
 
     if ( ! hc->initialized )
 	{
-	hc->read_size = 0;
 	httpd_realloc_str_cc( hc->read_buf, hc->read_size, 500 );
-	hc->maxdecodedurl =
-	    hc->maxorigfilename = hc->maxexpnfilename = hc->maxencodings =
-	    hc->maxpathinfo = hc->maxquery = hc->maxaccept =
-	    hc->maxaccepte = hc->maxreqhost = hc->maxhostdir =
-	    hc->maxremoteuser = hc->maxresponse = 0;
 #ifdef TILDE_MAP_2
 	hc->maxaltdir = 0;
 #endif /* TILDE_MAP_2 */
@@ -1820,10 +1804,13 @@ httpd_get_conn( httpd_server* hs, int listen_fd, httpd_conn* hc )
 	hc->conn_fd = -1;
 	return GC_FAIL;
 	}
-    (void) fcntl( hc->conn_fd, F_SETFD, 1 );
+    _Unchecked { (void) fcntl( hc->conn_fd, F_SETFD, 1 ); }
     hc->hs = hs;
     (void) memset( &hc->client_addr, 0, sizeof(hc->client_addr) );
-    (void) memmove( &hc->client_addr, &sa, sockaddr_len( &sa ) );
+    size_t sa_len = sockaddr_len( &sa );
+    _Array_ptr<httpd_sockaddr> sa_tmp : byte_count(sa_len) = _Dynamic_bounds_cast<_Array_ptr<httpd_sockaddr>>(&sa, byte_count(sa_len));
+    _Array_ptr<httpd_sockaddr> ca_tmp : byte_count(sa_len) = _Dynamic_bounds_cast<_Array_ptr<httpd_sockaddr>>(&hc->client_addr, byte_count(sa_len));
+    (void) memmove( ca_tmp, sa_tmp, sa_len );
     hc->read_idx = 0;
     hc->checked_idx = 0;
     hc->checked_state = CHST_FIRSTWORD;
@@ -1860,7 +1847,7 @@ httpd_get_conn( httpd_server* hs, int listen_fd, httpd_conn* hc )
     hc->range_if = (time_t) -1;
     hc->contentlength = -1;
     hc->type = "";
-    hc->hostname = (char*) 0;
+    hc->hostname = (_Nt_array_ptr<char>) 0;
     hc->mime_flag = 1;
     hc->one_one = 0;
     hc->got_range = 0;
@@ -1869,7 +1856,7 @@ httpd_get_conn( httpd_server* hs, int listen_fd, httpd_conn* hc )
     hc->last_byte_index = -1;
     hc->keep_alive = 0;
     hc->should_linger = 0;
-    hc->file_address = (char*) 0;
+    hc->file_address = (_Nt_array_ptr<char>) 0;
     return GC_OK;
     }
 
@@ -1882,8 +1869,8 @@ httpd_get_conn( httpd_server* hs, int listen_fd, httpd_conn* hc )
 ** have checked so far; and hc->checked_state is the current state of the
 ** finite state machine.
 */
-int
-httpd_got_request( httpd_conn* hc )
+_Checked int
+httpd_got_request(httpd_conn *hc : itype(_Ptr<httpd_conn>))
     {
     char c;
 
@@ -2041,43 +2028,46 @@ httpd_got_request( httpd_conn* hc )
     return GR_NO_REQUEST;
     }
 
-
-int
-httpd_parse_request( httpd_conn* hc )
+_Checked int
+httpd_parse_request(httpd_conn *hc : itype(_Ptr<httpd_conn>))
     {
-    char* buf;
-    char* method_str;
-    char* url;
-    char* protocol;
-    char* reqhost;
-    char* eol;
-    char* cp;
-    nt_box pi;
+    _Nt_array_ptr<char> method_str = ((void *)0);
+    _Nt_array_ptr<char> protocol = ((void *)0);
+    _Nt_array_ptr<char> reqhost = ((void *)0);
+    _Nt_array_ptr<char> eol = ((void *)0);
+    _Nt_array_ptr<char> cp = ((void *)0);
+    nt_box pi = {};
 
     hc->checked_idx = 0;	/* reset */
     method_str = bufgets( hc );
-    url = strpbrk( method_str, " \t\012\015" );
-    if ( url == (char*) 0 )
+    _Nt_array_ptr<char> url_tmp = ((_Nt_array_ptr<char> )strpbrk( method_str, " \t\012\015" ));
+    if ( url_tmp ==  0 )
 	{
 	httpd_send_err( hc, 400, httpd_err400title, "", httpd_err400form, "" );
 	return -1;
 	}
-    *url++ = '\0';
-    url += strspn( url, " \t\012\015" );
-    protocol = strpbrk( url, " \t\012\015" );
-    if ( protocol == (char*) 0 )
+
+    _Nt_array_ptr<char> url = 0;
+    if (*url_tmp != '\0') {
+      url = url_tmp + 1;
+      *url_tmp = '\0';
+    }
+    url = get_after_spn( url, " \t\012\015" );
+    protocol = ((_Nt_array_ptr<char> )strpbrk( url, " \t\012\015" ));
+    if ( protocol ==  0 )
 	{
 	protocol = "HTTP/0.9";
 	hc->mime_flag = 0;
 	}
     else
 	{
-	*protocol++ = '\0';
-	protocol += strspn( protocol, " \t\012\015" );
+	*protocol = '\0';
+        _Nt_array_ptr<char> tmp_protocol = protocol + 1;
+        protocol = get_after_spn( tmp_protocol, " \t\012\015" );
 	if ( *protocol != '\0' )
 	    {
 	    eol = strpbrk( protocol, " \t\012\015" );
-	    if ( eol != (char*) 0 )
+	    if ( eol !=  0 )
 		*eol = '\0';
 	    if ( strcasecmp( protocol, "HTTP/1.0" ) != 0 )
 		hc->one_one = 1;
@@ -2094,19 +2084,20 @@ httpd_parse_request( httpd_conn* hc )
 	    return -1;
 	    }
 	reqhost = url + 7;
-	url = strchr( reqhost, '/' );
-	if ( url == (char*) 0 )
+	url = ((_Nt_array_ptr<char> )strchr( reqhost, '/' ));
+	if ( url ==  0 )
 	    {
 	    httpd_send_err( hc, 400, httpd_err400title, "", httpd_err400form, "" );
 	    return -1;
 	    }
 	*url = '\0';
-	if ( strchr( reqhost, '/' ) != (char*) 0 || reqhost[0] == '.' )
+	if ( strchr( reqhost, '/' ) !=  0 || reqhost[0] == '.' )
 	    {
 	    httpd_send_err( hc, 400, httpd_err400title, "", httpd_err400form, "" );
 	    return -1;
 	    }
-	httpd_realloc_str_cc( hc->reqhost, hc->maxreqhost, strlen( reqhost ) );
+        size_t rh_len = strlen( reqhost );
+	httpd_realloc_str_cc( hc->reqhost, hc->maxreqhost, rh_len );
 	(void) xstrbcpy( hc->reqhost, reqhost, hc->maxreqhost );
 	*url = '/';
 	}
@@ -2141,23 +2132,25 @@ httpd_parse_request( httpd_conn* hc )
 	hc->decodedurl, hc->maxdecodedurl, enc_len );
     strdecode( hc->decodedurl, hc->maxdecodedurl, hc->encodedurl );
 
+    size_t du_len = strlen( hc->decodedurl );
     httpd_realloc_str_cc(
-	hc->origfilename, hc->maxorigfilename, strlen( hc->decodedurl ) );
+	hc->origfilename, hc->maxorigfilename, du_len );
     (void) xstrbcpy( hc->origfilename, &hc->decodedurl[1], hc->maxorigfilename );
     /* Special case for top-level URL. */
     if ( hc->origfilename[0] == '\0' )
 	(void) xstrbcpy( hc->origfilename, ".", hc->maxorigfilename );
 
     /* Extract query string from encoded URL. */
-    cp = strchr( hc->encodedurl, '?' );
-    if ( cp != (char*) 0 )
+    cp = ((_Nt_array_ptr<char> )strchr( hc->encodedurl, '?' ));
+    if ( cp !=  0 )
 	{
-	++cp;
-	httpd_realloc_str_cc( hc->query, hc->maxquery, strlen( cp ) );
-	(void) xstrbcpy( hc->query, cp, hc->maxquery );
+        _Nt_array_ptr<char> cp_tmp = cp + 1;
+        size_t cp_len = strlen(cp_tmp);
+	httpd_realloc_str_cc( hc->query, hc->maxquery, cp_len );
+	(void) xstrbcpy( hc->query, cp_tmp, hc->maxquery );
 	/* Remove query from (decoded) origfilename. */
-	cp = strchr( hc->origfilename, '?' );
-	if ( cp != (char*) 0 )
+	cp = ((_Nt_array_ptr<char> )strchr( hc->origfilename, '?' ));
+	if ( cp !=  0 )
 	    *cp = '\0';
 	}
 
@@ -2172,38 +2165,40 @@ httpd_parse_request( httpd_conn* hc )
 
     if ( hc->mime_flag )
 	{
+        _Nt_array_ptr<char> buf = ((void *)0);
 	/* Read the MIME headers. */
-	while ( ( buf = bufgets( hc ) ) != (char*) 0 )
+	while ( ( buf = bufgets( hc ) ) !=  0 )
 	    {
+            size_t buflen = strlen(buf) _Where buf : bounds(buf, buf + buflen);
 	    if ( buf[0] == '\0' )
 		break;
 	    if ( strncasecmp( buf, "Referer:", 8 ) == 0 )
 		{
 		cp = &buf[8];
-		cp += strspn( cp, " \t" );
+		cp = get_after_spn( cp, " \t" );
 		hc->referrer = cp;
 		}
 	    else if ( strncasecmp( buf, "Referrer:", 9 ) == 0 )
 		{
 		cp = &buf[9];
-		cp += strspn( cp, " \t" );
+		cp = get_after_spn( cp, " \t" );
 		hc->referrer = cp;
 		}
 	    else if ( strncasecmp( buf, "User-Agent:", 11 ) == 0 )
 		{
 		cp = &buf[11];
-		cp += strspn( cp, " \t" );
+		cp = get_after_spn( cp, " \t" );
 		hc->useragent = cp;
 		}
 	    else if ( strncasecmp( buf, "Host:", 5 ) == 0 )
 		{
 		cp = &buf[5];
-		cp += strspn( cp, " \t" );
+		cp = get_after_spn( cp, " \t" );
 		hc->hdrhost = cp;
-		cp = strchr( hc->hdrhost, ':' );
-		if ( cp != (char*) 0 )
+		cp = ((_Nt_array_ptr<char> )strchr( hc->hdrhost, ':' ));
+		if ( cp !=  0 )
 		    *cp = '\0';
-		if ( strchr( hc->hdrhost, '/' ) != (char*) 0 || hc->hdrhost[0] == '.' )
+		if ( strchr( hc->hdrhost, '/' ) !=  0 || hc->hdrhost[0] == '.' )
 		    {
 		    httpd_send_err( hc, 400, httpd_err400title, "", httpd_err400form, "" );
 		    return -1;
@@ -2212,53 +2207,61 @@ httpd_parse_request( httpd_conn* hc )
 	    else if ( strncasecmp( buf, "Accept:", 7 ) == 0 )
 		{
 		cp = &buf[7];
-		cp += strspn( cp, " \t" );
+		cp = get_after_spn( cp, " \t" );
 		if ( hc->accept[0] != '\0' )
 		    {
 		    if ( strlen( hc->accept ) > 5000 )
 			{
 			syslog(
 			    LOG_ERR, "%.80s way too much Accept: data",
-			    httpd_ntoa( &hc->client_addr ) );
+			    ((_Nt_array_ptr<char> )httpd_ntoa( &hc->client_addr )) );
 			continue;
 			}
+                    size_t a_len = strlen(hc->accept);
+                    size_t cp_len = strlen(cp);
 		    httpd_realloc_str_cc(
 			hc->accept, hc->maxaccept,
-			strlen( hc->accept ) + 2 + strlen( cp ) );
+			a_len + 2 + cp_len );
 		    (void) xstrbcat( hc->accept, ", ", hc->maxaccept );
 		    }
-		else
+		else {
+                    size_t cp_len = strlen(cp);
 		    httpd_realloc_str_cc(
-			hc->accept, hc->maxaccept, strlen( cp ) );
+			hc->accept, hc->maxaccept, cp_len );
+                }
 		(void) xstrbcat( hc->accept, cp, hc->maxaccept);
 		}
 	    else if ( strncasecmp( buf, "Accept-Encoding:", 16 ) == 0 )
 		{
 		cp = &buf[16];
-		cp += strspn( cp, " \t" );
+		cp = get_after_spn( cp, " \t" );
 		if ( hc->accepte[0] != '\0' )
 		    {
 		    if ( strlen( hc->accepte ) > 5000 )
 			{
 			syslog(
 			    LOG_ERR, "%.80s way too much Accept-Encoding: data",
-			    httpd_ntoa( &hc->client_addr ) );
+			    ((_Nt_array_ptr<char> )httpd_ntoa( &hc->client_addr )) );
 			continue;
 			}
+                    size_t ae_len = strlen(hc->accepte);
+                    size_t cp_len = strlen(cp);
 		    httpd_realloc_str_cc(
 			hc->accepte, hc->maxaccepte,
-			strlen( hc->accepte ) + 2 + strlen( cp ) );
+			ae_len + 2 + cp_len );
 		    (void) xstrbcat( hc->accepte, ", ", hc->maxaccepte );
 		    }
-		else
+		else {
+                    size_t cp_len = strlen(cp);
 		    httpd_realloc_str_cc(
-			hc->accepte, hc->maxaccepte, strlen( cp ) );
+			hc->accepte, hc->maxaccepte, cp_len );
+                }
 		(void) xstrbcpy( hc->accepte, cp, hc->maxaccepte );
 		}
 	    else if ( strncasecmp( buf, "Accept-Language:", 16 ) == 0 )
 		{
 		cp = &buf[16];
-		cp += strspn( cp, " \t" );
+		cp = get_after_spn( cp, " \t" );
 		hc->acceptl = cp;
 		}
 	    else if ( strncasecmp( buf, "If-Modified-Since:", 18 ) == 0 )
@@ -2271,27 +2274,27 @@ httpd_parse_request( httpd_conn* hc )
 	    else if ( strncasecmp( buf, "Cookie:", 7 ) == 0 )
 		{
 		cp = &buf[7];
-		cp += strspn( cp, " \t" );
+		cp = get_after_spn( cp, " \t" );
 		hc->cookie = cp;
 		}
 	    else if ( strncasecmp( buf, "Range:", 6 ) == 0 )
 		{
 		/* Only support %d- and %d-%d, not %d-%d,%d-%d or -%d. */
-		if ( strchr( buf, ',' ) == (char*) 0 )
+		if ( strchr( buf, ',' ) ==  0 )
 		    {
-		    char* cp_dash;
-		    cp = strpbrk( buf, "=" );
-		    if ( cp != (char*) 0 )
+		    _Nt_array_ptr<char> cp_dash = ((void *)0);
+		    cp = ((_Nt_array_ptr<char> )strpbrk( buf, "=" ));
+		    if ( cp !=  0 )
 			{
-			cp_dash = strchr( cp + 1, '-' );
-			if ( cp_dash != (char*) 0 && cp_dash != cp + 1 )
+			cp_dash = ((_Nt_array_ptr<char> )strchr( cp + 1, '-' ));
+			if ( cp_dash !=  0 && *cp_dash != '\0' && cp_dash != cp + 1 )
 			    {
 			    *cp_dash = '\0';
 			    hc->got_range = 1;
 			    hc->first_byte_index = atoll( cp + 1 );
 			    if ( hc->first_byte_index < 0 )
 				hc->first_byte_index = 0;
-			    if ( isdigit( (int) cp_dash[1] ) )
+			    if ( __isdigit( (int) cp_dash[1] ) )
 				{
 				hc->last_byte_index = atoll( cp_dash + 1 );
 				if ( hc->last_byte_index < 0 )
@@ -2312,7 +2315,7 @@ httpd_parse_request( httpd_conn* hc )
 	    else if ( strncasecmp( buf, "Content-Type:", 13 ) == 0 )
 		{
 		cp = &buf[13];
-		cp += strspn( cp, " \t" );
+		cp = get_after_spn( cp, " \t" );
 		hc->contenttype = cp;
 		}
 	    else if ( strncasecmp( buf, "Content-Length:", 15 ) == 0 )
@@ -2323,13 +2326,13 @@ httpd_parse_request( httpd_conn* hc )
 	    else if ( strncasecmp( buf, "Authorization:", 14 ) == 0 )
 		{
 		cp = &buf[14];
-		cp += strspn( cp, " \t" );
+		cp = get_after_spn( cp, " \t" );
 		hc->authorization = cp;
 		}
 	    else if ( strncasecmp( buf, "Connection:", 11 ) == 0 )
 		{
 		cp = &buf[11];
-		cp += strspn( cp, " \t" );
+		cp = get_after_spn( cp, " \t" );
 		if ( strcasecmp( cp, "keep-alive" ) == 0 )
 		    hc->keep_alive = 1;
 		}
@@ -2394,8 +2397,9 @@ httpd_parse_request( httpd_conn* hc )
     */
 
     /* Copy original filename to expanded filename. */
+    size_t of_len = strlen( hc->origfilename );
     httpd_realloc_str_cc(
-	hc->expnfilename, hc->maxexpnfilename, strlen( hc->origfilename ) );
+	hc->expnfilename, hc->maxexpnfilename, of_len );
     (void) xstrbcpy( hc->expnfilename, hc->origfilename, hc->maxexpnfilename );
 
     /* Tilde mapping. */
@@ -2429,14 +2433,16 @@ httpd_parse_request( httpd_conn* hc )
     ** any trailing non-existing components, for pathinfo.
     */
     cp = expand_symlinks( hc->expnfilename, &pi, hc->hs->no_symlink_check, hc->tildemapped );
-    if ( cp == (char*) 0 )
+    if ( cp ==  0 )
 	{
 	httpd_send_err( hc, 500, err500title, "", err500form, hc->encodedurl );
 	return -1;
 	}
-    httpd_realloc_str_cc( hc->expnfilename, hc->maxexpnfilename, strlen( cp ) );
+    size_t cp_len = strlen( cp );
+    httpd_realloc_str_cc( hc->expnfilename, hc->maxexpnfilename, cp_len );
     (void) xstrbcpy( hc->expnfilename, cp, hc->maxexpnfilename );
-    httpd_realloc_str_cc( hc->pathinfo, hc->maxpathinfo, strlen( pi.ptr ) );
+    size_t ptr_len = strlen( pi.ptr );
+    httpd_realloc_str_cc( hc->pathinfo, hc->maxpathinfo, ptr_len );
     (void) xstrbcpy( hc->pathinfo, pi.ptr, hc->maxpathinfo);
 
     /* Remove pathinfo stuff from the original filename too. */
@@ -2473,7 +2479,7 @@ httpd_parse_request( httpd_conn* hc )
 	    {
 	    syslog(
 		LOG_NOTICE, "%.80s URL \"%.80s\" goes outside the web tree",
-		httpd_ntoa( &hc->client_addr ), hc->encodedurl );
+		((_Nt_array_ptr<char> )httpd_ntoa( &hc->client_addr )), hc->encodedurl );
 	    httpd_send_err(
 		hc, 403, err403title, "",
 		ERROR_FORM( err403form, "The requested URL '%.80s' resolves to a file outside the permitted web server directory tree.\n" ),
@@ -4302,7 +4308,7 @@ atoll( const char* str )
 	default: sign = 1; break;
 	}
     value = 0;
-    while ( isdigit( *str ) )
+    while ( __isdigit( *str ) )
 	{
 	value = value * 10 + ( *str - '0' );
 	++str;
