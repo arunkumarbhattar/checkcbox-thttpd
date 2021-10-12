@@ -116,6 +116,7 @@ typedef int socklen_t;
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
 #endif
 
+#pragma CHECKED_SCOPE on
 
 /* Forwards. */
 static void check_options( void );
@@ -177,12 +178,12 @@ static int check_referrer(httpd_conn *hc : itype(_Ptr<httpd_conn>));
 static int really_check_referrer(httpd_conn *hc : itype(_Ptr<httpd_conn>));
 static int sockaddr_check(httpd_sockaddr *saP : itype(_Ptr<httpd_sockaddr>));
 static size_t sockaddr_len(httpd_sockaddr *saP : itype(_Ptr<httpd_sockaddr>));
-static int my_snprintf(char *str : itype(_Nt_array_ptr<char>), size_t size, const char *format : itype(_Nt_array_ptr<const char>), ...) __attribute__((format(printf, 3, 4)));
+_Unchecked static int my_snprintf(char *str : itype(_Nt_array_ptr<char>), size_t size, const char *format : itype(_Nt_array_ptr<const char>), ...) __attribute__((format(printf, 3, 4)));
 #ifndef HAVE_ATOLL
 static long long atoll( const char* str );
 #endif /* HAVE_ATOLL */
 
-char *ol_strcpy(char *dst : itype(_Array_ptr<char>), char *src : itype(_Nt_array_ptr<char>)) : itype(_Ptr<char>) {
+char *ol_strcpy(char *dst : itype(_Array_ptr<char>), char *src : itype(_Nt_array_ptr<char>)) : itype(_Ptr<char>) _Unchecked {
   return memmove(dst,src,strlen(src)+1);
 }
 
@@ -2544,7 +2545,7 @@ de_dotdot(char *file : itype(_Nt_array_ptr<char>))
 	while ( strncmp( file, "../", 3 ) == 0 )
 	    (void) ol_strcpy( file, file + 3 );
 	cp = ((_Nt_array_ptr<char> )strstr( file, "/../" ));
-	if ( cp == (char*) 0 )
+	if ( cp == 0 )
 	    break;
         _Nt_array_ptr<char> cp2 = ((void *)0);
 	for ( cp2 = cp - 1; cp2 >= file && *cp2 != '/'; --cp2 )
@@ -2644,7 +2645,9 @@ __ext_compare( _Ptr<const struct mime_entry> v1, _Ptr<const struct mime_entry> v
     {
     return strcmp( v1->ext, v2->ext );
     }
+#pragma CHECKED_SCOPE off
 int ((*ext_compare)(const void*, const void*)) : itype(_Ptr<int (_Ptr<const void>, _Ptr<const void>)>) = (int (*)(const void*, const void*)) &__ext_compare;
+#pragma CHECKED_SCOPE on
 
 _Checked static void
 init_mime( void )
@@ -2811,7 +2814,9 @@ __name_compare( _Ptr<const _Nt_array_ptr<char>> v1, _Ptr<const _Nt_array_ptr<cha
     {
     return strcmp( *v1, *v2 );
     }
+#pragma CHECKED_SCOPE off
 int ((*name_compare)(const void*, const void*)) : itype(_Ptr<int (_Ptr<const void>, _Ptr<const void>)>) = (int (*)(const void*, const void*)) &__name_compare;
+#pragma CHECKED_SCOPE on
 
 
 _Checked static int
@@ -3536,7 +3541,7 @@ cgi_interpose_output(httpd_conn *hc : itype(_Ptr<httpd_conn>), int rfd)
 
 /* CGI child process. */
 static void
-cgi_child(httpd_conn *hc : itype(_Ptr<httpd_conn>))
+cgi_child(httpd_conn *hc : itype(_Ptr<httpd_conn>)) _Unchecked
     {
     int r;
     _Nt_array_ptr<_Nt_array_ptr<char>> argp = ((void *)0);
@@ -3786,7 +3791,7 @@ cgi(httpd_conn *hc : itype(_Ptr<httpd_conn>))
 static char* indexname : itype(_Nt_array_ptr<char>);
 static char* dirname : itype(_Nt_array_ptr<char>);
 static int
-really_start_request(httpd_conn *hc : itype(_Ptr<httpd_conn>), struct timeval *nowP : itype(_Ptr<struct timeval>))
+really_start_request(httpd_conn *hc : itype(_Ptr<httpd_conn>), struct timeval *nowP : itype(_Ptr<struct timeval>)) _Unchecked
     {
     static size_t maxindexname = 0;
     static _Nt_array_ptr<const char> index_names _Checked[] = { INDEX_NAMES };
@@ -4068,7 +4073,7 @@ httpd_start_request(httpd_conn *hc : itype(_Ptr<httpd_conn>), struct timeval *no
 
 
 static void
-make_log_entry(httpd_conn *hc : itype(_Ptr<httpd_conn>), struct timeval *nowP : itype(_Ptr<struct timeval>))
+make_log_entry(httpd_conn *hc : itype(_Ptr<httpd_conn>), struct timeval *nowP : itype(_Ptr<struct timeval>)) _Unchecked
     {
     _Nt_array_ptr<char> ru : byte_count(1) = ((void *)0);
     char url _Nt_checked[305];
@@ -4199,7 +4204,7 @@ check_referrer(httpd_conn *hc : itype(_Ptr<httpd_conn>))
 /* Returns 1 if ok to serve the url, 0 if not. */
 static char* refhost : itype(_Nt_array_ptr<char>);
 static int
-really_check_referrer(httpd_conn *hc : itype(_Ptr<httpd_conn>))
+really_check_referrer(httpd_conn *hc : itype(_Ptr<httpd_conn>)) _Unchecked
     {
     _Ptr<httpd_server> hs = ((void *)0);
     _Nt_array_ptr<char> cp1 = ((void *)0);
@@ -4335,7 +4340,7 @@ sockaddr_len(httpd_sockaddr *saP : itype(_Ptr<httpd_sockaddr>))
 ** vsnprintf(), it is probably vulnerable to buffer overruns.
 ** Upgrade!
 */
-static int
+_Unchecked static int
 my_snprintf(char *str : itype(_Nt_array_ptr<char>), size_t size, const char *format : itype(_Nt_array_ptr<const char>), ...)
     {
     va_list ap;
