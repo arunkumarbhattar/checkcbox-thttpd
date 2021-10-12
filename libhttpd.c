@@ -3541,7 +3541,7 @@ cgi_interpose_output(httpd_conn *hc : itype(_Ptr<httpd_conn>), int rfd)
 
 /* CGI child process. */
 static void
-cgi_child(httpd_conn *hc : itype(_Ptr<httpd_conn>)) _Unchecked
+cgi_child(httpd_conn *hc : itype(_Ptr<httpd_conn>)) 
     {
     int r;
     _Nt_array_ptr<_Nt_array_ptr<char>> argp = ((void *)0);
@@ -3556,7 +3556,7 @@ cgi_child(httpd_conn *hc : itype(_Ptr<httpd_conn>)) _Unchecked
     ** dup()'d descriptor, so we have to clear it.  This could be
     ** ifdeffed for Linux only.
     */
-    (void) fcntl( hc->conn_fd, F_SETFD, 0 );
+    _Unchecked { (void) fcntl( hc->conn_fd, F_SETFD, 0 ); }
 
     /* Close the syslog descriptor so that the CGI program can't
     ** mess with it.  All other open descriptors should be either
@@ -3595,9 +3595,11 @@ cgi_child(httpd_conn *hc : itype(_Ptr<httpd_conn>)) _Unchecked
     */
     if ( hc->method == METHOD_POST && hc->read_idx > hc->checked_idx )
 	{
-	int p[2];
+	int p _Checked[2];
+        int res = 0;
+        _Unchecked { res = pipe( (int*) p); }
 
-	if ( pipe( p ) < 0 )
+	if ( res < 0 )
 	    {
 	    syslog( LOG_ERR, "pipe - %m" );
 	    httpd_send_err( hc, 500, err500title, "", err500form, hc->encodedurl );
@@ -3640,9 +3642,11 @@ cgi_child(httpd_conn *hc : itype(_Ptr<httpd_conn>)) _Unchecked
     */
     if ( strncmp( argp[0], "nph-", 4 ) != 0 && hc->mime_flag )
 	{
-	int p[2];
+	int p _Checked[2];
+        int res = 0;
+        _Unchecked { res = pipe( (int*) p ); }
 
-	if ( pipe( p ) < 0 )
+	if ( res < 0 )
 	    {
 	    syslog( LOG_ERR, "pipe - %m" );
 	    httpd_send_err( hc, 500, err500title, "", err500form, hc->encodedurl );
@@ -3706,12 +3710,12 @@ cgi_child(httpd_conn *hc : itype(_Ptr<httpd_conn>)) _Unchecked
     ** spec, but it's what other HTTP servers do.
     */
     directory = ((_Nt_array_ptr<char> )strdup( hc->expnfilename ));
-    if ( directory == (char*) 0 )
+    if ( directory ==  0 )
 	binary = hc->expnfilename;      /* ignore errors */
     else
 	{
 	binary = ((_Nt_array_ptr<char> )strrchr( directory, '/' ));
-	if ( binary == (char*) 0 )
+	if ( binary ==  0 )
 	    binary = hc->expnfilename;
 	else
 	    {
@@ -3722,7 +3726,7 @@ cgi_child(httpd_conn *hc : itype(_Ptr<httpd_conn>)) _Unchecked
 
     /* Default behavior for SIGPIPE. */
 #ifdef HAVE_SIGSET
-    (void) sigset( SIGPIPE, SIG_DFL );
+    _Unchecked { (void) sigset( SIGPIPE, SIG_DFL ); }
 #else /* HAVE_SIGSET */
     (void) signal( SIGPIPE, SIG_DFL );
 #endif /* HAVE_SIGSET */
@@ -3788,10 +3792,8 @@ cgi(httpd_conn *hc : itype(_Ptr<httpd_conn>))
     }
 
 
-static char* indexname : itype(_Nt_array_ptr<char>);
-static char* dirname : itype(_Nt_array_ptr<char>);
 static int
-really_start_request(httpd_conn *hc : itype(_Ptr<httpd_conn>), struct timeval *nowP : itype(_Ptr<struct timeval>)) _Unchecked
+really_start_request(httpd_conn *hc : itype(_Ptr<httpd_conn>), struct timeval *nowP : itype(_Ptr<struct timeval>))
     {
     static size_t maxindexname = 0;
     static _Nt_array_ptr<const char> index_names _Checked[] = { INDEX_NAMES };
@@ -3799,6 +3801,8 @@ really_start_request(httpd_conn *hc : itype(_Ptr<httpd_conn>), struct timeval *n
 #ifdef AUTH_FILE
     static size_t maxdirname = 0;
 #endif /* AUTH_FILE */
+    static _Nt_array_ptr<char> indexname : count(maxindexname);
+    static _Nt_array_ptr<char> dirname : count(maxdirname);
     size_t expnlen, indxlen;
     _Nt_array_ptr<char> cp = ((void *)0);
     nt_box pi = {};
@@ -3855,9 +3859,10 @@ really_start_request(httpd_conn *hc : itype(_Ptr<httpd_conn>), struct timeval *n
 	/* Check for an index file. */
 	for ( i = 0; i < sizeof(index_names) / sizeof(char*); ++i )
 	    {
+            size_t new_idxname_len = expnlen + 1 + strlen( index_names[i] );
 	    httpd_realloc_str_cc(
 		indexname, maxindexname,
-		expnlen + 1 + strlen( index_names[i] ) );
+		new_idxname_len );
 	    (void) xstrbcpy( indexname, hc->expnfilename, maxindexname );
 	    indxlen = strlen( indexname );
 	    if ( indxlen == 0 || indexname[indxlen - 1] != '/' )
@@ -3910,7 +3915,7 @@ really_start_request(httpd_conn *hc : itype(_Ptr<httpd_conn>), struct timeval *n
 	** something went wrong.
 	*/
 	cp = (_Nt_array_ptr<char>) expand_symlinks( indexname, &pi, hc->hs->no_symlink_check, hc->tildemapped );
-	if ( cp == (char*) 0 || pi.ptr[0] != '\0' )
+	if ( cp == 0 || pi.ptr[0] != '\0' )
 	    {
 	    httpd_send_err( hc, 500, err500title, "", err500form, hc->encodedurl );
 	    return -1;
@@ -3939,7 +3944,7 @@ really_start_request(httpd_conn *hc : itype(_Ptr<httpd_conn>), struct timeval *n
     httpd_realloc_str_cc( dirname, maxdirname, expnlen );
     (void) xstrbcpy( dirname, hc->expnfilename, maxdirname );
     cp = ((_Nt_array_ptr<char> )strrchr( dirname, '/' ));
-    if ( cp == (char*) 0 )
+    if ( cp == 0 )
 	(void) xstrbcpy( dirname, ".", maxdirname );
     else
 	*cp = '\0';
@@ -3983,7 +3988,7 @@ really_start_request(httpd_conn *hc : itype(_Ptr<httpd_conn>), struct timeval *n
 	return -1;
 
     /* Is it world-executable and in the CGI area? */
-    if ( hc->hs->cgi_pattern != (char*) 0 &&
+    if ( hc->hs->cgi_pattern != 0 &&
 	 ( hc->sb.st_mode & S_IXOTH ) &&
 	 match( hc->hs->cgi_pattern, hc->expnfilename ) )
 	return cgi( hc );
@@ -4044,8 +4049,9 @@ really_start_request(httpd_conn *hc : itype(_Ptr<httpd_conn>), struct timeval *n
 	}
     else
 	{
-	hc->file_address = mmc_map<char>( hc->expnfilename, &(hc->sb), nowP );
-	if ( hc->file_address == (char*) 0 )
+        _Array_ptr<char> tmp = mmc_map<char>( hc->expnfilename, &(hc->sb), nowP );
+	_Unchecked { hc->file_address = _Assume_bounds_cast<_Nt_array_ptr<char>>(tmp, count(0)); }
+	if ( hc->file_address == 0 )
 	    {
 	    httpd_send_err( hc, 500, err500title, "", err500form, hc->encodedurl );
 	    return -1;
@@ -4073,7 +4079,7 @@ httpd_start_request(httpd_conn *hc : itype(_Ptr<httpd_conn>), struct timeval *no
 
 
 static void
-make_log_entry(httpd_conn *hc : itype(_Ptr<httpd_conn>), struct timeval *nowP : itype(_Ptr<struct timeval>)) _Unchecked
+make_log_entry(httpd_conn *hc : itype(_Ptr<httpd_conn>), struct timeval *nowP : itype(_Ptr<struct timeval>)) 
     {
     _Nt_array_ptr<char> ru : byte_count(1) = ((void *)0);
     char url _Nt_checked[305];
@@ -4100,7 +4106,7 @@ make_log_entry(httpd_conn *hc : itype(_Ptr<httpd_conn>), struct timeval *nowP : 
     if ( hc->hs->vhost && ! hc->tildemapped )
 	(void) my_snprintf( url, sizeof(url),
 	    "/%.100s%.200s",
-	    hc->hostname == (char*) 0 ? hc->hs->server_hostname : hc->hostname,
+	    hc->hostname == 0 ? hc->hs->server_hostname : hc->hostname,
 	    hc->encodedurl );
     else
 	(void) my_snprintf( url, sizeof(url),
@@ -4113,7 +4119,7 @@ make_log_entry(httpd_conn *hc : itype(_Ptr<httpd_conn>), struct timeval *nowP : 
 	(void) xstrbcpy( bytes, "-", sizeof(bytes) - 1);
 
     /* Logfile or syslog? */
-    if ( hc->hs->logfp != (FILE*) 0 )
+    if ( hc->hs->logfp != 0 )
 	{
 	time_t now;
 	_Ptr<struct tm> t = ((void *)0);
@@ -4124,10 +4130,10 @@ make_log_entry(httpd_conn *hc : itype(_Ptr<httpd_conn>), struct timeval *nowP : 
 	char date _Nt_checked[100];
 
 	/* Get the current time, if necessary. */
-	if ( nowP != (struct timeval*) 0 )
+	if ( nowP !=  0 )
 	    now = nowP->tv_sec;
 	else
-	    now = time( (time_t*) 0 );
+	    now = time( 0 );
 	/* Format the time, forcing a numeric timezone (some log analyzers
 	** are stoooopid about this).
 	*/
@@ -4202,22 +4208,22 @@ check_referrer(httpd_conn *hc : itype(_Ptr<httpd_conn>))
 
 
 /* Returns 1 if ok to serve the url, 0 if not. */
-static char* refhost : itype(_Nt_array_ptr<char>);
 static int
-really_check_referrer(httpd_conn *hc : itype(_Ptr<httpd_conn>)) _Unchecked
+really_check_referrer(httpd_conn *hc : itype(_Ptr<httpd_conn>))
     {
     _Ptr<httpd_server> hs = ((void *)0);
     _Nt_array_ptr<char> cp1 = ((void *)0);
     _Nt_array_ptr<char> cp2 = ((void *)0);
     _Nt_array_ptr<char> cp3 = ((void *)0);
     static size_t refhost_size = 0;
+    static _Nt_array_ptr<char> refhost : count(refhost_size);
     _Nt_array_ptr<char> lp = ((void *)0);
 
     hs = hc->hs;
 
     /* Check for an empty referrer. */
-    if ( hc->referrer == (char*) 0 || hc->referrer[0] == '\0' ||
-	 ( cp1 = (_Nt_array_ptr<char>) strstr( hc->referrer, "//" ) ) == (char*) 0 )
+    if ( hc->referrer ==  0 || hc->referrer[0] == '\0' ||
+	 ( cp1 = (_Nt_array_ptr<char>) strstr( hc->referrer, "//" ) ) ==  0 )
 	{
 	/* Disallow if we require a referrer and the url matches. */
 	if ( hs->no_empty_referrers && match( hs->url_pattern, hc->origfilename ) )
@@ -4232,14 +4238,14 @@ really_check_referrer(httpd_conn *hc : itype(_Ptr<httpd_conn>)) _Unchecked
 	continue;
     httpd_realloc_str_cc( refhost, refhost_size, cp2 - cp1 );
     for ( cp3 = refhost; cp1 < cp2; ++cp1, ++cp3 )
-	if ( isupper(*cp1) )
-	    *cp3 = tolower(*cp1);
+	if ( __isupper(*cp1) )
+	    *cp3 = __tolower(*cp1);
 	else
 	    *cp3 = *cp1;
     *cp3 = '\0';
 
     /* Local pattern? */
-    if ( hs->local_pattern != (char*) 0 )
+    if ( hs->local_pattern !=  0 )
 	lp = hs->local_pattern;
     else
 	{
@@ -4248,7 +4254,7 @@ really_check_referrer(httpd_conn *hc : itype(_Ptr<httpd_conn>)) _Unchecked
 	    {
 	    /* Not vhosting, use the server name. */
 	    lp = hs->server_hostname;
-	    if ( lp == (char*) 0 )
+	    if ( lp ==  0 )
 		/* Couldn't figure out local hostname - give up. */
 		return 1;
 	    }
@@ -4256,7 +4262,7 @@ really_check_referrer(httpd_conn *hc : itype(_Ptr<httpd_conn>)) _Unchecked
 	    {
 	    /* We are vhosting, use the hostname on this connection. */
 	    lp = hc->hostname;
-	    if ( lp == (char*) 0 )
+	    if ( lp ==  0 )
 		/* Oops, no hostname.  Maybe it's an old browser that
 		** doesn't send a Host: header.  We could figure out
 		** the default hostname for this IP address, but it's
