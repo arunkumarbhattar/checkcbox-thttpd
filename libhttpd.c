@@ -3733,8 +3733,8 @@ cgi_child( httpd_conn* hc )
     }
 
 
-static int
-cgi( httpd_conn* hc )
+_Checked static int
+cgi(httpd_conn *hc : itype(_Ptr<httpd_conn>))
     {
     int r;
     ClientData client_data;
@@ -3769,7 +3769,7 @@ cgi( httpd_conn* hc )
 #ifdef CGI_TIMELIMIT
     /* Schedule a kill for the child process, in case it runs too long */
     client_data.i = r;
-    if ( tmr_create( (struct timeval*) 0, cgi_kill, client_data, CGI_TIMELIMIT * 1000L, 0 ) == (Timer*) 0 )
+    if ( tmr_create( (_Ptr<struct timeval>) 0, cgi_kill, client_data, CGI_TIMELIMIT * 1000L, 0 ) ==  0 )
 	{
 	syslog( LOG_CRIT, "tmr_create(cgi_kill child) failed" );
 	exit( 1 );
