@@ -32,6 +32,8 @@
 
 #include "match.h"
 
+#pragma CHECKED_SCOPE on
+
 static int match_one(const char *pattern : itype(_Array_ptr<const char>) count(patternlen), unsigned int patternlen, const char *string : itype(_Nt_array_ptr<const char>));
 
 _Checked int

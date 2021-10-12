@@ -33,6 +33,7 @@
 
 #include "timers.h"
 
+#pragma CHECKED_SCOPE on
 
 #define HASH_SIZE 67
 static Timer *timers[67] : itype(_Ptr<Timer> _Checked[HASH_SIZE]) = {((void *)0)};

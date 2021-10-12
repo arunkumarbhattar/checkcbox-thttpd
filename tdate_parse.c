@@ -42,6 +42,7 @@
 
 #include "tdate_parse.h"
 
+#pragma CHECKED_SCOPE on
 
 struct strlong {
     char *s : itype(_Nt_array_ptr<char>);
@@ -73,8 +74,9 @@ __strlong_compare( _Ptr<const struct strlong> v1, _Ptr<const struct strlong> v2 
     {
     return strcmp( v1->s, v2->s );
     }
+#pragma CHECKED_SCOPE off
 int ((*strlong_compare)(const void*, const void*)) : itype(_Ptr<int (_Ptr<const void>, _Ptr<const void>)>) = (int (*)(const void *, const void *)) __strlong_compare;
-
+#pragma CHECKED_SCOPE on
 
 _Checked static int
 strlong_search(char *str : itype(_Nt_array_ptr<char>), struct strlong *tab : itype(_Array_ptr<struct strlong>) count(n), int n, long *lP : itype(_Ptr<long>))
@@ -219,6 +221,7 @@ char str_wday _Nt_checked[500];
     ** but be careful!  You can easily screw up the parsing of existing
     ** formats when you add new ones.  The order is important.
     */
+    _Unchecked {
 
     /* DD-mth-YY HH:MM:SS GMT */
     if ( sscanf( cp, "%d-%400[a-zA-Z]-%d %d:%d:%d GMT",
@@ -325,6 +328,7 @@ char str_wday _Nt_checked[500];
 	}
     else
 	return (time_t) -1;
+    }
 
     if ( tm.tm_year > 1900 )
 	tm.tm_year -= 1900;

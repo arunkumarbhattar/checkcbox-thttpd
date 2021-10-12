@@ -70,6 +70,8 @@
 #endif /* !FD_SET */
 #endif /* HAVE_SELECT */
 
+#pragma CHECKED_SCOPE on
+
 static size_t nfiles;
 static long nwatches;
 static int* fd_rw: itype(_Array_ptr<int>) count(nfiles);

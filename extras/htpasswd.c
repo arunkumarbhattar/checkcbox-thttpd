@@ -23,6 +23,8 @@
 
 #define MAX_STRING_LEN 256
 
+#pragma CHECKED_SCOPE on
+
 int tfd;
 char temp_template[16] : itype(char _Nt_checked[16]) = "/tmp/htp.XXXXXX";
 

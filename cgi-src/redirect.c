@@ -66,6 +66,7 @@
 #include "config.h"
 #include "checkedc_utils.h"
 
+#pragma CHECKED_SCOPE on
 
 static char *argv0 : itype(_Nt_array_ptr<char>) = ((void *)0);
 

@@ -48,6 +48,8 @@
 
 #define LINK "public_html"
 
+#pragma CHECKED_SCOPE on
+
 static char *argv0 : itype(_Nt_array_ptr<char>) = ((void *)0);
 
 

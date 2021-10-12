@@ -69,6 +69,7 @@
 typedef long long int64_t;
 #endif
 
+#pragma CHECKED_SCOPE on
 
 static char *argv0 : itype(_Nt_array_ptr<char>) = ((void *)0);
 static int debug;
@@ -172,11 +173,11 @@ static void show_stats(ClientData client_data, struct timeval *nowP : itype(_Ptr
 static void logstats(struct timeval *nowP : itype(_Ptr<struct timeval>));
 static void thttpd_logstats( long secs );
 
-static connecttab *get_client_connecttab(ClientData client_data) : itype(_Array_ptr<connecttab>) bounds(connects, connects + max_connects) {
+static connecttab *get_client_connecttab(ClientData client_data) : itype(_Array_ptr<connecttab>) bounds(connects, connects + max_connects) _Unchecked {
   return client_data.p;
 }
 
-static void set_client_connecttab(ClientData *client_data : itype(_Ptr<ClientData>), connecttab *data : itype(_Ptr<connecttab>)) {
+static void set_client_connecttab(ClientData *client_data : itype(_Ptr<ClientData>), connecttab *data : itype(_Ptr<connecttab>)) _Unchecked {
   client_data->p = data;
 }
 
@@ -1778,14 +1779,14 @@ handle_send(connecttab *c : itype(_Array_ptr<connecttab>) bounds(connects, conne
         struct cc_iovec {
           void *iov_base : byte_count(iov_len);
           size_t iov_len;
-        } iv[2];
+        } iv _Checked[2];
 
 	iv[0].iov_base = hc->response,
           iv[0].iov_len = hc->responselen;
         size_t s = MIN( c->end_byte_index - c->next_byte_index, max_bytes );
 	iv[1].iov_base = &(hc->file_address[c->next_byte_index]),
           iv[1].iov_len = s;
-	sz = writev( hc->conn_fd, (struct iovec*) iv, 2 );
+	_Unchecked { sz = writev( hc->conn_fd, (struct iovec*) iv, 2 ); }
 	}
 
     if ( sz < 0 && errno == EINTR )
@@ -1808,11 +1809,11 @@ handle_send(connecttab *c : itype(_Array_ptr<connecttab>) bounds(connects, conne
 	c->conn_state = CNST_PAUSING;
 	fdwatch_del_fd( hc->conn_fd );
         set_client_connecttab(&client_data, c);
-	if ( c->wakeup_timer != (Timer*) 0 )
+	if ( c->wakeup_timer != 0 )
 	    syslog( LOG_ERR, "replacing non-null wakeup_timer!" );
 	c->wakeup_timer = tmr_create(
 	    tvP, wakeup_connection, client_data, c->wouldblock_delay, 0 );
-	if ( c->wakeup_timer == (Timer*) 0 )
+	if ( c->wakeup_timer == 0 )
 	    {
 	    syslog( LOG_CRIT, "tmr_create(wakeup_connection) failed" );
 	    exit( 1 );
@@ -1893,12 +1894,12 @@ handle_send(connecttab *c : itype(_Array_ptr<connecttab>) bounds(connects, conne
 	    */
 	    coast = c->hc->bytes_sent / c->max_limit - elapsed;
             set_client_connecttab(&client_data, c);
-	    if ( c->wakeup_timer != (Timer*) 0 )
+	    if ( c->wakeup_timer !=  0 )
 		syslog( LOG_ERR, "replacing non-null wakeup_timer!" );
 	    c->wakeup_timer = tmr_create(
 		tvP, wakeup_connection, client_data,
 		coast > 0 ? ( coast * 1000L ) : 500L, 0 );
-	    if ( c->wakeup_timer == (Timer*) 0 )
+	    if ( c->wakeup_timer ==  0 )
 		{
 		syslog( LOG_CRIT, "tmr_create(wakeup_connection) failed" );
 		exit( 1 );

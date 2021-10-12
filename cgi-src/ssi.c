@@ -43,6 +43,7 @@
 #define ST_MINUS1 3
 #define ST_MINUS2 4
 
+#pragma CHECKED_SCOPE on
 
 static void read_file(char *vfilename : itype(_Nt_array_ptr<char>), char *filename : itype(_Nt_array_ptr<char>), FILE *fp : itype(_Ptr<FILE>));
 

@@ -74,6 +74,7 @@ typedef long long int64_t;
 #define MIN(a,b) ((a)<(b)?(a):(b))
 #endif
 
+#pragma CHECKED_SCOPE on
 
 /* The Map struct. */
 typedef struct MapStruct {
@@ -272,7 +273,7 @@ mmc_map(char *filename : itype(_Nt_array_ptr<char>), struct stat *sbP : itype(_P
 
 
 _Itype_for_any(T) void mmc_unmap(void* addr : itype(_Array_ptr<T>), struct stat *sbP : itype(_Ptr<struct stat>), struct timeval *nowP : itype(_Ptr<struct timeval>))
-    {
+    _Unchecked {
     _Ptr<Map> m = (_Ptr<Map>) 0;
 
     /* Find the Map entry for this address.  First try a hash. */

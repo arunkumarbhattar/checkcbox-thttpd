@@ -40,6 +40,7 @@
 
 #include "config.h"
 
+#pragma CHECKED_SCOPE on
 static char *argv0 : itype(_Nt_array_ptr<char>) = ((void *)0);
 
 _Checked int
