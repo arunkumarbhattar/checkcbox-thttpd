@@ -761,8 +761,10 @@ httpd_realloc_strbuf(_Ptr<struct strbuf> sbuf, size_t size) : count(size) _Check
 	{
 	str_alloc_size -= sbuf->maxsize;
         size_t newsize = MAX( sbuf->maxsize * 2, size * 5 / 4 );
-        sbuf->maxsize = newsize, sbuf->str = ((_Nt_array_ptr<char> )realloc_nt(sbuf->str, newsize)); /* BOUNDS WARNING VERIFIED */
-        ret = sbuf->str; /* BOUNDS WARNING REVIEWED: Needs reasoning that newsize >= size */
+        _Unchecked{
+		sbuf->maxsize = newsize, sbuf->str = ((_Nt_array_ptr<char> )realloc_nt(_Assume_bounds_cast<_Nt_array_ptr<char>>(sbuf->str, bounds(sbuf->str, sbuf->str+sbuf->maxsize)), newsize)); /* BOUNDS WARNING VERIFIED */
+	}
+	ret = sbuf->str; /* BOUNDS WARNING REVIEWED: Needs reasoning that newsize >= size */
 	str_alloc_size += sbuf->maxsize;
 	}
     else

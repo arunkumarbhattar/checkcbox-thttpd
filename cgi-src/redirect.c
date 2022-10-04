@@ -188,12 +188,12 @@ char url _Nt_checked[5000];
         cp += spn;
 	/* Check for blank line. */
 	if ( *cp != '\0' )
-	    {
+	    _Unchecked {
 	    /* Parse line. */
 	    if ( sscanf( cp, "%[^ \t\n] %[^ \t\n]", file, url ) == 2 )
 		{
 		/* Check for wildcard match. */
-		star = strchr( file, '*' );
+		star = (_Nt_array_ptr<char>)strchr( file, '*' );
 		if ( star !=  0 )
 		    {
 		    /* Check for leading match. */
