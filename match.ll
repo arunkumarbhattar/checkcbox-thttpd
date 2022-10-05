@@ -4,7 +4,7 @@ target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16
 target triple = "x86_64-unknown-linux-gnu"
 
 ; Function Attrs: nounwind uwtable
-define dso_local i32 @match(i8* %pattern, i8* %string) local_unnamed_addr #0 {
+define dso_local i32 @match(i8* %pattern, i8* readonly %string) local_unnamed_addr #0 {
 entry:
   unreachable
 }
@@ -15,4 +15,4 @@ attributes #0 = { nounwind uwtable "disable-tail-calls"="false" "frame-pointer"=
 !llvm.ident = !{!1}
 
 !0 = !{i32 1, !"wchar_size", i32 4}
-!1 = !{!"clang version 12.0.0 (https://github.com/arunkumarbhattar/CheckCBox_Compiler.git 7ced7e4fa0fecc9bea6792b99f3c5ac6ea85155c)"}
+!1 = !{!"clang version 12.0.0 (https://github.com/arunkumarbhattar/CheckCBox_Compiler.git 4662b53f5430220537b911f7ed7b6c0da47f272b)"}

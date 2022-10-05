@@ -25,7 +25,7 @@ entry:
 }
 
 ; Function Attrs: nounwind uwtable
-define dso_local i32 @main(i32 %argc, i8** %argv) local_unnamed_addr #2 {
+define dso_local i32 @main(i32 %argc, i8** readonly %argv) local_unnamed_addr #2 {
 entry:
   %cmp.not = icmp eq i32 %argc, 2
   br i1 %cmp.not, label %if.end, label %if.then
@@ -37,43 +37,34 @@ if.then:                                          ; preds = %entry
 
 if.end:                                           ; preds = %entry
   %_Dynamic_check.non_null.not = icmp eq i8** %argv, null
-  br i1 %_Dynamic_check.non_null.not, label %_Dynamic_check.failed, label %_Dynamic_check.succeeded
-
-_Dynamic_check.succeeded:                         ; preds = %if.end
-  %arrayidx = getelementptr inbounds i8*, i8** %argv, i64 1
-  %2 = bitcast i8** %arrayidx to i8*
-  %3 = tail call i32 @c_TPtoO(i8* nonnull %2) #7
-  unreachable
-
-_Dynamic_check.failed:                            ; preds = %if.end
-  tail call void @llvm.trap() #8
+  call void @llvm.assume(i1 %_Dynamic_check.non_null.not)
+  tail call void @llvm.trap() #7
   unreachable
 }
 
 ; Function Attrs: cold noreturn nounwind
 declare void @llvm.trap() #3
 
-; Function Attrs: noreturn
-declare i32 @c_TPtoO(i8*) local_unnamed_addr #4
-
 ; Function Attrs: nofree noreturn nounwind
-declare noundef i64 @fwrite(i8* nocapture noundef, i64 noundef, i64 noundef, %struct._IO_FILE* nocapture noundef) local_unnamed_addr #5
+declare noundef i64 @fwrite(i8* nocapture noundef, i64 noundef, i64 noundef, %struct._IO_FILE* nocapture noundef) local_unnamed_addr #4
+
+; Function Attrs: nofree nosync nounwind willreturn
+declare void @llvm.assume(i1 noundef) #5
 
 attributes #0 = { nofree noreturn nounwind uwtable "disable-tail-calls"="false" "frame-pointer"="none" "less-precise-fpmad"="false" "min-legal-vector-width"="0" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "tune-cpu"="generic" "unsafe-fp-math"="false" "use-soft-float"="false" }
 attributes #1 = { nofree nounwind uwtable "disable-tail-calls"="false" "frame-pointer"="none" "less-precise-fpmad"="false" "min-legal-vector-width"="0" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "tune-cpu"="generic" "unsafe-fp-math"="false" "use-soft-float"="false" }
 attributes #2 = { nounwind uwtable "disable-tail-calls"="false" "frame-pointer"="none" "less-precise-fpmad"="false" "min-legal-vector-width"="0" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "tune-cpu"="generic" "unsafe-fp-math"="false" "use-soft-float"="false" }
 attributes #3 = { cold noreturn nounwind }
-attributes #4 = { noreturn }
-attributes #5 = { nofree noreturn nounwind }
+attributes #4 = { nofree noreturn nounwind }
+attributes #5 = { nofree nosync nounwind willreturn }
 attributes #6 = { cold }
-attributes #7 = { nounwind }
-attributes #8 = { noreturn nounwind }
+attributes #7 = { noreturn nounwind }
 
 !llvm.module.flags = !{!0}
 !llvm.ident = !{!1}
 
 !0 = !{i32 1, !"wchar_size", i32 4}
-!1 = !{!"clang version 12.0.0 (https://github.com/arunkumarbhattar/CheckCBox_Compiler.git 7ced7e4fa0fecc9bea6792b99f3c5ac6ea85155c)"}
+!1 = !{!"clang version 12.0.0 (https://github.com/arunkumarbhattar/CheckCBox_Compiler.git 4662b53f5430220537b911f7ed7b6c0da47f272b)"}
 !2 = !{!3, !3, i64 0}
 !3 = !{!"any pointer", !4, i64 0}
 !4 = !{!"omnipotent char", !5, i64 0}

@@ -12,6 +12,7 @@ target triple = "x86_64-unknown-linux-gnu"
 @.str.2 = private unnamed_addr constant [40 x i8] c"bad fd (%d) passed to fdwatch_check_fd!\00", align 1
 @.str.3 = private unnamed_addr constant [29 x i8] c"  fdwatch - %ld %ss (%g/sec)\00", align 1
 @.str.4 = private unnamed_addr constant [5 x i8] c"poll\00", align 1
+@npoll_fds = internal unnamed_addr global i64 0, align 8
 @.str.8 = private unnamed_addr constant [30 x i8] c"bad ridx (%d) in poll_get_fd!\00", align 1
 
 ; Function Attrs: nounwind uwtable
@@ -47,8 +48,9 @@ entry:
   %0 = load i64, i64* @nwatches, align 8, !tbaa !2
   %inc = add nsw i64 %0, 1
   store i64 %inc, i64* @nwatches, align 8, !tbaa !2
+  %.pre.i = load i64, i64* @npoll_fds, align 8, !tbaa !2
   %conv.i = trunc i64 %timeout_msecs to i32
-  %call.i = tail call i32 @poll(%struct.pollfd* null, i64 0, i32 %conv.i) #3
+  %call.i = tail call i32 @poll(%struct.pollfd* null, i64 %.pre.i, i32 %conv.i) #3
   unreachable
 }
 
@@ -108,7 +110,7 @@ attributes #3 = { nounwind }
 !llvm.ident = !{!1}
 
 !0 = !{i32 1, !"wchar_size", i32 4}
-!1 = !{!"clang version 12.0.0 (https://github.com/arunkumarbhattar/CheckCBox_Compiler.git 7ced7e4fa0fecc9bea6792b99f3c5ac6ea85155c)"}
+!1 = !{!"clang version 12.0.0 (https://github.com/arunkumarbhattar/CheckCBox_Compiler.git 4662b53f5430220537b911f7ed7b6c0da47f272b)"}
 !2 = !{!3, !3, i64 0}
 !3 = !{!"long", !4, i64 0}
 !4 = !{!"omnipotent char", !5, i64 0}
