@@ -56,14 +56,12 @@ void expect_sigill_setup() {
 int main(int argc, _Nt_array_ptr<_Nt_array_ptr<char>> argv : count(argc)) {
   // Because many of these tests involve triggering a runtime failure, we run
   // only one specified test.
-
   if (argc != 2) {
     // Usage errors to stderr, test results (including failures) to stdout.
     fprintf(stderr, "Usage: ./unit_tests TEST_NAME\n");
     return 1;
   }
 
-  _Dynamic_check(argc >= 2);
   _Nt_array_ptr<char> test_name = argv[1];
   char buf _Nt_checked[20] = "Part1";
   int ret;
