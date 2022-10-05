@@ -1,4 +1,0 @@
-/home/arun/Desktop/originalthttpd/checkcbox-thttpd/cmake-build-debug/CMakeFiles/checkcbox-thttpd.dir
-/home/arun/Desktop/originalthttpd/checkcbox-thttpd/cmake-build-debug/CMakeFiles/unit-tests.dir
-/home/arun/Desktop/originalthttpd/checkcbox-thttpd/cmake-build-debug/CMakeFiles/edit_cache.dir
-/home/arun/Desktop/originalthttpd/checkcbox-thttpd/cmake-build-debug/CMakeFiles/rebuild_cache.dir
