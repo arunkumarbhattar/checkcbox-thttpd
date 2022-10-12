@@ -1,4 +1,0 @@
-/home/twinturbo/Desktop/checkcbox-thttpd/cmake-build-debug/CMakeFiles/checkcbox-thttpd.dir
-/home/twinturbo/Desktop/checkcbox-thttpd/cmake-build-debug/CMakeFiles/unit-tests.dir
-/home/twinturbo/Desktop/checkcbox-thttpd/cmake-build-debug/CMakeFiles/edit_cache.dir
-/home/twinturbo/Desktop/checkcbox-thttpd/cmake-build-debug/CMakeFiles/rebuild_cache.dir

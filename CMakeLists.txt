@@ -10,6 +10,7 @@ add_library(checkcbox-thttpd OBJECT
 
 target_compile_options(checkcbox-thttpd PRIVATE
 #    -O2
+        -ferror-limit=92385493
 )
 
 add_executable(unit-tests
