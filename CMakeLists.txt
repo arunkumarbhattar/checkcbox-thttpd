@@ -1,19 +1,20 @@
 cmake_minimum_required(VERSION 2.8.8)
 project(b'checkcbox-thttpd')
-set(CMAKE_C_COMPILER /home/arun/Desktop/TheBox/CheckCBox_Compiler/llvm/cmake-build-debug/bin/clang)
+set(CMAKE_C_COMPILER /home/twinturbo/Desktop/CheckCBox_Compiler/llvm/cmake-build-debug/bin/clang)
 add_library(checkcbox-thttpd OBJECT
-    /home/arun/Desktop/originalthttpd/checkcbox-thttpd/mmc.c
-    /home/arun/Desktop/originalthttpd/checkcbox-thttpd/cgi-src/redirect.c
-    /home/arun/Desktop/originalthttpd/checkcbox-thttpd/libhttpd.c
+    mmc.c
+    cgi-src/redirect.c
+    libhttpd.c
 )
 
 
 target_compile_options(checkcbox-thttpd PRIVATE
-    -O2
+#    -O2
 )
 
-add_executable(unit-tests      /home/arun/Desktop/originalthttpd/checkcbox-thttpd/unit_tests.c
-        /home/arun/Desktop/originalthttpd/checkcbox-thttpd/checkedc_utils.c
+add_executable(unit-tests
+        unit_tests.c
+        checkedc_utils.c
         )
 
 target_compile_options(unit-tests PRIVATE

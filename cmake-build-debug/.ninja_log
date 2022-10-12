@@ -1,9 +1,4 @@
 # ninja log v5
-0	505	1664956332827551508	CMakeFiles/unit-tests.dir/unit_tests.c.o	c3f8cddfb0656339
-0	691	1664956333015557196	CMakeFiles/unit-tests.dir/checkedc_utils.c.o	2bd0706b2691921a
-691	718	1664956333043558042	unit-tests	19273800c681ae8e
-0	326	1664956402273577698	CMakeFiles/checkcbox-thttpd.dir/cgi-src/redirect.c.o	cbf211e5e4d1be07
-0	984	1664956402929596166	CMakeFiles/checkcbox-thttpd.dir/mmc.c.o	e0de9f1e0bcff24d
-0	5227	1664956407169715225	CMakeFiles/checkcbox-thttpd.dir/libhttpd.c.o	beacf47c761d616e
-1	489	1664956820903460615	CMakeFiles/unit-tests.dir/unit_tests.c.o	c3f8cddfb0656339
-489	516	1664956820931461178	unit-tests	19273800c681ae8e
+0	495	1665603530359273605	CMakeFiles/checkcbox-thttpd.dir/cgi-src/redirect.c.o	69429ed55cc52d82
+0	902	1665603530767280337	CMakeFiles/checkcbox-thttpd.dir/mmc.c.o	3652cf7c0258f44
+0	8178	1665603538019399594	CMakeFiles/checkcbox-thttpd.dir/libhttpd.c.o	90c3d8a1dcdab8ab

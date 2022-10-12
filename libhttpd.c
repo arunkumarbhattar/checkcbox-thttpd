@@ -1,6 +1,6 @@
 /* libhttpd.c - HTTP protocol library
 **
-** Copyright © 1995,1998,1999,2000,2001,2015 by
+** Copyright ï¿½ 1995,1998,1999,2000,2001,2015 by
 ** Jef Poskanzer <jef@mail.acme.com>. All rights reserved.
 **
 ** Redistribution and use in source and binary forms, with or without
@@ -28,7 +28,7 @@
 
 #include "config.h"
 #include "version.h"
-
+#include <string_tainted.h>
 #ifdef SHOW_SERVER_VERSION
 #define EXPOSED_SERVER_SOFTWARE SERVER_SOFTWARE
 #else /* SHOW_SERVER_VERSION */
@@ -115,7 +115,7 @@ typedef int socklen_t;
 #ifndef MIN
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
 #endif
-
+#  define SIZE_MAX		(18446744073709551615UL)
 #pragma CHECKED_SCOPE on
 
 /* Forwards. */
@@ -126,7 +126,7 @@ static void add_response(httpd_conn *hc : itype(_Ptr<httpd_conn>), char *str : i
 static void send_mime(httpd_conn *hc : itype(_Ptr<httpd_conn>), int status, char *title : itype(_Nt_array_ptr<char>), char *encodings : itype(_Nt_array_ptr<char>), char *extraheads : itype(_Nt_array_ptr<char>), char *type : itype(_Nt_array_ptr<char>), off_t length, time_t mod);
 static void send_response(httpd_conn *hc : itype(_Ptr<httpd_conn>), int status, char *title : itype(_Nt_array_ptr<char>), char *extraheads : itype(_Nt_array_ptr<char>) count(0), char *form : itype(_Nt_array_ptr<char>), char *arg : itype(_Nt_array_ptr<char>));
 static void send_response_tail(httpd_conn *hc : itype(_Ptr<httpd_conn>));
-static void defang(char *str : itype(_Nt_array_ptr<char>), char *dfstr : itype(_Array_ptr<char>) count(dfsize), int dfsize);
+_Tainted void defang(_TPtr<char> str, _TPtr<char> dfstr , int dfsize);
 #ifdef ERR_DIR
 static int send_err_file(httpd_conn *hc : itype(_Ptr<httpd_conn>), int status, char *title : itype(_Nt_array_ptr<char>), char *extraheads : itype(_Nt_array_ptr<char>) count(0), char *filename : itype(_Nt_array_ptr<char>));
 #endif /* ERR_DIR */
@@ -197,6 +197,14 @@ char *ol_strcpy(char *dst : itype(_Array_ptr<char>), char *src : itype(_Nt_array
 */
 static int sub_process = 0;
 
+_Tainted _TNt_array_ptr<char> string_tainted_malloc(size_t sz) : count(sz) _Unchecked{
+if(sz >= SIZE_MAX)
+return NULL;
+_TArray_ptr<char> p : count(sz+1) = (_TArray_ptr<char>)t_malloc(sz + 1);
+if (p != NULL)
+p[sz] = 0;
+return _Tainted_Assume_bounds_cast<_TNt_array_ptr<char>>(p, count(sz));
+}
 
 _Checked static void
 check_options( void )
@@ -785,11 +793,11 @@ httpd_realloc_strbuf(_Ptr<struct strbuf> sbuf, size_t size) : count(size) _Check
     }
 
 _Checked static void
-send_response(httpd_conn *hc : itype(_Ptr<httpd_conn>), int status, char *title : itype(_Nt_array_ptr<char>), char *extraheads : itype(_Nt_array_ptr<char>) count(0), char *form : itype(_Nt_array_ptr<char>), char *arg : itype(_Nt_array_ptr<char>))
+send_response(httpd_conn *hc : itype(_Ptr<httpd_conn>), int status, char *title : itype(_Nt_array_ptr<char>),
+              char *extraheads : itype(_Nt_array_ptr<char>) count(0), char *form : itype(_Nt_array_ptr<char>), char *arg : itype(_Nt_array_ptr<char>))
     {
     char defanged_arg _Checked[1000];
-char buf _Nt_checked[2000];
-
+    char buf _Nt_checked[2000];
 
     send_mime(
 	hc, status, title, "", extraheads, "text/html; charset=%s", (off_t) -1,
@@ -809,7 +817,21 @@ char buf _Nt_checked[2000];
     <h2>%d %s</h2>\n",
 	status, title, status, title );
     add_response( hc, buf );
-    defang( arg, defanged_arg, sizeof(defanged_arg) );
+    /*
+     * Marshall arg string from checked region to tainted region
+     */
+    _TNt_array_ptr<char> TBuf = NULL;
+    long buf_len = strlen(buf);
+    buf_len = strlen(buf);
+    TBuf = string_tainted_malloc(sizeof(char)*buf_len);
+    t_strncpy(TBuf, buf, buf_len);
+    _TNt_array_ptr<char> Tdefanged_arg = NULL;
+    buf_len = strlen(buf);
+    Tdefanged_arg = string_tainted_malloc(sizeof(char)*buf_len);
+    _Unchecked{
+        tc_strcpy(TBuf, (_Nt_array_ptr<const char>)defanged_arg);
+    };
+    defang( TBuf, Tdefanged_arg, sizeof(Tdefanged_arg) );
     _Unchecked { (void) my_snprintf( buf, sizeof(buf), form, defanged_arg ); }
     add_response( hc, buf );
     if ( match( "**MSIE**", hc->useragent ) )
@@ -840,15 +862,16 @@ send_response_tail(httpd_conn *hc : itype(_Ptr<httpd_conn>))
 	SERVER_ADDRESS, EXPOSED_SERVER_SOFTWARE );
     add_response( hc, buf );
     }
-
-
-_Checked static void
-defang(char *str : itype(_Nt_array_ptr<char>), char *dfstr : itype(_Array_ptr<char>) count(dfsize), int dfsize)
+/*
+ * M0ove this to sandbox -->
+ */
+_Tainted void
+defang(_TPtr<char> str, _TPtr<char> dfstr , int dfsize)
     {
-    _Nt_array_ptr<char> cp1 = ((void *)0);
-    _Array_ptr<char> __3c_tmp_cp2 : count(dfsize) = ((void *)0);
-_Array_ptr<char> cp2 : bounds(__3c_tmp_cp2, __3c_tmp_cp2 + dfsize) = __3c_tmp_cp2;
-
+    _TPtr<char> cp1 = NULL;
+    _TPtr<char> __3c_tmp_cp2 = NULL;
+    _TPtr<char> cp2 = __3c_tmp_cp2;
+    t_printf("Incoming string is %s", str);
     for ( cp1 = str, __3c_tmp_cp2 = dfstr, cp2 = __3c_tmp_cp2;
 	  *cp1 != '\0' && cp2 - dfstr < dfsize - 1;
 	  ++cp1, ++cp2 )

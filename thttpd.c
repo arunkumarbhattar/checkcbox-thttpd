@@ -1,6 +1,6 @@
 /* thttpd.c - tiny/turbo/throttling HTTP server
 **
-** Copyright © 1995,1998,1999,2000,2001,2015 by
+** Copyright ï¿½ 1995,1998,1999,2000,2001,2015 by
 ** Jef Poskanzer <jef@mail.acme.com>. All rights reserved.
 **
 ** Redistribution and use in source and binary forms, with or without
@@ -212,6 +212,7 @@ handle_chld( int sig )
 	{
 #ifdef HAVE_WAITPID
         _Unchecked {
+            // Suspends execution of the current process until one of its children terminates
 	pid = waitpid( (pid_t) -1, &status, WNOHANG );
         }
 #else /* HAVE_WAITPID */
@@ -358,6 +359,7 @@ re_open_logfile( void )
 	    return;
 	    }
         _Unchecked {
+        // Manipulate file descriptor -->
 	  (void) fcntl( fileno( logfp ), F_SETFD, 1 );
         }
 	httpd_set_logfp( hs, logfp );
@@ -630,7 +632,9 @@ main(int argc, char **argv : itype(_Array_ptr<_Nt_array_ptr<char>>) count(argc))
     (void) sigset( SIGTERM, handle_term );
     (void) sigset( SIGINT, handle_term );
     (void) sigset( SIGCHLD, handle_chld );
-    _Unchecked { (void) sigset( SIGPIPE, SIG_IGN ); }         /* get EPIPE instead */
+    _Unchecked {
+        //changing the action associated with a specific signal and unblock the signal, or to block this signa
+        (void) sigset( SIGPIPE, SIG_IGN ); }         /* get EPIPE instead */
     (void) sigset( SIGHUP, handle_hup );
     (void) sigset( SIGUSR1, handle_usr1 );
     (void) sigset( SIGUSR2, handle_usr2 );
@@ -819,6 +823,9 @@ main(int argc, char **argv : itype(_Array_ptr<_Nt_array_ptr<char>>) count(argc))
 	    }
 
 	/* Find the connections that need servicing. */
+    /*
+     * Not a bad idea to sandbox fdwatch_get_next_client_data
+     */
         _Unchecked { c =  _Assume_bounds_cast<_Array_ptr<connecttab>>(fdwatch_get_next_client_data<connecttab>(), bounds(connects, connects + max_connects)); }
 	while ( c != -1 )
 	    {
@@ -1786,6 +1793,9 @@ handle_send(connecttab *c : itype(_Array_ptr<connecttab>) bounds(connects, conne
         size_t s = MIN( c->end_byte_index - c->next_byte_index, max_bytes );
 	iv[1].iov_base = &(hc->file_address[c->next_byte_index]),
           iv[1].iov_len = s;
+    /*
+     * We may choose to sandbox this, but no idea if WASM Supports this ?
+     */
 	_Unchecked { sz = writev( hc->conn_fd, (struct iovec*) iv, 2 ); }
 	}
 

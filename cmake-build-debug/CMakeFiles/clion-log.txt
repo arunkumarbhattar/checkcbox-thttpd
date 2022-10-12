@@ -1,4 +1,4 @@
-/snap/clion/206/bin/cmake/linux/bin/cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_MAKE_PROGRAM=/snap/clion/206/bin/ninja/linux/ninja -G Ninja -S /home/arun/Desktop/originalthttpd/checkcbox-thttpd -B /home/arun/Desktop/originalthttpd/checkcbox-thttpd/cmake-build-debug
+/snap/clion/206/bin/cmake/linux/bin/cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_MAKE_PROGRAM=/snap/clion/206/bin/ninja/linux/ninja -G Ninja -S /home/twinturbo/Desktop/checkcbox-thttpd -B /home/twinturbo/Desktop/checkcbox-thttpd/cmake-build-debug
 CMake Deprecation Warning at CMakeLists.txt:1 (cmake_minimum_required):
   Compatibility with CMake < 2.8.12 will be removed from a future version of
   CMake.
@@ -21,4 +21,4 @@ CMake Deprecation Warning at CMakeLists.txt:1 (cmake_minimum_required):
 -- Detecting CXX compile features - done
 -- Configuring done
 -- Generating done
--- Build files have been written to: /home/arun/Desktop/originalthttpd/checkcbox-thttpd/cmake-build-debug
+-- Build files have been written to: /home/twinturbo/Desktop/checkcbox-thttpd/cmake-build-debug

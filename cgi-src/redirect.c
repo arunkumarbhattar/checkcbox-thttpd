@@ -1,6 +1,6 @@
 /* redirect - simple redirection CGI program
 **
-** Copyright © 1995 by Jef Poskanzer <jef@mail.acme.com>.
+** Copyright ï¿½ 1995 by Jef Poskanzer <jef@mail.acme.com>.
 ** All rights reserved.
 **
 ** Redistribution and use in source and binary forms, with or without
@@ -63,8 +63,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "config.h"
-#include "checkedc_utils.h"
+#include "../config.h"
+#include "../checkedc_utils.h"
 
 #pragma CHECKED_SCOPE on
 

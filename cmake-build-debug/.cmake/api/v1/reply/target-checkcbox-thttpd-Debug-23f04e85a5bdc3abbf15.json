@@ -17,7 +17,6 @@
 		"commands" : 
 		[
 			"add_library",
-			"target_compile_options",
 			"target_compile_definitions",
 			"target_include_directories"
 		],
@@ -39,19 +38,13 @@
 			{
 				"command" : 1,
 				"file" : 0,
-				"line" : 11,
+				"line" : 23,
 				"parent" : 0
 			},
 			{
 				"command" : 2,
 				"file" : 0,
-				"line" : 22,
-				"parent" : 0
-			},
-			{
-				"command" : 3,
-				"file" : 0,
-				"line" : 51,
+				"line" : 52,
 				"parent" : 0
 			}
 		]
@@ -63,127 +56,123 @@
 			[
 				{
 					"fragment" : "-g"
-				},
-				{
-					"backtrace" : 2,
-					"fragment" : "-O2"
 				}
 			],
 			"defines" : 
 			[
 				{
-					"backtrace" : 3,
+					"backtrace" : 2,
 					"define" : "HAVE_ATOLL=1"
 				},
 				{
-					"backtrace" : 3,
+					"backtrace" : 2,
 					"define" : "HAVE_DAEMON=1"
 				},
 				{
-					"backtrace" : 3,
+					"backtrace" : 2,
 					"define" : "HAVE_DIRENT_H=1"
 				},
 				{
-					"backtrace" : 3,
+					"backtrace" : 2,
 					"define" : "HAVE_FCNTL_H=1"
 				},
 				{
-					"backtrace" : 3,
+					"backtrace" : 2,
 					"define" : "HAVE_GAI_STRERROR=1"
 				},
 				{
-					"backtrace" : 3,
+					"backtrace" : 2,
 					"define" : "HAVE_GETADDRINFO=1"
 				},
 				{
-					"backtrace" : 3,
+					"backtrace" : 2,
 					"define" : "HAVE_GETNAMEINFO=1"
 				},
 				{
-					"backtrace" : 3,
+					"backtrace" : 2,
 					"define" : "HAVE_GETPAGESIZE=1"
 				},
 				{
-					"backtrace" : 3,
+					"backtrace" : 2,
 					"define" : "HAVE_GRP_H=1"
 				},
 				{
-					"backtrace" : 3,
+					"backtrace" : 2,
 					"define" : "HAVE_INT64T=1"
 				},
 				{
-					"backtrace" : 3,
+					"backtrace" : 2,
 					"define" : "HAVE_LIBCRYPT=1"
 				},
 				{
-					"backtrace" : 3,
+					"backtrace" : 2,
 					"define" : "HAVE_MEMORY_H=1"
 				},
 				{
-					"backtrace" : 3,
+					"backtrace" : 2,
 					"define" : "HAVE_PATHS_H=1"
 				},
 				{
-					"backtrace" : 3,
+					"backtrace" : 2,
 					"define" : "HAVE_POLL=1"
 				},
 				{
-					"backtrace" : 3,
+					"backtrace" : 2,
 					"define" : "HAVE_POLL_H=1"
 				},
 				{
-					"backtrace" : 3,
+					"backtrace" : 2,
 					"define" : "HAVE_SELECT=1"
 				},
 				{
-					"backtrace" : 3,
+					"backtrace" : 2,
 					"define" : "HAVE_SETSID=1"
 				},
 				{
-					"backtrace" : 3,
+					"backtrace" : 2,
 					"define" : "HAVE_SIGSET=1"
 				},
 				{
-					"backtrace" : 3,
+					"backtrace" : 2,
 					"define" : "HAVE_SOCKLENT=1"
 				},
 				{
-					"backtrace" : 3,
+					"backtrace" : 2,
 					"define" : "HAVE_STRERROR=1"
 				},
 				{
-					"backtrace" : 3,
+					"backtrace" : 2,
 					"define" : "HAVE_SYS_POLL_H=1"
 				},
 				{
-					"backtrace" : 3,
+					"backtrace" : 2,
 					"define" : "HAVE_TM_GMTOFF=1"
 				},
 				{
-					"backtrace" : 3,
+					"backtrace" : 2,
 					"define" : "HAVE_UNISTD_H=1"
 				},
 				{
-					"backtrace" : 3,
+					"backtrace" : 2,
 					"define" : "HAVE_VSNPRINTF=1"
 				},
 				{
-					"backtrace" : 3,
+					"backtrace" : 2,
 					"define" : "HAVE_WAITPID=1"
 				},
 				{
-					"backtrace" : 3,
+					"backtrace" : 2,
 					"define" : "HAVE__PROGNAME=1"
 				},
 				{
-					"backtrace" : 3,
+					"backtrace" : 2,
 					"define" : "TIME_WITH_SYS_TIME=1"
 				}
 			],
 			"includes" : 
 			[
 				{
-					"backtrace" : 4,
+					"backtrace" : 3,
 					"path" : "/home/arun/Desktop/originalthttpd/checkcbox-thttpd"
 				}
 			],

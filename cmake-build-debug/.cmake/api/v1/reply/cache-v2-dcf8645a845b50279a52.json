@@ -55,7 +55,7 @@
 				}
 			],
 			"type" : "INTERNAL",
-			"value" : "/home/arun/Desktop/originalthttpd/checkcbox-thttpd/cmake-build-debug"
+			"value" : "/home/twinturbo/Desktop/checkcbox-thttpd/cmake-build-debug"
 		},
 		{
 			"name" : "CMAKE_CACHE_MAJOR_VERSION",
@@ -591,7 +591,7 @@
 				}
 			],
 			"type" : "INTERNAL",
-			"value" : "/home/arun/Desktop/originalthttpd/checkcbox-thttpd"
+			"value" : "/home/twinturbo/Desktop/checkcbox-thttpd"
 		},
 		{
 			"name" : "CMAKE_INSTALL_PREFIX",
@@ -1123,7 +1123,7 @@
 				}
 			],
 			"type" : "STATIC",
-			"value" : "/home/arun/Desktop/originalthttpd/checkcbox-thttpd/cmake-build-debug"
+			"value" : "/home/twinturbo/Desktop/checkcbox-thttpd/cmake-build-debug"
 		},
 		{
 			"name" : "b'checkcbox-thttpd'_IS_TOP_LEVEL",
@@ -1147,7 +1147,7 @@
 				}
 			],
 			"type" : "STATIC",
-			"value" : "/home/arun/Desktop/originalthttpd/checkcbox-thttpd"
+			"value" : "/home/twinturbo/Desktop/checkcbox-thttpd"
 		}
 	],
 	"kind" : "cache",

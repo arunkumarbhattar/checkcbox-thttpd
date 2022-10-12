@@ -728,8 +728,8 @@
 	"kind" : "cmakeFiles",
 	"paths" : 
 	{
-		"build" : "/home/arun/Desktop/originalthttpd/checkcbox-thttpd/cmake-build-debug",
-		"source" : "/home/arun/Desktop/originalthttpd/checkcbox-thttpd"
+		"build" : "/home/twinturbo/Desktop/checkcbox-thttpd/cmake-build-debug",
+		"source" : "/home/twinturbo/Desktop/checkcbox-thttpd"
 	},
 	"version" : 
 	{

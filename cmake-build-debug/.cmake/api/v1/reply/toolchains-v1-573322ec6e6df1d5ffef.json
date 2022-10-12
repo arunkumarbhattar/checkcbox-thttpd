@@ -33,7 +33,7 @@
 						"gcc_s"
 					]
 				},
-				"path" : "/home/arun/Desktop/TheBox/CheckCBox_Compiler/llvm/cmake-build-debug/bin/clang",
+				"path" : "/home/twinturbo/Desktop/CheckCBox_Compiler/llvm/cmake-build-debug/bin/clang",
 				"version" : "9.4.0"
 			},
 			"language" : "C",

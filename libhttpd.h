@@ -1,6 +1,6 @@
 /* libhttpd.h - defines for libhttpd
 **
-** Copyright © 1995,1998,1999,2000,2001 by Jef Poskanzer <jef@mail.acme.com>.
+** Copyright ï¿½ 1995,1998,1999,2000,2001 by Jef Poskanzer <jef@mail.acme.com>.
 ** All rights reserved.
 **
 ** Redistribution and use in source and binary forms, with or without
@@ -70,6 +70,7 @@ typedef union {
 #endif /* USE_IPV6 */
     } httpd_sockaddr;
 
+
 /* A server. */
 typedef struct {
     char* binding_hostname : itype(_Nt_array_ptr<char>);
@@ -91,6 +92,8 @@ typedef struct {
     char* local_pattern : itype(_Nt_array_ptr<char>);
     int no_empty_referrers;
     } httpd_server;
+
+
 
 /* A connection. */
 typedef struct {
@@ -148,6 +151,156 @@ typedef struct {
     int conn_fd;
     char* file_address : itype(_Nt_array_ptr<char>);
     } httpd_conn;
+
+///* POSIX.1b structure for a time value.  This is like a `struct timeval' but
+//   has nanoseconds instead of microseconds.  */
+//Tstruct T_timespec
+//{
+//    __time_t tv_sec;		/* Seconds.  */
+//#if __WORDSIZE == 64 \
+//  || (defined __SYSCALL_WORDSIZE && __SYSCALL_WORDSIZE == 64) \
+//  || __TIMESIZE == 32
+//    __syscall_slong_t tv_nsec;	/* Nanoseconds.  */
+//#else
+//    # if __BYTE_ORDER == __BIG_ENDIAN
+//  int: 32;           /* Padding.  */
+//  long int tv_nsec;  /* Nanoseconds.  */
+//# else
+//  long int tv_nsec;  /* Nanoseconds.  */
+//  int: 32;           /* Padding.  */
+//# endif
+//#endif
+//};
+//
+//Tstruct Tstat
+//{
+//    __dev_t st_dev;		/* Device.  */
+//#ifndef __x86_64__
+//    unsigned short int __pad1;
+//#endif
+//#if defined __x86_64__ || !defined __USE_FILE_OFFSET64
+//    __ino_t st_ino;		/* File serial number.	*/
+//#else
+//    __ino_t __st_ino;			/* 32bit file serial number.	*/
+//#endif
+//#ifndef __x86_64__
+//    __mode_t st_mode;			/* File mode.  */
+//    __nlink_t st_nlink;			/* Link count.  */
+//#else
+//    __nlink_t st_nlink;		/* Link count.  */
+//    __mode_t st_mode;		/* File mode.  */
+//#endif
+//    __uid_t st_uid;		/* User ID of the file's owner.	*/
+//    __gid_t st_gid;		/* Group ID of the file's group.*/
+//#ifdef __x86_64__
+//    int __pad0;
+//#endif
+//    __dev_t st_rdev;		/* Device number, if device.  */
+//#ifndef __x86_64__
+//    unsigned short int __pad2;
+//#endif
+//#if defined __x86_64__ || !defined __USE_FILE_OFFSET64
+//    __off_t st_size;			/* Size of file, in bytes.  */
+//#else
+//    __off64_t st_size;			/* Size of file, in bytes.  */
+//#endif
+//    __blksize_t st_blksize;	/* Optimal block size for I/O.  */
+//#if defined __x86_64__  || !defined __USE_FILE_OFFSET64
+//    __blkcnt_t st_blocks;		/* Number 512-byte blocks allocated. */
+//#else
+//    __blkcnt64_t st_blocks;		/* Number 512-byte blocks allocated. */
+//#endif
+//#ifdef __USE_XOPEN2K8
+//    /* Nanosecond resolution timestamps are stored in a format
+//       equivalent to 'struct timespec'.  This is the type used
+//       whenever possible but the Unix namespace rules do not allow the
+//       identifier 'timespec' to appear in the <sys/stat.h> header.
+//       Therefore we have to handle the use of this header in strictly
+//       standard-compliant sources special.  */
+//    Tstruct T_timespec st_atim;		/* Time of last access.  */
+//    Tstruct T_timespec st_mtim;		/* Time of last modification.  */
+//    Tstruct T_timespec st_ctim;		/* Time of last status change.  */
+//# define st_atime st_atim.tv_sec	/* Backward compatibility.  */
+//# define st_mtime st_mtim.tv_sec
+//# define st_ctime st_ctim.tv_sec
+//#else
+//    __time_t st_atime;			/* Time of last access.  */
+//    __syscall_ulong_t st_atimensec;	/* Nscecs of last access.  */
+//    __time_t st_mtime;			/* Time of last modification.  */
+//    __syscall_ulong_t st_mtimensec;	/* Nsecs of last modification.  */
+//    __time_t st_ctime;			/* Time of last status change.  */
+//    __syscall_ulong_t st_ctimensec;	/* Nsecs of last status change.  */
+//#endif
+//#ifdef __x86_64__
+//    __syscall_slong_t __glibc_reserved[3];
+//#else
+//    # ifndef __USE_FILE_OFFSET64
+//    unsigned long int __glibc_reserved4;
+//    unsigned long int __glibc_reserved5;
+//# else
+//    __ino64_t st_ino;			/* File serial number.	*/
+//# endif
+//#endif
+//};
+
+/* A Tainted connection. */
+typedef struct{
+    int initialized;
+    httpd_server* hs : itype(_Ptr<httpd_server>);
+    // Since Original httpd_sockaddr is a union, we need to use a struct as WASM does not support unions.
+    httpd_sockaddr client_addr;
+    _TPtr<char> read_buf;
+    size_t read_size, read_idx, checked_idx;
+    int checked_state;
+    int method;
+    int status;
+    //off_t comes from bits/types.h
+    off_t bytes_to_send;
+    off_t bytes_sent;
+    _TPtr<char> encodedurl;
+    _TPtr<char> decodedurl;
+    _TPtr<char> protocol;
+    _TPtr<char> origfilename;
+    _TPtr<char> expnfilename;
+    _TPtr<char> encodings;
+    _TPtr<char> pathinfo;
+    _TPtr<char> query;
+    _TPtr<char> referrer;
+    _TPtr<char> useragent;
+    _TPtr<char> accept;
+    _TPtr<char> accepte;
+    _TPtr<char> acceptl ;
+    _TPtr<char> cookie;
+    _TPtr<char> contenttype;
+    _TPtr<char> reqhost;
+    _TPtr<char> hdrhost;
+    _TPtr<char> hostdir;
+    _TPtr<char> authorization;
+    _TPtr<char> remoteuser;
+    _TPtr<char> response;
+    size_t maxdecodedurl, maxorigfilename, maxexpnfilename, maxencodings,
+            maxpathinfo, maxquery, maxaccept, maxaccepte, maxreqhost, maxhostdir,
+            maxremoteuser, maxresponse;
+#ifdef TILDE_MAP_2
+    _TPtr<char> altdir;
+    size_t maxaltdir;
+#endif /* TILDE_MAP_2 */
+    size_t responselen;
+    time_t if_modified_since, range_if;
+    size_t contentlength;
+    _TPtr<char> type;		/* not malloc()ed */
+    _TPtr<char> hostname;	/* not malloc()ed */
+    int mime_flag;
+    int one_one;	/* HTTP/1.1 or better */
+    int got_range;
+    int tildemapped;	/* this connection got tilde-mapped */
+    off_t first_byte_index, last_byte_index;
+    int keep_alive;
+    int should_linger;
+    struct stat sb;
+    int conn_fd;
+    _TPtr<char>  file_address;
+} T_httpd_conn;
 
 /* Methods. */
 #define METHOD_UNKNOWN 0

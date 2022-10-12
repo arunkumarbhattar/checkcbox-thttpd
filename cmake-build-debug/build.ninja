@@ -39,7 +39,7 @@ include CMakeFiles/rules.ninja
 #############################################
 # Logical path to working directory; prefix for absolute paths.
 
-cmake_ninja_workdir = /home/arun/Desktop/originalthttpd/checkcbox-thttpd/cmake-build-debug/
+cmake_ninja_workdir = /home/twinturbo/Desktop/checkcbox-thttpd/cmake-build-debug/
 # =============================================================================
 # Object build statements for OBJECT_LIBRARY target checkcbox-thttpd
 
@@ -49,30 +49,30 @@ cmake_ninja_workdir = /home/arun/Desktop/originalthttpd/checkcbox-thttpd/cmake-b
 
 build cmake_object_order_depends_target_checkcbox-thttpd: phony || CMakeFiles/checkcbox-thttpd.dir
 
-build CMakeFiles/checkcbox-thttpd.dir/mmc.c.o: C_COMPILER__checkcbox-thttpd_Debug /home/arun/Desktop/originalthttpd/checkcbox-thttpd/mmc.c || cmake_object_order_depends_target_checkcbox-thttpd
+build CMakeFiles/checkcbox-thttpd.dir/mmc.c.o: C_COMPILER__checkcbox-thttpd_Debug /home/twinturbo/Desktop/checkcbox-thttpd/mmc.c || cmake_object_order_depends_target_checkcbox-thttpd
   DEFINES = -DHAVE_ATOLL=1 -DHAVE_DAEMON=1 -DHAVE_DIRENT_H=1 -DHAVE_FCNTL_H=1 -DHAVE_GAI_STRERROR=1 -DHAVE_GETADDRINFO=1 -DHAVE_GETNAMEINFO=1 -DHAVE_GETPAGESIZE=1 -DHAVE_GRP_H=1 -DHAVE_INT64T=1 -DHAVE_LIBCRYPT=1 -DHAVE_MEMORY_H=1 -DHAVE_PATHS_H=1 -DHAVE_POLL=1 -DHAVE_POLL_H=1 -DHAVE_SELECT=1 -DHAVE_SETSID=1 -DHAVE_SIGSET=1 -DHAVE_SOCKLENT=1 -DHAVE_STRERROR=1 -DHAVE_SYS_POLL_H=1 -DHAVE_TM_GMTOFF=1 -DHAVE_UNISTD_H=1 -DHAVE_VSNPRINTF=1 -DHAVE_WAITPID=1 -DHAVE__PROGNAME=1 -DTIME_WITH_SYS_TIME=1
   DEP_FILE = CMakeFiles/checkcbox-thttpd.dir/mmc.c.o.d
-  FLAGS = -g -O2
+  FLAGS = -g
   INCLUDES = -I/home/arun/Desktop/originalthttpd/checkcbox-thttpd
   OBJECT_DIR = CMakeFiles/checkcbox-thttpd.dir
   OBJECT_FILE_DIR = CMakeFiles/checkcbox-thttpd.dir
   TARGET_COMPILE_PDB = CMakeFiles/checkcbox-thttpd.dir/
   TARGET_PDB = ""
 
-build CMakeFiles/checkcbox-thttpd.dir/cgi-src/redirect.c.o: C_COMPILER__checkcbox-thttpd_Debug /home/arun/Desktop/originalthttpd/checkcbox-thttpd/cgi-src/redirect.c || cmake_object_order_depends_target_checkcbox-thttpd
+build CMakeFiles/checkcbox-thttpd.dir/cgi-src/redirect.c.o: C_COMPILER__checkcbox-thttpd_Debug /home/twinturbo/Desktop/checkcbox-thttpd/cgi-src/redirect.c || cmake_object_order_depends_target_checkcbox-thttpd
   DEFINES = -DHAVE_ATOLL=1 -DHAVE_DAEMON=1 -DHAVE_DIRENT_H=1 -DHAVE_FCNTL_H=1 -DHAVE_GAI_STRERROR=1 -DHAVE_GETADDRINFO=1 -DHAVE_GETNAMEINFO=1 -DHAVE_GETPAGESIZE=1 -DHAVE_GRP_H=1 -DHAVE_INT64T=1 -DHAVE_LIBCRYPT=1 -DHAVE_MEMORY_H=1 -DHAVE_PATHS_H=1 -DHAVE_POLL=1 -DHAVE_POLL_H=1 -DHAVE_SELECT=1 -DHAVE_SETSID=1 -DHAVE_SIGSET=1 -DHAVE_SOCKLENT=1 -DHAVE_STRERROR=1 -DHAVE_SYS_POLL_H=1 -DHAVE_TM_GMTOFF=1 -DHAVE_UNISTD_H=1 -DHAVE_VSNPRINTF=1 -DHAVE_WAITPID=1 -DHAVE__PROGNAME=1 -DTIME_WITH_SYS_TIME=1
   DEP_FILE = CMakeFiles/checkcbox-thttpd.dir/cgi-src/redirect.c.o.d
-  FLAGS = -g -O2
+  FLAGS = -g
   INCLUDES = -I/home/arun/Desktop/originalthttpd/checkcbox-thttpd
   OBJECT_DIR = CMakeFiles/checkcbox-thttpd.dir
   OBJECT_FILE_DIR = CMakeFiles/checkcbox-thttpd.dir/cgi-src
   TARGET_COMPILE_PDB = CMakeFiles/checkcbox-thttpd.dir/
   TARGET_PDB = ""
 
-build CMakeFiles/checkcbox-thttpd.dir/libhttpd.c.o: C_COMPILER__checkcbox-thttpd_Debug /home/arun/Desktop/originalthttpd/checkcbox-thttpd/libhttpd.c || cmake_object_order_depends_target_checkcbox-thttpd
+build CMakeFiles/checkcbox-thttpd.dir/libhttpd.c.o: C_COMPILER__checkcbox-thttpd_Debug /home/twinturbo/Desktop/checkcbox-thttpd/libhttpd.c || cmake_object_order_depends_target_checkcbox-thttpd
   DEFINES = -DHAVE_ATOLL=1 -DHAVE_DAEMON=1 -DHAVE_DIRENT_H=1 -DHAVE_FCNTL_H=1 -DHAVE_GAI_STRERROR=1 -DHAVE_GETADDRINFO=1 -DHAVE_GETNAMEINFO=1 -DHAVE_GETPAGESIZE=1 -DHAVE_GRP_H=1 -DHAVE_INT64T=1 -DHAVE_LIBCRYPT=1 -DHAVE_MEMORY_H=1 -DHAVE_PATHS_H=1 -DHAVE_POLL=1 -DHAVE_POLL_H=1 -DHAVE_SELECT=1 -DHAVE_SETSID=1 -DHAVE_SIGSET=1 -DHAVE_SOCKLENT=1 -DHAVE_STRERROR=1 -DHAVE_SYS_POLL_H=1 -DHAVE_TM_GMTOFF=1 -DHAVE_UNISTD_H=1 -DHAVE_VSNPRINTF=1 -DHAVE_WAITPID=1 -DHAVE__PROGNAME=1 -DTIME_WITH_SYS_TIME=1
   DEP_FILE = CMakeFiles/checkcbox-thttpd.dir/libhttpd.c.o.d
-  FLAGS = -g -O2
+  FLAGS = -g
   INCLUDES = -I/home/arun/Desktop/originalthttpd/checkcbox-thttpd
   OBJECT_DIR = CMakeFiles/checkcbox-thttpd.dir
   OBJECT_FILE_DIR = CMakeFiles/checkcbox-thttpd.dir
@@ -95,7 +95,7 @@ build checkcbox-thttpd: phony CMakeFiles/checkcbox-thttpd.dir/mmc.c.o CMakeFiles
 
 build cmake_object_order_depends_target_unit-tests: phony || CMakeFiles/unit-tests.dir
 
-build CMakeFiles/unit-tests.dir/unit_tests.c.o: C_COMPILER__unit-tests_Debug /home/arun/Desktop/originalthttpd/checkcbox-thttpd/unit_tests.c || cmake_object_order_depends_target_unit-tests
+build CMakeFiles/unit-tests.dir/unit_tests.c.o: C_COMPILER__unit-tests_Debug /home/twinturbo/Desktop/checkcbox-thttpd/unit_tests.c || cmake_object_order_depends_target_unit-tests
   DEP_FILE = CMakeFiles/unit-tests.dir/unit_tests.c.o.d
   FLAGS = -g -O2
   OBJECT_DIR = CMakeFiles/unit-tests.dir
@@ -103,7 +103,7 @@ build CMakeFiles/unit-tests.dir/unit_tests.c.o: C_COMPILER__unit-tests_Debug /ho
   TARGET_COMPILE_PDB = CMakeFiles/unit-tests.dir/
   TARGET_PDB = unit-tests.pdb
 
-build CMakeFiles/unit-tests.dir/checkedc_utils.c.o: C_COMPILER__unit-tests_Debug /home/arun/Desktop/originalthttpd/checkcbox-thttpd/checkedc_utils.c || cmake_object_order_depends_target_unit-tests
+build CMakeFiles/unit-tests.dir/checkedc_utils.c.o: C_COMPILER__unit-tests_Debug /home/twinturbo/Desktop/checkcbox-thttpd/checkedc_utils.c || cmake_object_order_depends_target_unit-tests
   DEP_FILE = CMakeFiles/unit-tests.dir/checkedc_utils.c.o.d
   FLAGS = -g -O2
   OBJECT_DIR = CMakeFiles/unit-tests.dir
@@ -134,7 +134,7 @@ build unit-tests: C_EXECUTABLE_LINKER__unit-tests_Debug CMakeFiles/unit-tests.di
 # Utility command for edit_cache
 
 build CMakeFiles/edit_cache.util: CUSTOM_COMMAND
-  COMMAND = cd /home/arun/Desktop/originalthttpd/checkcbox-thttpd/cmake-build-debug && /snap/clion/206/bin/cmake/linux/bin/ccmake -S/home/arun/Desktop/originalthttpd/checkcbox-thttpd -B/home/arun/Desktop/originalthttpd/checkcbox-thttpd/cmake-build-debug
+  COMMAND = cd /home/twinturbo/Desktop/checkcbox-thttpd/cmake-build-debug && /snap/clion/206/bin/cmake/linux/bin/ccmake -S/home/twinturbo/Desktop/checkcbox-thttpd -B/home/twinturbo/Desktop/checkcbox-thttpd/cmake-build-debug
   DESC = Running CMake cache editor...
   pool = console
   restat = 1
@@ -146,7 +146,7 @@ build edit_cache: phony CMakeFiles/edit_cache.util
 # Utility command for rebuild_cache
 
 build CMakeFiles/rebuild_cache.util: CUSTOM_COMMAND
-  COMMAND = cd /home/arun/Desktop/originalthttpd/checkcbox-thttpd/cmake-build-debug && /snap/clion/206/bin/cmake/linux/bin/cmake --regenerate-during-build -S/home/arun/Desktop/originalthttpd/checkcbox-thttpd -B/home/arun/Desktop/originalthttpd/checkcbox-thttpd/cmake-build-debug
+  COMMAND = cd /home/twinturbo/Desktop/checkcbox-thttpd/cmake-build-debug && /snap/clion/206/bin/cmake/linux/bin/cmake --regenerate-during-build -S/home/twinturbo/Desktop/checkcbox-thttpd -B/home/twinturbo/Desktop/checkcbox-thttpd/cmake-build-debug
   DESC = Running CMake to regenerate build system...
   pool = console
   restat = 1
@@ -162,7 +162,7 @@ build rebuild_cache: phony CMakeFiles/rebuild_cache.util
 # =============================================================================
 
 #############################################
-# Folder: /home/arun/Desktop/originalthttpd/checkcbox-thttpd/cmake-build-debug
+# Folder: /home/twinturbo/Desktop/checkcbox-thttpd/cmake-build-debug
 
 build all: phony checkcbox-thttpd unit-tests
 
