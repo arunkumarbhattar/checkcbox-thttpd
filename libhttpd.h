@@ -256,8 +256,8 @@ void httpd_destroy_conn(httpd_conn *hc : itype(_Ptr<httpd_conn>));
 
 
 /* Send an error message back to the client. */
-void httpd_send_err(httpd_conn *hc : itype(_Ptr<httpd_conn>), int status, char *title : itype(_Nt_array_ptr<char>), char *extraheads : itype(_Nt_array_ptr<char>) count(0), char *form : itype(_Nt_array_ptr<char>), char *arg : itype(_Nt_array_ptr<char>));
-
+//void httpd_send_err(httpd_conn *hc : itype(_Ptr<httpd_conn>), int status, char *title : itype(_Nt_array_ptr<char>), char *extraheads : itype(_Nt_array_ptr<char>) count(0), char *form : itype(_Nt_array_ptr<char>), char *arg : itype(_Nt_array_ptr<char>));
+void httpd_send_err(_Ptr<httpd_conn> hc, int status, char *title : itype(_Nt_array_ptr<char>), _TPtr<char> extraheads, _TPtr<char> form, _TPtr<char> arg );
 /* Some error messages. */
 extern char* httpd_err400title : itype(_Nt_array_ptr<char>);
 extern char* httpd_err400form : itype(_Nt_array_ptr<char>);
@@ -275,8 +275,8 @@ void httpd_realloc_str(char **strP : itype(_Ptr<_Nt_array_ptr<char>>), size_t *m
 // Test the new Checked C way starting at one call site.
 
 struct strbuf {
-  _Nt_array_ptr<char> str : count(maxsize);
-  size_t maxsize;
+  _TPtr<char> str ;
+  size_t maxsize; //This can be removed --> Thank CheckCBox
 };
 
 // The returned pointer is the same one stored in the structure, but with a

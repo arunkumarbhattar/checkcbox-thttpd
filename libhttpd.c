@@ -174,8 +174,8 @@ static void cgi_child(httpd_conn *hc : itype(_Ptr<httpd_conn>));
 static int cgi(httpd_conn *hc : itype(_Ptr<httpd_conn>));
 static int really_start_request(httpd_conn *hc : itype(_Ptr<httpd_conn>), struct timeval *nowP : itype(_Ptr<struct timeval>));
 static void make_log_entry(httpd_conn *hc : itype(_Ptr<httpd_conn>), struct timeval *nowP : itype(_Ptr<struct timeval>));
-static int check_referrer(httpd_conn *hc : itype(_Ptr<httpd_conn>));
-static int really_check_referrer(httpd_conn *hc : itype(_Ptr<httpd_conn>));
+static int check_referrer(_Ptr<httpd_conn> hc);
+static int really_check_referrer(_Ptr<httpd_conn> hc);
 static int sockaddr_check(httpd_sockaddr *saP : itype(_Ptr<httpd_sockaddr>));
 static size_t sockaddr_len(httpd_sockaddr *saP : itype(_Ptr<httpd_sockaddr>));
 _Unchecked static int my_snprintf(char *str : itype(_Nt_array_ptr<char>), size_t size, const char *format : itype(_Nt_array_ptr<const char>), ...) __attribute__((format(printf, 3, 4)));
@@ -204,6 +204,17 @@ _TArray_ptr<char> p : count(sz+1) = (_TArray_ptr<char>)t_malloc(sz + 1);
 if (p != NULL)
 p[sz] = 0;
 return _Tainted_Assume_bounds_cast<_TNt_array_ptr<char>>(p, count(sz));
+}
+
+static _Nt_array_ptr<char> string_malloc(size_t sz)
+
+: count(sz) _Unchecked {
+if (sz >= SIZE_MAX)
+return NULL;
+char *p = (char *)parson_malloc(char, sz + 1);
+if (p != NULL)
+p[sz] = 0;
+return _Assume_bounds_cast<_Nt_array_ptr<char>>(p, count(sz));
 }
 
 _Checked static void
@@ -1073,11 +1084,15 @@ auth_check(httpd_conn *hc : itype(_Ptr<httpd_conn>), char *dirname : itype(_Nt_a
     {
     if ( hc->hs->global_passwd )
 	{
-	_TNt_array_ptr<char> topdir = NULL;
+	_TPtr<char> topdir = NULL;
 	if ( hc->hs->vhost && hc->TaintedHttpdConn->hostdir[0] != '\0' )
 	    topdir = hc->TaintedHttpdConn->hostdir;
 	else
-	    topdir = ".";
+    {
+        topdir = (_TPtr<char>)t_malloc(2*sizeof(char));
+        t_strcpy(topdir, ".");
+        topdir[1] = '\0';
+    }
 	switch ( auth_check2( hc, topdir ) )
 	    {
 	    case -1:
@@ -4201,10 +4216,10 @@ make_log_entry(httpd_conn *hc : itype(_Ptr<httpd_conn>), struct timeval *nowP : 
 
 /* Returns 1 if ok to serve the url, 0 if not. */
 _Checked static int
-check_referrer(httpd_conn *hc : itype(_Ptr<httpd_conn>))
+check_referrer(_Ptr<httpd_conn> hc)
     {
     int r;
-    _Nt_array_ptr<char> cp : byte_count(0) = ((void *)0);
+    _TPtr<char> cp = NULL;
 
     /* Are we doing referrer checking at all? */
     if ( hc->hs->url_pattern == 0 )
@@ -4217,9 +4232,16 @@ check_referrer(httpd_conn *hc : itype(_Ptr<httpd_conn>))
 	if ( hc->hs->vhost && hc->TaintedHttpdConn->hostname != 0 )
 	    cp = hc->TaintedHttpdConn->hostname;
 	else
-	    cp = hc->hs->server_hostname;
+    {
+        int server_hostname_len = strlen(hc->hs->server_hostname);
+        cp  = (_TPtr<char>)t_malloc(server_hostname_len*sizeof(char));
+        t_strcpy(cp, hc->hs->server_hostname);
+    }
 	if ( cp == 0 )
-	    cp = "";
+    {
+        cp = (_TPtr<char>)t_malloc(1*sizeof(char));
+        cp[0] = '\0';
+    }
 	syslog(
 	    LOG_INFO, "%.80s non-local referrer \"%.80s%.80s\" \"%.80s\"",
 	    ((_Nt_array_ptr<char> )httpd_ntoa( &hc->client_addr )), cp, hc->TaintedHttpdConn->encodedurl, hc->TaintedHttpdConn->referrer );
@@ -4234,24 +4256,24 @@ check_referrer(httpd_conn *hc : itype(_Ptr<httpd_conn>))
 
 /* Returns 1 if ok to serve the url, 0 if not. */
 static int
-really_check_referrer(httpd_conn *hc : itype(_Ptr<httpd_conn>))
+really_check_referrer(_Ptr<httpd_conn> hc)
     {
     _Ptr<httpd_server> hs = ((void *)0);
-    _Nt_array_ptr<char> cp1 = ((void *)0);
-    _Nt_array_ptr<char> cp2 = ((void *)0);
-    _Nt_array_ptr<char> cp3 = ((void *)0);
+    _TPtr<char> cp1 = ((void *)0);
+    _TPtr<char> cp2 = ((void *)0);
+    _TPtr<char> cp3 = ((void *)0);
     static size_t refhost_size = 0;
-    static _Nt_array_ptr<char> refhost : count(refhost_size);
+    static _TPtr<char> refhost = ((void *)0);
     _Nt_array_ptr<char> lp = ((void *)0);
 
     hs = hc->hs;
 
     /* Check for an empty referrer. */
-    if ( hc->TaintedHttpdConn->TaintedHttpdConn->referrer ==  0 || hc->TaintedHttpdConn->TaintedHttpdConn->referrer[0] == '\0' ||
-	 ( cp1 = (_Nt_array_ptr<char>) strstr( hc->TaintedHttpdConn->TaintedHttpdConn->referrer, "//" ) ) ==  0 )
+    if ( hc->TaintedHttpdConn->referrer ==  0 || hc->TaintedHttpdConn->referrer[0] == '\0' ||
+	 ( cp1 = (_TPtr<char>) t_strstr( hc->TaintedHttpdConn->referrer, "//" ) ) ==  0 )
 	{
 	/* Disallow if we require a referrer and the url matches. */
-	if ( hs->no_empty_referrers && match( hs->url_pattern, hc->TaintedHttpdConn->TaintedHttpdConn->origfilename ) )
+	if ( hs->no_empty_referrers && match( hs->url_pattern, hc->TaintedHttpdConn->origfilename ) )
 	    return 0;
 	/* Otherwise ok. */
 	return 1;
@@ -4271,7 +4293,7 @@ really_check_referrer(httpd_conn *hc : itype(_Ptr<httpd_conn>))
 
     /* Local pattern? */
     if ( hs->local_pattern !=  0 )
-	lp = hs->local_pattern;
+	    lp = hs->local_pattern;
     else
 	{
 	/* No local pattern.  What's our hostname? */
@@ -4286,7 +4308,9 @@ really_check_referrer(httpd_conn *hc : itype(_Ptr<httpd_conn>))
 	else
 	    {
 	    /* We are vhosting, use the hostname on this connection. */
-	    lp = hc->TaintedHttpdConn->TaintedHttpdConn->hostname;
+        int hostname_len = t_strlen(hc->TaintedHttpdConn->hostname);
+	    lp = string_malloc(hostname_len);
+        t_strcpy(lp, hc->TaintedHttpdConn->hostname);
 	    if ( lp ==  0 )
 		/* Oops, no hostname.  Maybe it's an old browser that
 		** doesn't send a Host: header.  We could figure out
@@ -4300,7 +4324,7 @@ really_check_referrer(httpd_conn *hc : itype(_Ptr<httpd_conn>))
     /* If the referrer host doesn't match the local host pattern, and
     ** the filename does match the url pattern, it's an illegal reference.
     */
-    if ( ! match( lp, refhost ) && match( hs->url_pattern, hc->TaintedHttpdConn->TaintedHttpdConn->origfilename ) )
+    if ( ! match( lp, refhost ) && match( hs->url_pattern, hc->TaintedHttpdConn->origfilename ) )
 	return 0;
     /* Otherwise ok. */
     return 1;
