@@ -257,7 +257,7 @@ void httpd_destroy_conn(httpd_conn *hc : itype(_Ptr<httpd_conn>));
 
 /* Send an error message back to the client. */
 //void httpd_send_err(httpd_conn *hc : itype(_Ptr<httpd_conn>), int status, char *title : itype(_Nt_array_ptr<char>), char *extraheads : itype(_Nt_array_ptr<char>) count(0), char *form : itype(_Nt_array_ptr<char>), char *arg : itype(_Nt_array_ptr<char>));
-void httpd_send_err(_Ptr<httpd_conn> hc, int status, char *title : itype(_Nt_array_ptr<char>), char *extraheads : itype(_Nt_array_ptr<char>), _TPtr<char> form, _TPtr<char> arg );
+_TLIB void httpd_send_err(_Ptr<httpd_conn> hc, int status, char *title : itype(_TPtr<char>), char *extraheads : itype(_TPtr<char>), char * form : itype(_TPtr<char>), _TPtr<char> arg );
 /* Some error messages. */
 extern char* httpd_err400title : itype(_Nt_array_ptr<char>);
 extern char* httpd_err400form : itype(_Nt_array_ptr<char>);
@@ -281,7 +281,7 @@ struct strbuf {
 
 // The returned pointer is the same one stored in the structure, but with a
 // promise that it's as big as the caller requested.
-_Nt_array_ptr<char> httpd_realloc_strbuf(_Ptr<struct strbuf> sbuf, size_t size) : count(size);
+_TPtr<char> httpd_realloc_strbuf(_Ptr<struct strbuf> sbuf, size_t size);
 
 // httpd_realloc_str_ccl(tmp_foo, stored_foo, stored_maxfoo, size):
 //

@@ -123,17 +123,17 @@ typedef int socklen_t;
 static void check_options( void );
 static void free_httpd_server(httpd_server *hs : itype(_Ptr<httpd_server>));
 static int initialize_listen_socket(httpd_sockaddr *saP : itype(_Ptr<httpd_sockaddr>));
-static void add_response(httpd_conn *hc : itype(_Ptr<httpd_conn>), char* str : itype(_TPtr<char>));
-static void send_mime(httpd_conn *hc : itype(_Ptr<httpd_conn>), int status, char *title : itype(_Nt_array_ptr<char>), char *encodings : itype(_TPtr<char>) , char *extraheads : itype(_Nt_array_ptr<char>), _TPtr<char> type, off_t length, time_t mod);
-static void send_response(httpd_conn *hc : itype(_Ptr<httpd_conn>), int status, char *title : itype(_Nt_array_ptr<char>), char *extraheads : itype(_Nt_array_ptr<char>) count(0), char *form : itype(_Nt_array_ptr<char>), char *arg : itype(_Nt_array_ptr<char>));
+_TLIB static void add_response(httpd_conn *hc : itype(_Ptr<httpd_conn>), char* str : itype(_TPtr<char>));
+_TLIB static void send_mime(httpd_conn *hc : itype(_Ptr<httpd_conn>), int status, char *title : itype(_TPtr<char>), char *encodings : itype(_TPtr<char>) , char *extraheads : itype(_Nt_array_ptr<char>), char * type : itype(_TPtr<char>), off_t length, time_t mod);
+_TLIB static void send_response(httpd_conn *hc : itype(_Ptr<httpd_conn>), int status, char *title : itype(_TPtr<char>), char *extraheads : itype(_TPtr<char>), char *form : itype(_Nt_array_ptr<char>), char *arg : itype(_TPtr<char>));
 static void send_response_tail(httpd_conn *hc : itype(_Ptr<httpd_conn>));
 _Tainted void defang(_TPtr<char> str, _TPtr<char> dfstr , int dfsize);
 #ifdef ERR_DIR
-static int send_err_file(httpd_conn *hc : itype(_Ptr<httpd_conn>), int status, char *title : itype(_Nt_array_ptr<char>), char *extraheads : itype(_Nt_array_ptr<char>) count(0), char *filename : itype(_Nt_array_ptr<char>));
+static int send_err_file(httpd_conn *hc : itype(_Ptr<httpd_conn>), int status, char *title : itype(_TPtr<char>), char *extraheads : itype(_TPtr<char>), char *filename : itype(_Nt_array_ptr<char>));
 #endif /* ERR_DIR */
 #ifdef AUTH_FILE
-static void send_authenticate(httpd_conn *hc : itype(_Ptr<httpd_conn>), char *realm : itype(_Nt_array_ptr<char>));
-static int b64_decode(const char *str : itype(_Nt_array_ptr<const char>), unsigned char *space : itype(_Array_ptr<unsigned char>) count(size), int size);
+static void send_authenticate(httpd_conn *hc : itype(_Ptr<httpd_conn>), _TPtr<char> realm);
+static int b64_decode(_TPtr<const char> str , unsigned char *space : itype(_Array_ptr<unsigned char>) count(size), int size);
 static int auth_check(httpd_conn *hc : itype(_Ptr<httpd_conn>), _TPtr<char> dirname);
 static int auth_check2(httpd_conn *hc : itype(_Ptr<httpd_conn>), _TPtr<char> dirname);
 #endif /* AUTH_FILE */
@@ -180,7 +180,7 @@ static int check_referrer(_Ptr<httpd_conn> hc);
 static int really_check_referrer(_Ptr<httpd_conn> hc);
 static int sockaddr_check(httpd_sockaddr *saP : itype(_Ptr<httpd_sockaddr>));
 static size_t sockaddr_len(httpd_sockaddr *saP : itype(_Ptr<httpd_sockaddr>));
-_Unchecked static int my_snprintf(char *str : itype(_Nt_array_ptr<char>), size_t size, const char *format : itype(_Nt_array_ptr<const char>), ...) __attribute__((format(printf, 3, 4)));
+_TLIB _Unchecked static int my_snprintf(char *str : itype(_TPtr<char>), size_t size, const char *format : itype(_TPtr<const char>), ...) __attribute__((format(printf, 3, 4)));
 #ifndef HAVE_ATOLL
 static long long atoll( const char* str );
 #endif /* HAVE_ATOLL */
@@ -233,6 +233,15 @@ static _Ptr<char> TaintedToCheckedStrAdaptor(_TPtr<char> Ip)
     t_strcpy(RetPtr, Ip);
     return RetPtr;
 }
+
+static _Nt_array_ptr<char> TaintedToCheckedNtStrAdaptor(_TPtr<char> Ip)
+{
+    int Iplen = t_strlen(Ip);
+    _Nt_array_ptr<char> RetPtr = string_malloc(Iplen*sizeof(char));
+    t_strcpy(RetPtr, Ip);
+    return RetPtr;
+}
+
 _Checked static void
 check_options( void )
     {
@@ -587,8 +596,8 @@ char* httpd_err503form : itype(_Nt_array_ptr<char>) =
 
 
 /* Append a string to the buffer waiting to be sent as response. */
-_Checked static void
-add_response(httpd_conn *hc : itype(_Ptr<httpd_conn>), _TPtr<char> str)
+_TLIB static void
+add_response(httpd_conn *hc : itype(_Ptr<httpd_conn>), char* str : itype(_TPtr<char>))
     {
     size_t len;
 
@@ -651,7 +660,7 @@ httpd_clear_ndelay( int fd )
 
 
 _Checked static void
-send_mime(httpd_conn *hc : itype(_Ptr<httpd_conn>), int status, char *title : itype(_Nt_array_ptr<char>), char *encodings : itype(_Nt_array_ptr<char>), char *extraheads : itype(_Nt_array_ptr<char>), char *type : itype(_Nt_array_ptr<char>), off_t length, time_t mod)
+send_mime(httpd_conn *hc : itype(_Ptr<httpd_conn>), int status, char *title : itype(_TPtr<char>), char *encodings : itype(_TPtr<char>) , char *extraheads : itype(_Nt_array_ptr<char>), char * type : itype(_TPtr<char>), off_t length, time_t mod)
     {
     time_t now, expires;
     _Nt_array_ptr<const char> rfc1123fmt : byte_count(25) = "%a, %d %b %Y %H:%M:%S GMT";
@@ -780,14 +789,14 @@ httpd_realloc_str(char **strP : itype(_Ptr<_Nt_array_ptr<char>>), size_t *maxsiz
 	}
     }
 
-_Nt_array_ptr<char>
-httpd_realloc_strbuf(_Ptr<struct strbuf> sbuf, size_t size) : count(size) _Checked
+_TPtr<char>
+httpd_realloc_strbuf(_Ptr<struct strbuf> sbuf, size_t size) _Checked
     {
-      _Nt_array_ptr<char> ret : count(size) = 0;
+      _TPtr<char> ret = 0;
     if ( sbuf->maxsize == 0 )
 	{
 	size_t newsize = MAX( 200, size + 100 );
-	sbuf->maxsize = newsize, sbuf->str = ((_Nt_array_ptr<char> )malloc_nt(newsize)); /* BOUNDS WARNING VERIFIED */
+	sbuf->maxsize = newsize, sbuf->str = (string_tainted_malloc(newsize)); /* BOUNDS WARNING VERIFIED */
         ret = sbuf->str; /* BOUNDS WARNING REVIEWED: Needs reasoning that newsize >= size */
 	++str_alloc_count;
 	str_alloc_size += sbuf->maxsize;
@@ -797,7 +806,7 @@ httpd_realloc_strbuf(_Ptr<struct strbuf> sbuf, size_t size) : count(size) _Check
 	str_alloc_size -= sbuf->maxsize;
         size_t newsize = MAX( sbuf->maxsize * 2, size * 5 / 4 );
         _Unchecked{
-		sbuf->maxsize = newsize, sbuf->str = ((_Nt_array_ptr<char> )realloc_nt(_Assume_bounds_cast<_Nt_array_ptr<char>>(sbuf->str, bounds(sbuf->str, sbuf->str+sbuf->maxsize)), newsize)); /* BOUNDS WARNING VERIFIED */
+		sbuf->maxsize = newsize, sbuf->str = ((_TPtr<char>)t_realloc(sbuf->str, newsize)); /* BOUNDS WARNING VERIFIED */
 	}
 	ret = sbuf->str; /* BOUNDS WARNING REVIEWED: Needs reasoning that newsize >= size */
 	str_alloc_size += sbuf->maxsize;
@@ -819,9 +828,8 @@ httpd_realloc_strbuf(_Ptr<struct strbuf> sbuf, size_t size) : count(size) _Check
     return ret;
     }
 
-_Checked static void
-send_response(httpd_conn *hc : itype(_Ptr<httpd_conn>), int status, char *title : itype(_Nt_array_ptr<char>),
-              char *extraheads : itype(_Nt_array_ptr<char>) count(0), char *form : itype(_Nt_array_ptr<char>), char *arg : itype(_Nt_array_ptr<char>))
+_TLIB _Checked static void
+send_response(httpd_conn *hc : itype(_Ptr<httpd_conn>), int status, char *title : itype(_TPtr<char>), char *extraheads : itype(_TPtr<char>), char *form : itype(_Nt_array_ptr<char>), char *arg : itype(_TPtr<char>))
     {
     char defanged_arg _Checked[1000];
     char buf _Nt_checked[2000];
@@ -925,8 +933,8 @@ defang(_TPtr<char> str, _TPtr<char> dfstr , int dfsize)
     *cp2 = '\0';
     }
 
-_Checked void
-httpd_send_err(httpd_conn *hc : itype(_Ptr<httpd_conn>), int status, char *title : itype(_Nt_array_ptr<char>), char *extraheads : itype(_Nt_array_ptr<char>) count(0), char *form : itype(_Nt_array_ptr<char>), char *arg : itype(_Nt_array_ptr<char>))
+_TLIB _Checked
+void httpd_send_err(_Ptr<httpd_conn> hc, int status, char *title : itype(_TPtr<char>), char *extraheads : itype(_TPtr<char>), char * form : itype(_TPtr<char>), _TPtr<char> arg )
     {
 #ifdef ERR_DIR
 
@@ -960,7 +968,7 @@ httpd_send_err(httpd_conn *hc : itype(_Ptr<httpd_conn>), int status, char *title
 
 #ifdef ERR_DIR
 _Checked static int
-send_err_file(httpd_conn *hc : itype(_Ptr<httpd_conn>), int status, char *title : itype(_Nt_array_ptr<char>), char *extraheads : itype(_Nt_array_ptr<char>) count(0), char *filename : itype(_Nt_array_ptr<char>))
+static int send_err_file(httpd_conn *hc : itype(_Ptr<httpd_conn>), int status, char *title : itype(_TPtr<char>), char *extraheads : itype(_TPtr<char>), char *filename : itype(_Nt_array_ptr<char>))
     {
     _Ptr<FILE> fp = ((void *)0);
     char buf _Nt_checked[1000];
@@ -995,17 +1003,18 @@ send_err_file(httpd_conn *hc : itype(_Ptr<httpd_conn>), int status, char *title 
 #ifdef AUTH_FILE
 
 _Checked static void
-send_authenticate(httpd_conn *hc : itype(_Ptr<httpd_conn>), char *realm : itype(_Nt_array_ptr<char>))
+send_authenticate(httpd_conn *hc : itype(_Ptr<httpd_conn>), _TPtr<char> realm)
     {
     static _Nt_array_ptr<char> header; 
     static size_t maxheader = 0;
     static char headstr _Nt_checked[] = "WWW-Authenticate: Basic realm=\"";
 
-    size_t r_len = strlen(realm);
+    size_t r_len = t_strlen(realm);
+    _TPtr<char> r = CheckedToTaintedStrAdaptor(header);
     httpd_realloc_str_cc(
-	header, maxheader, sizeof(headstr) + r_len + 3 );
+	r, maxheader, sizeof(headstr) + r_len + 3 );
     (void) my_snprintf( header, maxheader, "%s%s\"\015\012", headstr, realm );
-    httpd_send_err( hc, 401, err401title, header, err401form, hc->TaintedHttpdConn->encodedurl );
+    httpd_send_err( hc, 401, err401title, header, CheckedToTaintedStrAdaptor(err401form), hc->TaintedHttpdConn->encodedurl );
     /* If the request was a POST then there might still be data to be read,
     ** so we need to do a lingering close.
     */
@@ -1050,9 +1059,9 @@ static int b64_decode_table[256] : itype(int _Checked[256]) = {
 ** are padding characters (blanks, newlines).
 */
 _Checked static int
-b64_decode(const char *str : itype(_Nt_array_ptr<const char>), unsigned char *space : itype(_Array_ptr<unsigned char>) count(size), int size)
+b64_decode(_TPtr<const char> str , unsigned char *space : itype(_Array_ptr<unsigned char>) count(size), int size)
     {
-    _Nt_array_ptr<const char> cp = 0;
+    _TPtr<const char> cp = 0;
     int space_idx, phase;
     int d, prev_d = 0;
     unsigned char c;
@@ -1106,7 +1115,7 @@ auth_check(httpd_conn *hc : itype(_Ptr<httpd_conn>), _TPtr<char> dirname)
 	    topdir = hc->TaintedHttpdConn->hostdir;
 	else
     {
-        topdir = (_TPtr<char>)t_malloc(2*sizeof(char));
+        topdir = (_TPtr<char>)t_malloc<char>(2*sizeof(char));
         t_strcpy(topdir, ".");
         topdir[1] = '\0';
     }
@@ -1126,7 +1135,7 @@ auth_check(httpd_conn *hc : itype(_Ptr<httpd_conn>), _TPtr<char> dirname)
 _Checked static int
 auth_check2(httpd_conn *hc : itype(_Ptr<httpd_conn>), _TPtr<char> dirname)
     {
-    static _Nt_array_ptr<char> authpath = 0; 
+    static _TPtr<char> authpath = 0;
     static size_t maxprevauthpath = 0;
     static _Nt_array_ptr<char> prevauthpath : count(maxprevauthpath) = 0; 
     static size_t maxprevuser = 0;
@@ -1146,13 +1155,13 @@ auth_check2(httpd_conn *hc : itype(_Ptr<httpd_conn>), _TPtr<char> dirname)
     static time_t prevmtime;
 
     /* Construct auth filename. */
-    size_t len_dirname = strlen(dirname);
+    size_t len_dirname = t_strlen(dirname);
     httpd_realloc_str_cc(
 	authpath, maxauthpath, len_dirname + 1 + sizeof(AUTH_FILE) );
     (void) my_snprintf( authpath, maxauthpath, "%s/%s", dirname, AUTH_FILE );
 
     /* Does this directory have an auth file? */
-    if ( stat( authpath, &sb ) < 0 )
+    if ( stat( TaintedToCheckedNtStrAdaptor(authpath), &sb ) < 0 )
 	/* Nope, let the request go through. */
 	return 0;
 
@@ -1209,7 +1218,7 @@ auth_check2(httpd_conn *hc : itype(_Ptr<httpd_conn>), _TPtr<char> dirname)
 	}
 
     /* Open the password file. */
-    fp = fopen( authpath, "r" );
+    fp = fopen( TaintedToCheckedStrAdaptor(authpath), "r" );
     if ( fp ==  0 )
 	{
 	/* The file exists but we can't open it?  Disallow access. */
