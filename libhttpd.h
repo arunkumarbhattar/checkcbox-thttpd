@@ -57,7 +57,7 @@
 
 /* Do overlapping strcpy safely, by using memmove. */
 char *ol_strcpy(char *dst : itype(_Array_ptr<char>), char *src : itype(_Nt_array_ptr<char>)) : itype(_Ptr<char>);
-
+_TPtr<char> _T_ol_strcpy(_TPtr<char> dst , _TPtr<char> src);
 /* The httpd structs. */
 
 /* A multi-family sockaddr. */
@@ -298,7 +298,7 @@ _TPtr<char> httpd_realloc_strbuf(_Ptr<struct strbuf> sbuf, size_t size);
 // Hm, while we want the _Checked annotations long-term, they seem to block 3C
 // from starting. So disable them for the moment.
 #define httpd_realloc_str_ccl(_tmp_str_var, _strL, _maxsizeL, _size) \
-  _Nt_array_ptr<char> _tmp_str_var : count(_size) = 0; \
+  _TPtr<char> _tmp_str_var = NULL; \
   /*_Checked*/ { \
     struct strbuf _sbuf = {_strL, _maxsizeL}; \
     _tmp_str_var = httpd_realloc_strbuf(&_sbuf, _size); \

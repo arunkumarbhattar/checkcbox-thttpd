@@ -150,7 +150,7 @@ static int tilde_map_1( httpd_conn* hc );
 static int tilde_map_2( httpd_conn* hc );
 #endif /* TILDE_MAP_2 */
 static int vhost_map(httpd_conn *hc : itype(_Ptr<httpd_conn>));
-static char *expand_symlinks(_TPtr<char> path, nt_box *restP : itype(_Ptr<nt_box>), int no_symlink_check, int tildemapped) : itype(_Nt_array_ptr<char>);
+static _TPtr<char> expand_symlinks(_TPtr<char> path, nt_box *restP : itype(_Ptr<nt_box>), int no_symlink_check, int tildemapped);
 static char *bufgets(httpd_conn *hc : itype(_Ptr<httpd_conn>)) : itype(_Nt_array_ptr<char>);
 static void de_dotdot(char *file : itype(_Nt_array_ptr<char>));
 static void init_mime( void );
@@ -189,6 +189,9 @@ char *ol_strcpy(char *dst : itype(_Array_ptr<char>), char *src : itype(_Nt_array
   return memmove(dst,src,strlen(src)+1);
 }
 
+_TPtr<char> _T_ol_strcpy(_TPtr<char> dst , _TPtr<char> src) _Unchecked {
+    return t_memmove(dst, src, strlen(src) + 1);
+}
 /* This global keeps track of whether we are in the main process or a
 ** sub-process.  The reason is that httpd_write_response() can get called
 ** in either context; when it is called from the main process it must use
@@ -967,8 +970,8 @@ void httpd_send_err(_Ptr<httpd_conn> hc, int status, char *title : itype(_TPtr<c
 
 
 #ifdef ERR_DIR
-_Checked static int
-static int send_err_file(httpd_conn *hc : itype(_Ptr<httpd_conn>), int status, char *title : itype(_TPtr<char>), char *extraheads : itype(_TPtr<char>), char *filename : itype(_Nt_array_ptr<char>))
+_Checked static
+int send_err_file(httpd_conn *hc : itype(_Ptr<httpd_conn>), int status, char *title : itype(_TPtr<char>), char *extraheads : itype(_TPtr<char>), char *filename : itype(_Nt_array_ptr<char>))
     {
     _Ptr<FILE> fp = ((void *)0);
     char buf _Nt_checked[1000];
@@ -1137,9 +1140,9 @@ auth_check2(httpd_conn *hc : itype(_Ptr<httpd_conn>), _TPtr<char> dirname)
     {
     static _TPtr<char> authpath = 0;
     static size_t maxprevauthpath = 0;
-    static _Nt_array_ptr<char> prevauthpath : count(maxprevauthpath) = 0; 
+    static _TPtr<char> prevauthpath = NULL;
     static size_t maxprevuser = 0;
-    static _Nt_array_ptr<char> prevuser : count(maxprevuser) = 0;
+    static _TPtr<char> prevuser  = NULL;
     static size_t maxprevcryp = 0;
     static _Nt_array_ptr<char> prevcryp : count(maxprevcryp) = 0;
 
@@ -1195,9 +1198,9 @@ auth_check2(httpd_conn *hc : itype(_Ptr<httpd_conn>), _TPtr<char> dirname)
 
     /* See if we have a cached entry and can use it. */
     if ( maxprevauthpath != 0 &&
-	 strcmp( authpath, prevauthpath ) == 0 &&
+	 t_strcmp( authpath, prevauthpath ) == 0 &&
 	 sb.st_mtime == prevmtime &&
-	 strcmp( authinfo, prevuser ) == 0 )
+	 t_strcmp( authinfo, prevuser ) == 0 )
 	{
 	/* Yes.  Check against the cached encrypted password. */
 	if ( strcmp( ((_Nt_array_ptr<char> )crypt( authpass, prevcryp )), prevcryp ) == 0 )
@@ -1218,7 +1221,7 @@ auth_check2(httpd_conn *hc : itype(_Ptr<httpd_conn>), _TPtr<char> dirname)
 	}
 
     /* Open the password file. */
-    fp = fopen( TaintedToCheckedStrAdaptor(authpath), "r" );
+    fp = fopen( TaintedToCheckedNtStrAdaptor(authpath), "r" );
     if ( fp ==  0 )
 	{
 	/* The file exists but we can't open it?  Disallow access. */
@@ -1256,17 +1259,17 @@ auth_check2(httpd_conn *hc : itype(_Ptr<httpd_conn>), _TPtr<char> dirname)
                 size_t len_line = strlen(line);
 		httpd_realloc_str_cc(
 		    hc->TaintedHttpdConn->remoteuser, hc->TaintedHttpdConn->maxremoteuser, len_line );
-		(void) xstrbcpy( hc->TaintedHttpdConn->remoteuser, line, hc->TaintedHttpdConn->maxremoteuser );
+		(void) _T_xstrbcpy( hc->TaintedHttpdConn->remoteuser, line, hc->TaintedHttpdConn->maxremoteuser );
 		/* And cache this user's info for next time. */
-                size_t len_authpath = strlen(authpath);
+                size_t len_authpath = t_strlen(authpath);
 		httpd_realloc_str_cc(
 		    prevauthpath, maxprevauthpath, len_authpath);
-		(void) xstrbcpy( prevauthpath, authpath, maxprevauthpath );
+		(void) _T_xstrbcpy( prevauthpath, authpath, maxprevauthpath );
 		prevmtime = sb.st_mtime;
                 size_t len_authinfo = strlen( authinfo );
 		httpd_realloc_str_cc(
 		    prevuser, maxprevuser, len_authinfo );
-		(void) xstrbcpy( prevuser, authinfo, maxprevuser );
+		(void) _T_xstrbcpy( prevuser, authinfo, maxprevuser );
                 size_t len_cryp = strlen(cryp);
 		httpd_realloc_str_cc( prevcryp, maxprevcryp, len_cryp );
 		(void) xstrbcpy( prevcryp, cryp, maxprevcryp );
@@ -1300,13 +1303,13 @@ send_dirredirect(httpd_conn *hc : itype(_Ptr<httpd_conn>))
 
     if ( hc->TaintedHttpdConn->query[0] != '\0')
 	{
-	_Nt_array_ptr<char> cp = t_strchr( hc->TaintedHttpdConn->encodedurl, '?' );
+	_TPtr<char> cp = t_strchr( hc->TaintedHttpdConn->encodedurl, '?' );
 	if ( cp != 0 )	/* should always find it */
 	    *cp = '\0';
         size_t len_query = t_strlen(hc->TaintedHttpdConn->query);
         size_t len_encurl = t_strlen(hc->TaintedHttpdConn->encodedurl);
 	httpd_realloc_str_cc(
-	    location, maxlocation,
+	    CheckedToTaintedStrAdaptor(location), maxlocation,
 	    len_encurl + 2 + len_query );
 	(void) my_snprintf( location, maxlocation,
 	    "%s/?%s", hc->TaintedHttpdConn->encodedurl, hc->TaintedHttpdConn->query );
@@ -1315,13 +1318,13 @@ send_dirredirect(httpd_conn *hc : itype(_Ptr<httpd_conn>))
 	{
         size_t len_encurl = t_strlen(hc->TaintedHttpdConn->encodedurl);
 	httpd_realloc_str_cc(
-	    location, maxlocation, len_encurl + 1 );
+	    CheckedToTaintedStrAdaptor(location), maxlocation, len_encurl + 1 );
 	(void) my_snprintf( location, maxlocation,
 	    "%s/", hc->TaintedHttpdConn->encodedurl );
 	}
     size_t len_loc = strlen(location);
     httpd_realloc_str_cc(
-	header, maxheader, sizeof(headstr) + len_loc );
+	CheckedToTaintedStrAdaptor(header), maxheader, sizeof(headstr) + len_loc );
     (void) my_snprintf( header, maxheader,
 	"%s%s\015\012", headstr, location );
     send_response( hc, 302, err302title, header, err302form, location );
@@ -1499,8 +1502,8 @@ vhost_map(httpd_conn *hc : itype(_Ptr<httpd_conn>))
     httpd_sockaddr sa;
     socklen_t sz;
     static size_t maxtempfilename = 0;
-    static _Nt_array_ptr<char> tempfilename : count(maxtempfilename);
-    _TNt_array_ptr<char> cp1 = NULL;
+    static _TPtr<char> tempfilename = NULL;
+    _TPtr<char> cp1 = NULL;
     int len;
 #ifdef VHOST_DIRLEVELS
     int i;
@@ -1561,20 +1564,20 @@ vhost_map(httpd_conn *hc : itype(_Ptr<httpd_conn>))
 #else /* VHOST_DIRLEVELS */
     size_t hostname_len = t_strlen(hc->TaintedHttpdConn->hostname);
     httpd_realloc_str_cc( hc->TaintedHttpdConn->hostdir, hc->TaintedHttpdConn->maxhostdir, hostname_len );
-    (void) xstrbcpy( hc->TaintedHttpdConn->hostdir, hc->TaintedHttpdConn->hostname, hc->TaintedHttpdConn->maxhostdir );
+    (void) _T_xstrbcpy( hc->TaintedHttpdConn->hostdir, hc->TaintedHttpdConn->hostname, hc->TaintedHttpdConn->maxhostdir );
 #endif /* VHOST_DIRLEVELS */
 
     /* Prepend hostdir to the filename. */
-    len = strlen( hc->TaintedHttpdConn->expnfilename );
+    len = t_strlen( hc->TaintedHttpdConn->expnfilename );
     httpd_realloc_str_cc( tempfilename, maxtempfilename, len );
-    (void) xstrbcpy( tempfilename, hc->TaintedHttpdConn->expnfilename, maxtempfilename );
-    size_t len_hostdir = strlen(hc->TaintedHttpdConn->hostdir);
+    (void) _T_xstrbcpy( tempfilename, hc->TaintedHttpdConn->expnfilename, maxtempfilename );
+    size_t len_hostdir = t_strlen(hc->TaintedHttpdConn->hostdir);
     httpd_realloc_str_cc(
 	hc->TaintedHttpdConn->expnfilename, hc->TaintedHttpdConn->maxexpnfilename,
 	len_hostdir + 1 + len );
-    (void) xstrbcpy( hc->TaintedHttpdConn->expnfilename, hc->TaintedHttpdConn->hostdir, hc->TaintedHttpdConn->maxexpnfilename );
-    (void) xstrbcat( hc->TaintedHttpdConn->expnfilename, "/", hc->TaintedHttpdConn->maxexpnfilename );
-    (void) xstrbcat( hc->TaintedHttpdConn->expnfilename, tempfilename, hc->TaintedHttpdConn->maxexpnfilename );
+    (void) _T_xstrbcpy( hc->TaintedHttpdConn->expnfilename, hc->TaintedHttpdConn->hostdir, hc->TaintedHttpdConn->maxexpnfilename );
+    (void) _T_xstrbcat( hc->TaintedHttpdConn->expnfilename, CheckedToTaintedStrAdaptor("/"), hc->TaintedHttpdConn->maxexpnfilename );
+    (void) _T_xstrbcat( hc->TaintedHttpdConn->expnfilename, tempfilename, hc->TaintedHttpdConn->maxexpnfilename );
     return 1;
     }
 
@@ -1587,12 +1590,12 @@ vhost_map(httpd_conn *hc : itype(_Ptr<httpd_conn>))
 ** This is a fairly nice little routine.  It handles any size filenames
 ** without excessive mallocs.
 */
-_Checked static char *expand_symlinks(char *path : itype(_Nt_array_ptr<char>), nt_box *restP : itype(_Ptr<nt_box>), int no_symlink_check, int tildemapped) : itype(_Nt_array_ptr<char>)
+_Checked static _TPtr<char> expand_symlinks(_TPtr<char> path, nt_box *restP : itype(_Ptr<nt_box>), int no_symlink_check, int tildemapped)
     {
     char lnk _Nt_checked[5000];
     static size_t maxchecked = 0, maxrest = 0;
-    static _Nt_array_ptr<char> checked : count(maxchecked);
-    static _Nt_array_ptr<char> rest : count (maxrest);
+    static _TPtr<char> checked = NULL;
+    static _TPtr<char> rest = NULL;
     size_t checkedlen, restlen, linklen, prevcheckedlen, prevrestlen;
     int nlinks;
     size_t i;
@@ -1612,11 +1615,11 @@ _Checked static char *expand_symlinks(char *path : itype(_Nt_array_ptr<char>), n
 	** URL for the CGI instead of a local symlinked one.
 	*/
 	struct stat sb;
-	if ( stat( path, &sb ) != -1 )
+	if ( stat( TaintedToCheckedNtStrAdaptor(path), &sb ) != -1 )
 	    {
-	    checkedlen = strlen( path );
-	    httpd_realloc_str_cc( checked, maxchecked, checkedlen );
-	    (void) xstrbcpy( checked, path, maxchecked );
+	    checkedlen = t_strlen( path );
+	    httpd_realloc_str_cc(checked, maxchecked, checkedlen );
+	    (void) _T_xstrbcpy( checked, path, maxchecked );
 	    /* Trim trailing slashes. */
 	    while ( checked[checkedlen - 1] == '/' )
 		{
@@ -1625,7 +1628,9 @@ _Checked static char *expand_symlinks(char *path : itype(_Nt_array_ptr<char>), n
 		}
 	    httpd_realloc_str_cc(rest, maxrest, 0 );
 	    rest[0] = '\0';
-	    restP->ptr = rest;
+        int restLen = t_strlen(rest);
+        restP->ptr = string_malloc(restLen);
+	    t_strcpy(restP->ptr, rest);
 	    return checked;
 	    }
 	}
@@ -1634,21 +1639,21 @@ _Checked static char *expand_symlinks(char *path : itype(_Nt_array_ptr<char>), n
     httpd_realloc_str_cc( checked, maxchecked, 1 );
     checked[0] = '\0';
     checkedlen = 0;
-    restlen = strlen( path );
+    restlen = t_strlen( path );
     httpd_realloc_str_cc( rest, maxrest, restlen );
-    (void) xstrbcpy( rest, path, maxrest );
+    (void) _T_xstrbcpy( rest, path, maxrest );
     if ( rest[restlen - 1] == '/' )
 	rest[--restlen] = '\0';         /* trim trailing slash */
     if ( ! tildemapped )
 	/* Remove any leading slashes. */
 	while (rest[0] == '/' )
 	    {
-	    (void) ol_strcpy( rest, rest + 1 );
+	    (void) _T_ol_strcpy( rest, rest + 1 );
 	    --restlen;
 	    }
     size_t init_maxrest = maxrest;
-    _Nt_array_ptr<char> init_rest : count(init_maxrest) = rest;
-    _Nt_array_ptr<char> r : bounds(init_rest, init_rest + init_maxrest) = init_rest; 
+    _TPtr<char> init_rest = rest;
+    _TPtr<char> r = init_rest;
     nlinks = 0;
 
     /* While there are still components to check... */
@@ -1662,7 +1667,7 @@ _Checked static char *expand_symlinks(char *path : itype(_Nt_array_ptr<char>), n
 
 	/* Grab one component from r and transfer it to checked. */
 
-        _Nt_array_ptr<char> cp1 = strchr( r, '/' );
+    _TPtr<char> cp1 = t_strchr( r, '/' );
 	if ( cp1 != 0 )
 	    {
 	    i = cp1 - r;
@@ -1672,18 +1677,18 @@ _Checked static char *expand_symlinks(char *path : itype(_Nt_array_ptr<char>), n
                 /* local scope */
                     {
 		    httpd_realloc_str_ccl(checked_tmp, checked, maxchecked, checkedlen + 1 );
-                    _Nt_array_ptr<char> checked_tmp2 : count(1) = _Dynamic_bounds_cast<_Nt_array_ptr<char>>(checked_tmp + checkedlen, count(1));
-		    (void) xstrbcpy( checked_tmp2, r, 1 );
+                    //_TNt_array_ptr<char> checked_tmp2 : count(1) = _Dynamic_bounds_cast<_Nt_array_ptr<char>>(checked_tmp + checkedlen, count(1));
+		    (void) _T_xstrbcpy( checked_tmp, r, 1 );
                     }
 		checkedlen += 1;
 		}
-	    else if ( strncmp( r, "..", MAX( i, 2 ) ) == 0 )
+	    else if ( t_strncmp( r, "..", MAX( i, 2 ) ) == 0 )
 		{
 		/* Ignore ..'s that go above the start of the path. */
 		if ( checkedlen != 0 )
 		    {
 
-                    _Nt_array_ptr<char> cp2 = strrchr( checked, '/' );
+                    _TPtr<char> cp2 = t_strrchr( checked, '/' );
 		    if ( cp2 == 0 )
 			checkedlen = 0;
 		    else if ( cp2 == checked )
@@ -1698,9 +1703,9 @@ _Checked static char *expand_symlinks(char *path : itype(_Nt_array_ptr<char>), n
 		if ( checkedlen > 0 && checked[checkedlen-1] != '/' )
 		    checked[checkedlen++] = '/';
                 {
-                _Nt_array_ptr<char> tmp : count(checkedlen + i) = _Dynamic_bounds_cast<_Nt_array_ptr<char>>(checked, count(checkedlen + i));
-                _Nt_array_ptr<char> tmp2 : count(i) = _Dynamic_bounds_cast<_Nt_array_ptr<char>>(tmp + checkedlen, count(i));
-		(void) xstrbcpy( tmp2, r, i );
+                _TNt_array_ptr<char> tmp : count(checkedlen + i) = _Tainted_Dynamic_bounds_cast<_TNt_array_ptr<char>>(checked, count(checkedlen + i));
+                _TNt_array_ptr<char> tmp2 : count(i) = _Tainted_Dynamic_bounds_cast<_TNt_array_ptr<char>>(tmp + checkedlen, count(i));
+		(void) _T_xstrbcpy( tmp2, r, i );
                 }
 		checkedlen += i;
 		}
@@ -1711,12 +1716,12 @@ _Checked static char *expand_symlinks(char *path : itype(_Nt_array_ptr<char>), n
 	else
 	    {
 	    /* No slashes remaining, r is all one component. */
-	    if ( strcmp( r, ".." ) == 0 )
+	    if ( t_strcmp( r, ".." ) == 0 )
 		{
 		/* Ignore ..'s that go above the start of the path. */
 		if ( checkedlen != 0 )
 		    {
-                    _Nt_array_ptr<char> cp2 = strrchr( checked, '/' );
+                    _TPtr<char> cp2 = t_strrchr( checked, '/' );
 		    if ( cp2 == 0 )
 			checkedlen = 0;
 		    else if ( cp2 == checked )
@@ -1733,8 +1738,8 @@ _Checked static char *expand_symlinks(char *path : itype(_Nt_array_ptr<char>), n
 		if ( checkedlen > 0 && checked[checkedlen-1] != '/' )
 		    checked[checkedlen++] = '/';
                 {
-                _Nt_array_ptr<char> tmp : count(maxchecked - checkedlen) = _Dynamic_bounds_cast<_Nt_array_ptr<char>>(checked + checkedlen, count(maxchecked - checkedlen));
-		(void) xstrbcpy( tmp, r, maxchecked - checkedlen);
+                _TNt_array_ptr<char> tmp : count(maxchecked - checkedlen) = _Tainted_Dynamic_bounds_cast<_TNt_array_ptr<char>>(checked + checkedlen, count(maxchecked - checkedlen));
+		(void) _T_xstrbcpy( tmp, r, maxchecked - checkedlen);
                 }
 		checkedlen += restlen;
 		}
@@ -1745,7 +1750,7 @@ _Checked static char *expand_symlinks(char *path : itype(_Nt_array_ptr<char>), n
 	/* Try reading the current filename as a symlink */
 	if ( checked[0] == '\0' )
 	    continue;
-	linklen = readlink( checked, lnk, sizeof(lnk) - 1 );
+	linklen = readlink( TaintedToCheckedNtStrAdaptor(checked), lnk, sizeof(lnk) - 1 );
 	if ( linklen == -1 )
 	    {
 	    if ( errno == EINVAL )
@@ -1753,22 +1758,24 @@ _Checked static char *expand_symlinks(char *path : itype(_Nt_array_ptr<char>), n
 	    if ( errno == EACCES || errno == ENOENT || errno == ENOTDIR )
 		{
 		/* That last component was bogus.  Restore and return. */
-                _Nt_array_ptr<char> tmp = _Dynamic_bounds_cast<_Nt_array_ptr<char>>(r - (prevrestlen - restlen), count(0));;
-		restP->ptr = tmp;
+        _TNt_array_ptr<char> tmp = _Tainted_Dynamic_bounds_cast<_TNt_array_ptr<char>>(r - (prevrestlen - restlen), count(0));;
+        int restLen = t_strlen(rest);
+        restP->ptr = string_malloc(restLen);
+        t_strcpy(restP->ptr, rest);
 		if ( prevcheckedlen == 0 )
-		    (void) xstrbcpy( checked, ".",  maxchecked );
+		    (void) _T_xstrbcpy( checked, ".",  maxchecked );
 		else
 		    checked[prevcheckedlen] = '\0';
 		return checked;
 		}
-	    syslog( LOG_ERR, "readlink %.80s - %m", checked );
-	    return (_Nt_array_ptr<char>) 0;
+	    syslog( LOG_ERR, "readlink %.80s - %m", TaintedToCheckedStrAdaptor(checked) );
+	    return NULL;
 	    }
 	++nlinks;
 	if ( nlinks > MAX_LINKS )
 	    {
 	    syslog( LOG_ERR, "too many symlinks in %.80s", path );
-	    return (_Nt_array_ptr<char>) 0;
+	    return NULL;
 	    }
 	lnk[linklen] = '\0';
 	if ( lnk[linklen - 1] == '/' )
@@ -1777,12 +1784,12 @@ _Checked static char *expand_symlinks(char *path : itype(_Nt_array_ptr<char>), n
 	/* Insert the link contents in front of the rest of the filename. */
 	if ( restlen != 0 )
 	    {
-            _Nt_array_ptr<char> tmp = _Dynamic_bounds_cast<_Nt_array_ptr<char>>(r, count(0));
-	    (void) ol_strcpy( rest, tmp );
+            _TNt_array_ptr<char> tmp = _Tainted_Dynamic_bounds_cast<_TNt_array_ptr<char>>(r, count(0));
+	    (void) _T_ol_strcpy( rest, tmp );
 	    httpd_realloc_str_cc( rest, maxrest, restlen + linklen + 1 );
 	    for ( i = restlen; i >= 0; --i )
 		rest[i + linklen + 1] = rest[i];
-	    (void) xstrbcpy( rest, lnk, maxrest );
+	    (void) _T_xstrbcpy( rest, lnk, maxrest );
 	    rest[linklen] = '/';
 	    restlen += linklen + 1;
             init_rest = rest, init_maxrest = maxrest, r = init_rest;
@@ -1793,7 +1800,7 @@ _Checked static char *expand_symlinks(char *path : itype(_Nt_array_ptr<char>), n
 	    ** becomes the rest.
 	    */
 	    httpd_realloc_str_cc( rest, maxrest, linklen );
-	    (void) xstrbcpy( rest, lnk, maxrest );
+	    (void) _T_xstrbcpy( rest, lnk, maxrest );
 	    restlen = linklen;
             init_rest = rest, init_maxrest = maxrest, r = init_rest;
 	    }
@@ -1813,9 +1820,10 @@ _Checked static char *expand_symlinks(char *path : itype(_Nt_array_ptr<char>), n
 	}
 
     /* Ok. */
-    restP->ptr = _Dynamic_bounds_cast<_Nt_array_ptr<char>>(r, count(0));
+    //restP->ptr = _Dynamic_bounds_cast<_Nt_array_ptr<char>>(r, count(0));
+    t_strcpy(restP->ptr, r);
     if ( checked[0] == '\0' )
-	(void) xstrbcpy( checked, ".", maxchecked );
+	(void) _T_xstrbcpy( checked, ".", maxchecked );
     return checked;
     }
 
@@ -1914,7 +1922,7 @@ httpd_get_conn(httpd_server *hs : itype(_Ptr<httpd_server>), int listen_fd, http
     hc->TaintedHttpdConn->range_if = (time_t) -1;
     hc->TaintedHttpdConn->contentlength = -1;
     t_strcpy(hc->TaintedHttpdConn->type, "");
-    hc->TaintedHttpdConn->hostname = (_Nt_array_ptr<char>) 0;
+    hc->TaintedHttpdConn->hostname = NULL;
     hc->TaintedHttpdConn->mime_flag = 1;
     hc->TaintedHttpdConn->one_one = 0;
     hc->TaintedHttpdConn->got_range = 0;
@@ -1923,7 +1931,7 @@ httpd_get_conn(httpd_server *hs : itype(_Ptr<httpd_server>), int listen_fd, http
     hc->TaintedHttpdConn->last_byte_index = -1;
     hc->TaintedHttpdConn->keep_alive = 0;
     hc->TaintedHttpdConn->should_linger = 0;
-    hc->TaintedHttpdConn->file_address = (_Nt_array_ptr<char>) 0;
+    hc->TaintedHttpdConn->file_address = NULL;
     return GC_OK;
     }
 
@@ -2099,7 +2107,7 @@ _Checked int
 httpd_parse_request(httpd_conn *hc : itype(_Ptr<httpd_conn>))
     {
     _Nt_array_ptr<char> method_str = ((void *)0);
-    _Nt_array_ptr<char> protocol = ((void *)0);
+    _TPtr<char> protocol = ((void *)0);
     _Nt_array_ptr<char> reqhost = ((void *)0);
     _Nt_array_ptr<char> eol = ((void *)0);
     _Nt_array_ptr<char> cp = ((void *)0);
@@ -2120,7 +2128,7 @@ httpd_parse_request(httpd_conn *hc : itype(_Ptr<httpd_conn>))
       *url_tmp = '\0';
     }
     url = get_after_spn( url, " \t\012\015" );
-    protocol = ((_Nt_array_ptr<char> )strpbrk( url, " \t\012\015" ));
+    protocol = (t_strpbrk( url, " \t\012\015" ));
     if ( protocol ==  0 )
 	{
 	protocol = "HTTP/0.9";
@@ -2165,7 +2173,7 @@ httpd_parse_request(httpd_conn *hc : itype(_Ptr<httpd_conn>))
 	    }
         size_t rh_len = strlen( reqhost );
 	httpd_realloc_str_cc( hc->TaintedHttpdConn->reqhost, hc->TaintedHttpdConn->maxreqhost, rh_len );
-	(void) xstrbcpy( hc->TaintedHttpdConn->reqhost, reqhost, hc->TaintedHttpdConn->maxreqhost );
+	(void) _T_xstrbcpy( hc->TaintedHttpdConn->reqhost, reqhost, hc->TaintedHttpdConn->maxreqhost );
 	*url = '/';
 	}
 
@@ -2193,8 +2201,10 @@ httpd_parse_request(httpd_conn *hc : itype(_Ptr<httpd_conn>))
 	return -1;
 	}
 
-    hc->TaintedHttpdConn->encodedurl = url;
-    size_t enc_len = strlen(hc->TaintedHttpdConn->encodedurl);
+    int UrlLen = strlen( url );
+    hc->TaintedHttpdConn->encodedurl = tainted_string_malloc( UrlLen );
+    t_strcpy(hc->TaintedHttpdConn->encodedurl, url);
+    size_t enc_len = t_strlen(hc->TaintedHttpdConn->encodedurl);
     httpd_realloc_str_cc(
 	hc->TaintedHttpdConn->decodedurl, hc->TaintedHttpdConn->maxdecodedurl, enc_len );
     strdecode( hc->TaintedHttpdConn->decodedurl, hc->TaintedHttpdConn->maxdecodedurl, hc->TaintedHttpdConn->encodedurl );

@@ -42,10 +42,20 @@ size_t xstrbcpy(char *restrict dest
                   const char *restrict src
                 : itype(restrict _Nt_array_ptr<const char>), size_t count);
 
+_TLIB size_t _T_xstrbcpy(char *restrict dest
+                : itype(restrict _TPtr<char>),
+                    const char *restrict src
+                : itype(restrict _TPtr<const char>), size_t size);
+
 size_t xstrbcat(char *restrict dest
                 : itype(restrict _Nt_array_ptr<char>) count(count),
                   const char *restrict src
                 : itype(restrict _Nt_array_ptr<const char>), size_t count);
+
+_TLIB size_t _T_xstrbcat(char *restrict dest
+                : itype(restrict _TPtr<char>),
+                    const char *restrict src
+                : itype(restrict _TPtr<const char>), size_t size);
 
 // _Unchecked only because of the varargs. Hopefully someday Checked C will
 // allow varargs functions in checked regions if all the varargs are verified by
