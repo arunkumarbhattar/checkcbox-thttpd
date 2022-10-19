@@ -257,7 +257,7 @@ void httpd_destroy_conn(httpd_conn *hc : itype(_Ptr<httpd_conn>));
 
 /* Send an error message back to the client. */
 //void httpd_send_err(httpd_conn *hc : itype(_Ptr<httpd_conn>), int status, char *title : itype(_Nt_array_ptr<char>), char *extraheads : itype(_Nt_array_ptr<char>) count(0), char *form : itype(_Nt_array_ptr<char>), char *arg : itype(_Nt_array_ptr<char>));
-void httpd_send_err(_Ptr<httpd_conn> hc, int status, char *title : itype(_Nt_array_ptr<char>), _TPtr<char> extraheads, _TPtr<char> form, _TPtr<char> arg );
+void httpd_send_err(_Ptr<httpd_conn> hc, int status, char *title : itype(_Nt_array_ptr<char>), char *extraheads : itype(_Nt_array_ptr<char>), _TPtr<char> form, _TPtr<char> arg );
 /* Some error messages. */
 extern char* httpd_err400title : itype(_Nt_array_ptr<char>);
 extern char* httpd_err400form : itype(_Nt_array_ptr<char>);
@@ -328,7 +328,7 @@ void httpd_clear_ndelay( int fd );
 _Itype_for_any(T) int httpd_read_fully( int fd, void* buf : itype(_Array_ptr<T>) byte_count(nbytes), size_t nbytes );
 
 /* Write the requested buffer completely, accounting for interruptions. */
-int httpd_write_fully(int fd, const char *buf : itype(_Array_ptr<const char>) count(nbytes), size_t nbytes);
+int httpd_write_fully(int fd, _TArray_ptr<const char> buf : count(nbytes), size_t nbytes);
 
 /* Generate debugging statistics syslog message. */
 void httpd_logstats( long secs );
