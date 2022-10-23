@@ -23,6 +23,11 @@ char *realloc_nt(char *ptr
                  : itype(_Nt_array_ptr<char>), size_t size)
     : itype(_Nt_array_ptr<char>) count(size);
 
+// Like the original `realloc`, this poses a temporal safety concern that's
+// outside the scope of Checked C.
+_TPtr<char> t_realloc_nt(_TPtr<char>ptr
+            , size_t size);
+
 // Recommended replacement functions for strcpy, strcat, and sprintf.
 // These behave the same as strlcpy, strlcat, and snprintf except that:
 //
@@ -70,7 +75,9 @@ typedef struct {
 } nt_box;
 
 _Nt_array_ptr<char> get_after_spn(_Nt_array_ptr<char> str, _Nt_array_ptr<char> search);
+_TLIB _TPtr<char> _T_get_after_spn(char* str : itype(_TPtr<char>) , char* search : itype(_TPtr<char>));
 _Nt_array_ptr<char> get_after_cspn(_Nt_array_ptr<char> str, _Nt_array_ptr<char> search);
+_TPtr<char> _T_get_after_cspn(const char* str : itype(_TPtr<const char>), char* search : itype(_TPtr<char>));
 
 int __isxdigit(char c);
 int __isdigit(char c);

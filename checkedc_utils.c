@@ -27,6 +27,17 @@ char *realloc_nt(char *ptr
   return _Assume_bounds_cast<_Nt_array_ptr<char>>(buf, count(size));
 }
 
+_TPtr<char> t_realloc_nt(_TPtr<char> ptr
+        , size_t size)
+        _Unchecked {
+            size_t raw_size = size + 1;
+            _TPtr<char> buf
+             = t_realloc<char>(
+            ptr, raw_size * sizeof(char)); /* BOUNDS WARNING REVIEWED */
+            buf[size] = '\0';
+            return buf;
+}
+
 // If we had implementations of the original strlcpy and strlcat (e.g., from
 // libbsd), then xstrbcpy and xstrbcat could be simple wrappers like xsbprintf.
 // But we don't, so instead, let's use this as an interesting exercise in trying
@@ -202,11 +213,24 @@ _Checked _Nt_array_ptr<char> get_after_spn(_Nt_array_ptr<char> str, _Nt_array_pt
   return _Dynamic_bounds_cast<_Nt_array_ptr<char>>(out, count(0));
 }
 
+_TLIB _Checked _TPtr<char> _T_get_after_spn(char* str : itype(_TPtr<char>) , char* search : itype(_TPtr<char>)) {
+size_t spn = t_strspn(str, search);
+_Ptr <char> out  = str + spn;
+return out;
+}
+
 _Nt_array_ptr<char> get_after_cspn(_Nt_array_ptr<char> str, _Nt_array_ptr<char> search) {
   size_t spn = strcspn(str, search) _Where str : bounds(str, str + spn);
   _Nt_array_ptr<char> out : bounds(str, str + spn) = str + spn;
   return _Dynamic_bounds_cast<_Nt_array_ptr<char>>(out, count(0));
 }
+
+_TPtr<char> _T_get_after_cspn(const char* str : itype(_TPtr<char>), char* search : itype(_TPtr<char>)) {
+    size_t spn = t_strcspn(str, search) _Where str : bounds(str, str + spn);
+    _TPtr<char> out = str + spn;
+    return out;
+}
+
 
 int __isxdigit(char c) _Unchecked {
   return isxdigit(c);

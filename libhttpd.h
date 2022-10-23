@@ -53,8 +53,9 @@
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
 #endif
 #define NEW(t,n) (malloc<t>( sizeof(t) * (n) ))
+#define TNEW(t,n) (malloc<t>( sizeof(t) * (n) ))
 #define RENEW(o,t,n) (realloc<t>( o, sizeof(t) * (n) ))
-
+#define TRENEW(o,t,n) (realloc<t>( o, sizeof(t) * (n) ))
 /* Do overlapping strcpy safely, by using memmove. */
 char *ol_strcpy(char *dst : itype(_Array_ptr<char>), char *src : itype(_Nt_array_ptr<char>)) : itype(_Ptr<char>);
 _TPtr<char> _T_ol_strcpy(_TPtr<char> dst , _TPtr<char> src);
