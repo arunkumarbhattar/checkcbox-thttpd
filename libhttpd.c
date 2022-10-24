@@ -30,6 +30,7 @@
 #include "version.h"
 #include <string_tainted.h>
 #include <stdlib_tainted.h>
+#include <stdio_tainted.h>
 #ifdef SHOW_SERVER_VERSION
 #define EXPOSED_SERVER_SOFTWARE SERVER_SOFTWARE
 #else /* SHOW_SERVER_VERSION */
@@ -151,7 +152,8 @@ static int tilde_map_2( httpd_conn* hc );
 #endif /* TILDE_MAP_2 */
 static int vhost_map(httpd_conn *hc : itype(_Ptr<httpd_conn>));
 static _TPtr<char> expand_symlinks(_TPtr<char> path, nt_box *restP : itype(_Ptr<nt_box>), int no_symlink_check, int tildemapped);
-static char *bufgets(httpd_conn *hc : itype(_Ptr<httpd_conn>));
+static _TPtr<char> bufgets(httpd_conn *hc : itype(_Ptr<httpd_conn>));
+static char *_C_bufgets(httpd_conn *hc : itype(_Ptr<httpd_conn>)) : itype(_Nt_array_ptr<char>);
 static _TPtr<char> _T_bufgets(httpd_conn *hc : itype(_Ptr<httpd_conn>));
 static void de_dotdot(_TPtr<char> file);
 static void init_mime( void );
@@ -191,7 +193,7 @@ char *ol_strcpy(char *dst : itype(_Array_ptr<char>), char *src : itype(_Nt_array
 }
 
 _TPtr<char> _T_ol_strcpy(_TPtr<char> dst , _TPtr<char> src) _Unchecked {
-    return t_memmove(dst, src, t_strlen(src) + 1);
+    return (_TPtr<char> )t_memmove(dst, src, t_strlen(src) + 1);
 }
 /* This global keeps track of whether we are in the main process or a
 ** sub-process.  The reason is that httpd_write_response() can get called
@@ -225,15 +227,15 @@ return _Assume_bounds_cast<_Nt_array_ptr<char>>(p, count(sz));
 _TLIB _Unchecked static _TPtr<char> CheckedToTaintedStrAdaptor(_Nt_array_ptr<char> Ip )
 {
     int Iplen = strlen(Ip);
-    _TPtr<char> RetPtr = (_TPtr<char>)t_malloc<char>(Iplen*sizeof(char));
-    t_strcpy(RetPtr, Ip);
+    _TPtr<char> RetPtr = string_tainted_malloc(Iplen*sizeof(char));
+    t_strcpy(RetPtr, (const char*)Ip);
     return RetPtr;
 }
 
 _TLIB _Unchecked static _TPtr<char> ACheckedToTaintedStrAdaptor(_Array_ptr<char> Ip )
 {
     int Iplen = strlen((const char*)Ip);
-    _TPtr<char> RetPtr = (_TPtr<char>)t_malloc<char>(Iplen*sizeof(char));
+    _TPtr<char> RetPtr = string_tainted_malloc(Iplen*sizeof(char));
     t_strcpy(RetPtr, (const char*)Ip);
     return RetPtr;
 }
@@ -618,7 +620,7 @@ add_response(httpd_conn *hc : itype(_Ptr<httpd_conn>), char* str : itype(_TPtr<c
     httpd_realloc_str_cc( hc->TaintedHttpdConn->response, hc->TaintedHttpdConn->maxresponse, new_responselen);
     _Unchecked {
       _TArray_ptr<void> tmp : byte_count(len) = _Tainted_Assume_bounds_cast<_TArray_ptr<void>>(&(hc->TaintedHttpdConn->response[hc->TaintedHttpdConn->responselen]), byte_count(len));
-      (void) t_memmove(tmp , CheckedToTaintedStrAdaptor(str), len );
+      (void) t_memmove(tmp , ACheckedToTaintedStrAdaptor(str), len );
     }
     hc->TaintedHttpdConn->responselen += len;
     }
@@ -867,7 +869,7 @@ send_response(httpd_conn *hc : itype(_Ptr<httpd_conn>), int status, char *title 
     /*
      * Marshall arg string from checked region to tainted region
      */
-    _TNt_array_ptr<char> TBuf = NULL;
+    _TPtr<char> TBuf = NULL;
     long buf_len = strlen(buf);
     buf_len = strlen(buf);
     TBuf = string_tainted_malloc(sizeof(char)*buf_len);
@@ -1212,7 +1214,7 @@ auth_check2(httpd_conn *hc : itype(_Ptr<httpd_conn>), _TPtr<char> dirname)
 	 t_strcmp( authinfo, prevuser ) == 0 )
 	{
 	/* Yes.  Check against the cached encrypted password. */
-	if ( t_strcmp( ((_Nt_array_ptr<char> )crypt( authpass, TaintedToCheckedStrNtAdaptor(prevcryp) )), prevcryp ) == 0 )
+	if ( t_strcmp( ((_Nt_array_ptr<char> )crypt( authpass, TaintedToCheckedNtStrAdaptor(prevcryp) )), prevcryp ) == 0 )
 	    {
 	    /* Ok! */
             size_t len_authinfo = strlen(authinfo);
@@ -1777,7 +1779,7 @@ _Checked static _TPtr<char> expand_symlinks(_TPtr<char> path, nt_box *restP : it
 		    checked[prevcheckedlen] = '\0';
 		return checked;
 		}
-	    syslog( LOG_ERR, "readlink %.80s - %m", TaintedToCheckedStrAdaptor(checked) );
+	    syslog( LOG_ERR, "readlink %.80s - %m", TaintedToCheckedNtStrAdaptor(checked) );
 	    return NULL;
 	    }
 	++nlinks;
@@ -2155,7 +2157,7 @@ httpd_parse_request(httpd_conn *hc : itype(_Ptr<httpd_conn>))
 	        eol = t_strpbrk( protocol, " \t\012\015" );
 	        if ( eol !=  0 )
 		        *eol = '\0';
-	        if ( t_strcasecmp( protocol, "HTTP/1.0" ) != 0 )
+	        if ( strcasecmp( TaintedToCheckedNtStrAdaptor(protocol), "HTTP/1.0" ) != 0 )
 		        hc->TaintedHttpdConn->one_one = 1;
 	    }
 	}
@@ -2255,7 +2257,7 @@ httpd_parse_request(httpd_conn *hc : itype(_Ptr<httpd_conn>))
 	{
         _Nt_array_ptr<char> buf = ((void *)0);
 	/* Read the MIME headers. */
-	while ( ( buf = bufgets( hc ) ) !=  0 )
+	while ( ( buf = _C_bufgets( hc ) ) !=  0 )
 	    {
             size_t buflen = strlen(buf) _Where buf : bounds(buf, buf + buflen);
 	    if ( buf[0] == '\0' )
@@ -2637,6 +2639,30 @@ _Checked static _TPtr<char> bufgets(httpd_conn *hc : itype(_Ptr<httpd_conn>))
     return NULL;
     }
 
+_Checked static char *_C_bufgets(httpd_conn *hc : itype(_Ptr<httpd_conn>)) : itype(_Nt_array_ptr<char>)
+        {
+                int i;
+                char c;
+
+                for ( i = hc->TaintedHttpdConn->checked_idx; hc->TaintedHttpdConn->checked_idx < hc->TaintedHttpdConn->read_idx; ++hc->TaintedHttpdConn->checked_idx )
+                {
+                    c = hc->TaintedHttpdConn->read_buf[hc->TaintedHttpdConn->checked_idx];
+                    if ( c == '\012' || c == '\015' )
+                    {
+                        hc->TaintedHttpdConn->read_buf[hc->TaintedHttpdConn->checked_idx] = '\0';
+                        ++hc->TaintedHttpdConn->checked_idx;
+                        if ( c == '\015' && hc->TaintedHttpdConn->checked_idx < hc->TaintedHttpdConn->read_idx &&
+                             hc->TaintedHttpdConn->read_buf[hc->TaintedHttpdConn->checked_idx] == '\012' )
+                        {
+                            hc->TaintedHttpdConn->read_buf[hc->TaintedHttpdConn->checked_idx] = '\0';
+                            ++hc->TaintedHttpdConn->checked_idx;
+                        }
+                        _Nt_array_ptr<char> ret = _Dynamic_bounds_cast<_Nt_array_ptr<char>>(TaintedToCheckedNtStrAdaptor(hc->TaintedHttpdConn->read_buf + i), count(0));
+                        return ret;
+                    }
+                }
+                return (_Nt_array_ptr<char>) 0;
+        }
 
 static void
 de_dotdot(_TPtr<char> file)
@@ -3130,7 +3156,11 @@ mode  links    bytes  last-changed  name\n\
                 size_t new_maxencrname = 3 * t_strlen( rname ) + 1;
 		httpd_realloc_str_cc(
 		    encrname, maxencrname, new_maxencrname );
-		strencode( TaintedToCheckedNtStrAdaptor(encrname), maxencrname, TaintedToCheckedNtStrAdaptor(rname) );
+		_Unchecked{
+            static _Nt_array_ptr<char> _C_encrname : count(maxencrname) = NULL;
+            _C_encrname = _Assume_bounds_cast<_Nt_array_ptr<char>> (TaintedToCheckedNtStrAdaptor(encrname), count(maxencrname));
+            strencode( _C_encrname, maxencrname, TaintedToCheckedNtStrAdaptor(rname) );
+        };
 
 		if ( stat( TaintedToCheckedNtStrAdaptor(name), &sb ) < 0 || lstat( TaintedToCheckedNtStrAdaptor(name), &lsb ) < 0 )
 		    continue;
@@ -3408,7 +3438,7 @@ _Checked static char **make_envp(httpd_conn *hc : itype(_Ptr<httpd_conn>)) : ity
 	t_strcpy(envp[envn], build_env( "AUTH_TYPE=%s", CheckedToTaintedStrAdaptor("Basic") )), envn++;
 	/* We only support Basic auth at the moment. */
     if ( getenv( "TZ" ) !=  0 )
-	t_strcpy(envp[envn], build_env( "TZ=%s", (CheckedToTaintedPtrAdaptor((getenv( "TZ" ))) )), envn++;
+	t_strcpy(envp[envn], build_env( "TZ=%s", CheckedToTaintedStrAdaptor(getenv( "TZ" )))), envn++;
     t_strcpy(envp[envn], build_env( "CGI_PATTERN=%s", hc->hs->cgi_pattern ));
     envn++;
 
@@ -3570,6 +3600,7 @@ cgi_interpose_output(httpd_conn *hc : itype(_Ptr<httpd_conn>), int rfd)
     {
     int r;
     char buf _Nt_checked[1024];
+    _TPtr<char> TBuf = NULL;
     size_t headers_size, headers_len;
     static _TPtr<char> headers = NULL;
     _TPtr<char> br = NULL;
@@ -3599,8 +3630,8 @@ cgi_interpose_output(httpd_conn *hc : itype(_Ptr<httpd_conn>), int rfd)
 	    }
 	httpd_realloc_str_cc(headers, headers_size, headers_len + r );
         _TArray_ptr<void> tmp = &(headers[headers_len]);
-        _TArray_ptr<void> buf_tmp : byte_count(r) = _Tainted_Dynamic_bounds_cast<_TArray_ptr<void>>(
-                CheckedToTaintedStrAdaptor(buf_tmp), byte_count(r));
+        TBuf = CheckedToTaintedStrAdaptor(buf);
+        _TArray_ptr<void> buf_tmp : byte_count(r) = _Tainted_Dynamic_bounds_cast<_TArray_ptr<void>>(TBuf, byte_count(r));
 	(void) t_memmove<void>(tmp, buf_tmp, r );
 	headers_len += r;
 	headers[headers_len] = '\0';
@@ -3680,7 +3711,7 @@ cgi_interpose_output(httpd_conn *hc : itype(_Ptr<httpd_conn>), int rfd)
 	if ( r <= 0 )
 	    break;
         _Nt_array_ptr<char> buf_tmp : count(r) = _Dynamic_bounds_cast<_Nt_array_ptr<char>>(buf, count(r));
-	if ( httpd_write_fully( hc->TaintedHttpdConn->conn_fd, CheckedToTaintedStrAdaptor(buf_tmp), r ) != r )
+	if ( httpd_write_fully( hc->TaintedHttpdConn->conn_fd, ACheckedToTaintedStrAdaptor(buf_tmp), r ) != r )
 	    break;
 	}
     shutdown( hc->TaintedHttpdConn->conn_fd, SHUT_WR );
@@ -3868,10 +3899,7 @@ cgi_child(httpd_conn *hc : itype(_Ptr<httpd_conn>))
 	else
 	    {
 	    *binary++ = '\0';
-        int DirectoryLen = t_strlen( directory );
-        _Nt_array_ptr<char> checkedDirectorStr : count(DirectoryLen + 1) = string_malloc(DirectoryLen);
-        t_strcpy( checkedDirectorStr, directory );
-	    (void) chdir( checkedDirectorStr );  /* ignore errors */
+	    (void) chdir( TaintedToCheckedNtStrAdaptor(directory) );  /* ignore errors */
 	    }
 	}
 
@@ -3883,10 +3911,7 @@ cgi_child(httpd_conn *hc : itype(_Ptr<httpd_conn>))
 #endif /* HAVE_SIGSET */
 
     /* Run the program. */
-    int Binarylen = t_strlen(binary);
-    _Nt_array_ptr<char> CheckedBinaryStr : count(Binarylen+1) = string_malloc(Binarylen);
-    t_strcpy(CheckedBinaryStr, binary);
-    (void) execve( CheckedBinaryStr, argp, envp );
+    (void) execve( TaintedToCheckedNtStrAdaptor(binary), argp, envp );
 
     /* Something went wrong. */
     syslog( LOG_ERR, "execve %.80s - %m", hc->TaintedHttpdConn->expnfilename );
@@ -4205,8 +4230,10 @@ really_start_request(httpd_conn *hc : itype(_Ptr<httpd_conn>), struct timeval *n
 	{
         //TODO: HOW TO HANDLE THIS?
         _Array_ptr<char> tmp = mmc_map<char>( TaintedToCheckedNtStrAdaptor(hc->TaintedHttpdConn->expnfilename), &(hc->sb), nowP );
-	_Unchecked { hc->TaintedHttpdConn->file_address = string_tainted_malloc(strlen((const char*)tmp));
-                t_strcpy(hc->TaintedHttpdConn->file_address, tmp); }
+	_Unchecked {
+        int TmpLen = strlen((const char*)tmp);
+        hc->TaintedHttpdConn->file_address = string_tainted_malloc(TmpLen);
+                t_strcpy(hc->TaintedHttpdConn->file_address, (char*)tmp); }
 	if ( hc->TaintedHttpdConn->file_address == 0 )
 	    {
 	    httpd_send_err( hc, 500, err500title, "", err500form, hc->TaintedHttpdConn->encodedurl );
@@ -4608,7 +4635,8 @@ httpd_write_fully(int fd, _TPtr<const char> buf, size_t nbytes)
 
         {
         _TArray_ptr<char> tmp : count(nbytes - nwritten) = _Tainted_Dynamic_bounds_cast<_TArray_ptr<char>>(buf + nwritten, count(nbytes - nwritten));
-	    r = write( fd, TaintedToCheckedStrAdaptor(tmp), nbytes - nwritten );
+        _Array_ptr<char> _C_tmp : count(nbytes - nwritten) = _Dynamic_bounds_cast<_Array_ptr<char>>(TaintedToCheckedStrAdaptor(tmp), count(nbytes - nwritten));
+	    r = write( fd,_C_tmp , nbytes - nwritten );
         }
 
         if ( r < 0 && ( errno == EINTR || errno == EAGAIN ) )

@@ -77,7 +77,7 @@ typedef struct {
 _Nt_array_ptr<char> get_after_spn(_Nt_array_ptr<char> str, _Nt_array_ptr<char> search);
 _TLIB _TPtr<char> _T_get_after_spn(char* str : itype(_TPtr<char>) , char* search : itype(_TPtr<char>));
 _Nt_array_ptr<char> get_after_cspn(_Nt_array_ptr<char> str, _Nt_array_ptr<char> search);
-_TPtr<char> _T_get_after_cspn(const char* str : itype(_TPtr<const char>), char* search : itype(_TPtr<char>));
+_TLIB _TPtr<char> _T_get_after_cspn(const char* str : itype(_TPtr<const char>), char* search : itype(_TPtr<char>));
 
 int __isxdigit(char c);
 int __isdigit(char c);

@@ -225,7 +225,7 @@ _Nt_array_ptr<char> get_after_cspn(_Nt_array_ptr<char> str, _Nt_array_ptr<char> 
   return _Dynamic_bounds_cast<_Nt_array_ptr<char>>(out, count(0));
 }
 
-_TPtr<char> _T_get_after_cspn(const char* str : itype(_TPtr<char>), char* search : itype(_TPtr<char>)) {
+_TLIB _TPtr<char> _T_get_after_cspn(const char* str : itype(_TPtr<char>), char* search : itype(_TPtr<char>)) {
     size_t spn = t_strcspn(str, search) _Where str : bounds(str, str + spn);
     _TPtr<char> out = str + spn;
     return out;
