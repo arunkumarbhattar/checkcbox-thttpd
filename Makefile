@@ -1,7 +1,7 @@
 # Generated automatically from Makefile.in by configure.
 # Makefile.in for thttpd
 #
-# Copyright © 1995,1998 by Jef Poskanzer <jef@mail.acme.com>.
+# Copyright ï¿½ 1995,1998 by Jef Poskanzer <jef@mail.acme.com>.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -51,9 +51,9 @@ CC =		/home/twinturbo/Desktop/CheckCBox_Compiler/llvm/cmake-build-debug/bin/clan
 CCOPT =		
 DEFS =		 -DHAVE__PROGNAME=1 -DHAVE_FCNTL_H=1 -DHAVE_GRP_H=1 -DHAVE_MEMORY_H=1 -DHAVE_PATHS_H=1 -DHAVE_POLL_H=1 -DHAVE_SYS_POLL_H=1 -DTIME_WITH_SYS_TIME=1 -DHAVE_DIRENT_H=1 -DHAVE_LIBCRYPT=1 -DHAVE_STRERROR=1 -DHAVE_WAITPID=1 -DHAVE_VSNPRINTF=1 -DHAVE_DAEMON=1 -DHAVE_SETSID=1 -DHAVE_GETADDRINFO=1 -DHAVE_GETNAMEINFO=1 -DHAVE_GAI_STRERROR=1 -DHAVE_SIGSET=1 -DHAVE_ATOLL=1 -DHAVE_UNISTD_H=1 -DHAVE_GETPAGESIZE=1 -DHAVE_SELECT=1 -DHAVE_POLL=1 -DHAVE_TM_GMTOFF=1 -DHAVE_INT64T=1 -DHAVE_SOCKLENT=1 
 INCLS =		-I.
-CFLAGS =	$(CCOPT) $(DEFS) $(INCLS)
+CFLAGS =	$(CCOPT) $(DEFS) $(INCLS) -ferror-limit=92385493
 LDFLAGS =	-L.  
-LIBS =		-lcrypt -lstdc++ -ldl -lSBX_CON_LIB -lisc_lib_final 
+LIBS =		-lcrypt -lstdc++ -ldl -lSBX_CON_LIB -lisc_lib_final
 NETLIBS =	
 INSTALL =	/usr/bin/install -c
 

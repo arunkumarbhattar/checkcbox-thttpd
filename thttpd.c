@@ -25,6 +25,7 @@
 ** SUCH DAMAGE.
 */
 
+#include <string_tainted.h>
 
 #include "config.h"
 #include "version.h"
@@ -103,7 +104,7 @@ static int numthrottles, maxthrottles;
 static throttletab* throttles : itype(_Array_ptr<throttletab>) byte_count(sizeof(throttletab) * maxthrottles);
 
 #define THROTTLE_NOLIMIT -1
-
+#  define SIZE_MAX		(18446744073709551615UL)
 
 typedef struct {
     int conn_state;
@@ -179,6 +180,32 @@ static connecttab *get_client_connecttab(ClientData client_data) : itype(_Array_
 
 static void set_client_connecttab(ClientData *client_data : itype(_Ptr<ClientData>), connecttab *data : itype(_Ptr<connecttab>)) _Unchecked {
   client_data->p = data;
+}
+
+static _Nt_array_ptr<char> string_malloc(size_t sz)
+    : count(sz) _Unchecked {
+    if (sz >= SIZE_MAX)
+        return NULL;
+    char *p = (char *)malloc<char>(sz + 1);
+    if (p != NULL)
+        p[sz] = 0;
+    return _Assume_bounds_cast<_Nt_array_ptr<char>>(p, count(sz));
+}
+
+static _Nt_array_ptr<char> TaintedToCheckedNtStrAdaptor(_TPtr<char> Ip)
+{
+    int Iplen = t_strlen(Ip);
+    _Nt_array_ptr<char> RetPtr = string_malloc(Iplen*sizeof(char));
+    t_strcpy(RetPtr, Ip);
+    return RetPtr;
+}
+
+static _Ptr<char> TaintedToCheckedStrAdaptor(_TPtr<char> Ip)
+{
+    int Iplen = t_strlen(Ip);
+    _Ptr<char> RetPtr = (_Ptr<char>)malloc<char>(Iplen*sizeof(char));
+    t_strcpy(RetPtr, Ip);
+    return RetPtr;
 }
 
 /* SIGTERM and SIGINT say to exit immediately. */
@@ -832,7 +859,7 @@ main(int argc, char **argv : itype(_Array_ptr<_Nt_array_ptr<char>>) count(argc))
 	    if ( c ==  0 )
 		continue;
 	    hc = c->hc;
-	    if ( ! fdwatch_check_fd( hc->conn_fd ) )
+	    if ( ! fdwatch_check_fd( hc->TaintedHttpdConn->conn_fd ) )
 		/* Something went wrong. */
 		clear_connection( c, &tv );
 	    else
@@ -1587,7 +1614,7 @@ handle_newconnect(struct timeval *tvP : itype(_Ptr<struct timeval>), int listen_
 		syslog( LOG_CRIT, "out of memory allocating an httpd_conn" );
 		exit( 1 );
 		}
-	    c->hc->initialized = 0;
+	    c->hc->TaintedHttpdConn->initialized = 0;
 	    ++httpd_conn_count;
 	    }
 
@@ -1618,9 +1645,9 @@ handle_newconnect(struct timeval *tvP : itype(_Ptr<struct timeval>), int listen_
 	c->numtnums = 0;
 
 	/* Set the connection file descriptor to no-delay mode. */
-	httpd_set_ndelay( c->hc->conn_fd );
+	httpd_set_ndelay( c->hc->TaintedHttpdConn->conn_fd );
 
-	fdwatch_add_fd<connecttab>( c->hc->conn_fd, c, FDW_READ );
+	fdwatch_add_fd<connecttab>( c->hc->TaintedHttpdConn->conn_fd, c, FDW_READ );
 
 	++stats_connections;
 	if ( num_connects > stats_simultaneous )
@@ -1637,23 +1664,25 @@ handle_read(connecttab *c : itype(_Array_ptr<connecttab>) bounds(connects, conne
     _Ptr<httpd_conn> hc = c->hc;
 
     /* Is there room in our buffer to read more bytes? */
-    if ( hc->read_idx >= hc->read_size )
+    if ( hc->TaintedHttpdConn->read_idx >= hc->TaintedHttpdConn->read_size )
 	{
-	if ( hc->read_size > 5000 )
+	if ( hc->TaintedHttpdConn->read_size > 5000 )
 	    {
 	    httpd_send_err( hc, 400, httpd_err400title, "", httpd_err400form, "" );
 	    finish_connection( c, tvP );
 	    return;
 	    }
 	httpd_realloc_str_cc(
-	    hc->read_buf, hc->read_size, hc->read_size + 1000 );
+	    hc->TaintedHttpdConn->read_buf, hc->TaintedHttpdConn->read_size,
+        hc->TaintedHttpdConn->read_size + 1000 );
 	}
 
     /* Read some more bytes. */
-    size_t read_size_diff = hc->read_size - hc->read_idx;
-    _Array_ptr<char> tmp_read_buf : count(read_size_diff) = _Dynamic_bounds_cast<_Array_ptr<char>>(hc->read_buf + hc->read_idx, count(read_size_diff));
+    size_t read_size_diff = hc->TaintedHttpdConn->read_size - hc->TaintedHttpdConn->read_idx;
+    _TArray_ptr<char> tmp_read_buf : count(read_size_diff) = _Tainted_Dynamic_bounds_cast<_TArray_ptr<char>>(hc->TaintedHttpdConn->read_buf + hc->TaintedHttpdConn->read_idx, count(read_size_diff));
+    _Nt_array_ptr<char> tmp_read_buf_nt : count(read_size_diff) = _Dynamic_bounds_cast<_Nt_array_ptr<char>>(TaintedToCheckedNtStrAdaptor(tmp_read_buf), count(read_size_diff));
     sz = read(
-	hc->conn_fd, tmp_read_buf,
+	hc->TaintedHttpdConn->conn_fd, tmp_read_buf_nt,
 	read_size_diff);
     if ( sz == 0 )
 	{
@@ -1675,7 +1704,7 @@ handle_read(connecttab *c : itype(_Array_ptr<connecttab>) bounds(connects, conne
 	finish_connection( c, tvP );
 	return;
 	}
-    hc->read_idx += sz;
+    hc->TaintedHttpdConn->read_idx += sz;
     c->active_at = tvP->tv_sec;
 
     /* Do we have a complete request yet? */
@@ -1700,7 +1729,7 @@ handle_read(connecttab *c : itype(_Array_ptr<connecttab>) bounds(connects, conne
     if ( ! check_throttles( c ) )
 	{
 	httpd_send_err(
-	    hc, 503, httpd_err503title, "", httpd_err503form, hc->encodedurl );
+	    hc, 503, httpd_err503title, "", httpd_err503form, hc->TaintedHttpdConn->encodedurl );
 	finish_connection( c, tvP );
 	return;
 	}
@@ -1714,24 +1743,24 @@ handle_read(connecttab *c : itype(_Array_ptr<connecttab>) bounds(connects, conne
 	}
 
     /* Fill in end_byte_index. */
-    if ( hc->got_range )
+    if ( hc->TaintedHttpdConn->got_range )
 	{
-	c->next_byte_index = hc->first_byte_index;
-	c->end_byte_index = hc->last_byte_index + 1;
+	c->next_byte_index = hc->TaintedHttpdConn->first_byte_index;
+	c->end_byte_index = hc->TaintedHttpdConn->last_byte_index + 1;
 	}
-    else if ( hc->bytes_to_send < 0 )
+    else if ( hc->TaintedHttpdConn->bytes_to_send < 0 )
 	c->end_byte_index = 0;
     else
-	c->end_byte_index = hc->bytes_to_send;
+	c->end_byte_index = hc->TaintedHttpdConn->bytes_to_send;
 
     /* Check if it's already handled. */
-    if ( hc->file_address == 0 )
+    if ( hc->TaintedHttpdConn->file_address == 0 )
 	{
 	/* No file address means someone else is handling it. */
 	int tind;
 	for ( tind = 0; tind < c->numtnums; ++tind )
-	    throttles[c->tnums[tind]].bytes_since_avg += hc->bytes_sent;
-	c->next_byte_index = hc->bytes_sent;
+	    throttles[c->tnums[tind]].bytes_since_avg += hc->TaintedHttpdConn->bytes_sent;
+	c->next_byte_index = hc->TaintedHttpdConn->bytes_sent;
 	finish_connection( c, tvP );
 	return;
 	}
@@ -1750,8 +1779,8 @@ handle_read(connecttab *c : itype(_Array_ptr<connecttab>) bounds(connects, conne
     _Ptr<connecttab> tmp_c = _Dynamic_bounds_cast<_Ptr<connecttab>>(c);
     set_client_connecttab(&client_data, tmp_c);
 
-    fdwatch_del_fd( hc->conn_fd );
-    fdwatch_add_fd<connecttab>( hc->conn_fd, tmp_c, FDW_WRITE );
+    fdwatch_del_fd( hc->TaintedHttpdConn->conn_fd );
+    fdwatch_add_fd<connecttab>( hc->TaintedHttpdConn->conn_fd, tmp_c, FDW_WRITE );
     }
 
 
@@ -1771,11 +1800,11 @@ handle_send(connecttab *c : itype(_Array_ptr<connecttab>) bounds(connects, conne
 	max_bytes = c->max_limit / 4;	/* send at most 1/4 seconds worth */
 
     /* Do we need to write the headers first? */
-    if ( hc->responselen == 0 )
+    if ( hc->TaintedHttpdConn->responselen == 0 )
 	{
 	/* No, just write the file. */
 	sz = write(
-	    hc->conn_fd, &(hc->file_address[c->next_byte_index]),
+	    hc->TaintedHttpdConn->conn_fd, TaintedToCheckedNtStrAdaptor(&(hc->TaintedHttpdConn->file_address[c->next_byte_index])),
 	    MIN( c->end_byte_index - c->next_byte_index, max_bytes ) );
 	}
     else
@@ -1788,15 +1817,19 @@ handle_send(connecttab *c : itype(_Array_ptr<connecttab>) bounds(connects, conne
           size_t iov_len;
         } iv _Checked[2];
 
-	iv[0].iov_base = hc->response,
-          iv[0].iov_len = hc->responselen;
+	    iv[0].iov_base = TaintedToCheckedNtStrAdaptor(hc->TaintedHttpdConn->response),
+        iv[0].iov_len = hc->TaintedHttpdConn->responselen;
         size_t s = MIN( c->end_byte_index - c->next_byte_index, max_bytes );
-	iv[1].iov_base = &(hc->file_address[c->next_byte_index]),
-          iv[1].iov_len = s;
+
+        {
+            _Nt_array_ptr<char> fileAddr : count(s) = _Dynamic_bounds_cast<_Nt_array_ptr<char>>(TaintedToCheckedNtStrAdaptor(&(hc->TaintedHttpdConn->file_address[c->next_byte_index])), count(s));
+            iv[1].iov_base = fileAddr,    iv[1].iov_len = s;
+        }
+
     /*
      * We may choose to sandbox this, but no idea if WASM Supports this ?
      */
-	_Unchecked { sz = writev( hc->conn_fd, (struct iovec*) iv, 2 ); }
+	_Unchecked { sz = writev( hc->TaintedHttpdConn->conn_fd, (struct iovec*) iv, 2 ); }
 	}
 
     if ( sz < 0 && errno == EINTR )
@@ -1817,7 +1850,7 @@ handle_send(connecttab *c : itype(_Array_ptr<connecttab>) bounds(connects, conne
 	*/
 	c->wouldblock_delay += MIN_WOULDBLOCK_DELAY;
 	c->conn_state = CNST_PAUSING;
-	fdwatch_del_fd( hc->conn_fd );
+	fdwatch_del_fd( hc->TaintedHttpdConn->conn_fd );
         set_client_connecttab(&client_data, c);
 	if ( c->wakeup_timer != 0 )
 	    syslog( LOG_ERR, "replacing non-null wakeup_timer!" );
@@ -1845,7 +1878,7 @@ handle_send(connecttab *c : itype(_Array_ptr<connecttab>) bounds(connects, conne
 	** And ECONNRESET isn't interesting either.
 	*/
 	if ( errno != EPIPE && errno != EINVAL && errno != ECONNRESET )
-	    syslog( LOG_ERR, "write - %m sending %.80s", hc->encodedurl );
+	    syslog( LOG_ERR, "write - %m sending %.80s", hc->TaintedHttpdConn->encodedurl );
 	clear_connection( c, tvP );
 	return;
 	}
@@ -1853,27 +1886,31 @@ handle_send(connecttab *c : itype(_Array_ptr<connecttab>) bounds(connects, conne
     /* Ok, we wrote something. */
     c->active_at = tvP->tv_sec;
     /* Was this a headers + file writev()? */
-    if ( hc->responselen > 0 )
+    if ( hc->TaintedHttpdConn->responselen > 0 )
 	{
 	/* Yes; did we write only part of the headers? */
-	if ( sz < hc->responselen )
+	if ( sz < hc->TaintedHttpdConn->responselen )
 	    {
 	    /* Yes; move the unwritten part to the front of the buffer. */
-	    int newlen = hc->responselen - sz;
-	    (void) memmove( hc->response, &(hc->response[sz]), newlen );
-	    hc->responselen = newlen;
+	    int newlen = hc->TaintedHttpdConn->responselen - sz;
+        _Nt_array_ptr<char> arg1 : count (newlen) = _Dynamic_bounds_cast<_Nt_array_ptr<char>>(
+                TaintedToCheckedStrAdaptor(hc->TaintedHttpdConn->response), count(newlen));
+        _Nt_array_ptr<char> arg2 : count (newlen) = _Dynamic_bounds_cast<_Nt_array_ptr<char>>(
+        TaintedToCheckedStrAdaptor(&(hc->TaintedHttpdConn->response[sz])), count(newlen));
+	    (void) memmove( arg1, arg2, newlen );
+	    hc->TaintedHttpdConn->responselen = newlen;
 	    sz = 0;
 	    }
 	else
 	    {
 	    /* Nope, we wrote the full headers, so adjust accordingly. */
-	    sz -= hc->responselen;
-	    hc->responselen = 0;
+	    sz -= hc->TaintedHttpdConn->responselen;
+	    hc->TaintedHttpdConn->responselen = 0;
 	    }
 	}
     /* And update how much of the file we wrote. */
     c->next_byte_index += sz;
-    c->hc->bytes_sent += sz;
+    c->hc->TaintedHttpdConn->bytes_sent += sz;
     for ( tind = 0; tind < c->numtnums; ++tind )
 	throttles[c->tnums[tind]].bytes_since_avg += sz;
 
@@ -1895,14 +1932,14 @@ handle_send(connecttab *c : itype(_Array_ptr<connecttab>) bounds(connects, conne
 	elapsed = tvP->tv_sec - c->started_at;
 	if ( elapsed == 0 )
 	    elapsed = 1;	/* count at least one second */
-	if ( c->hc->bytes_sent / elapsed > c->max_limit )
+	if ( c->hc->TaintedHttpdConn->bytes_sent / elapsed > c->max_limit )
 	    {
 	    c->conn_state = CNST_PAUSING;
-	    fdwatch_del_fd( hc->conn_fd );
+	    fdwatch_del_fd( hc->TaintedHttpdConn->conn_fd );
 	    /* How long should we wait to get back on schedule?  If less
 	    ** than a second (integer math rounding), use 1/2 second.
 	    */
-	    coast = c->hc->bytes_sent / c->max_limit - elapsed;
+	    coast = c->hc->TaintedHttpdConn->bytes_sent / c->max_limit - elapsed;
             set_client_connecttab(&client_data, c);
 	    if ( c->wakeup_timer !=  0 )
 		syslog( LOG_ERR, "replacing non-null wakeup_timer!" );
@@ -1929,7 +1966,7 @@ handle_linger(connecttab *c : itype(_Array_ptr<connecttab>) bounds(connects, con
     /* In lingering-close mode we just read and ignore bytes.  An error
     ** or EOF ends things, otherwise we go until a timeout.
     */
-    r = read( c->hc->conn_fd, buf, sizeof(buf) );
+    r = read( c->hc->TaintedHttpdConn->conn_fd, buf, sizeof(buf) );
     if ( r < 0 && ( errno == EINTR || errno == EAGAIN ) )
 	return;
     if ( r <= 0 )
@@ -1947,7 +1984,7 @@ check_throttles(connecttab *c : itype(_Array_ptr<connecttab>) bounds(connects, c
     c->max_limit = c->min_limit = THROTTLE_NOLIMIT;
     for ( tnum = 0; tnum < numthrottles && c->numtnums < MAXTHROTTLENUMS;
 	  ++tnum )
-	if ( match( throttles[tnum].pattern, c->hc->expnfilename ) )
+	if ( match( throttles[tnum].pattern, c->hc->TaintedHttpdConn->expnfilename ) )
 	    {
 	    /* If we're way over the limit, don't even start. */
 	    if ( throttles[tnum].rate > throttles[tnum].max_limit * 2 )
@@ -2076,16 +2113,16 @@ clear_connection(connecttab *c : itype(_Array_ptr<connecttab>) bounds(connects, 
 	/* If we were already lingering, shut down for real. */
 	tmr_cancel( c->linger_timer );
 	c->linger_timer = (_Ptr<Timer>) 0;
-	c->hc->should_linger = 0;
+	c->hc->TaintedHttpdConn->should_linger = 0;
 	}
-    if ( c->hc->should_linger )
+    if ( c->hc->TaintedHttpdConn->should_linger )
 	{
 	if ( c->conn_state != CNST_PAUSING )
-	    fdwatch_del_fd( c->hc->conn_fd );
+	    fdwatch_del_fd( c->hc->TaintedHttpdConn->conn_fd );
 	c->conn_state = CNST_LINGERING;
-	shutdown( c->hc->conn_fd, SHUT_WR );
+	shutdown( c->hc->TaintedHttpdConn->conn_fd, SHUT_WR );
         _Ptr<connecttab> tmp_c = _Dynamic_bounds_cast<_Ptr<connecttab>>(c);
-	fdwatch_add_fd<connecttab>( c->hc->conn_fd, tmp_c, FDW_READ );
+	fdwatch_add_fd<connecttab>( c->hc->TaintedHttpdConn->conn_fd, tmp_c, FDW_READ );
         set_client_connecttab(&client_data, tmp_c);
 	if ( c->linger_timer != 0 )
 	    syslog( LOG_ERR, "replacing non-null linger_timer!" );
@@ -2105,9 +2142,9 @@ clear_connection(connecttab *c : itype(_Array_ptr<connecttab>) bounds(connects, 
 _Checked static void
 really_clear_connection(connecttab *c : itype(_Array_ptr<connecttab>) bounds(connects, connects + max_connects), struct timeval *tvP : itype(_Ptr<struct timeval>))
     {
-    stats_bytes += c->hc->bytes_sent;
+    stats_bytes += c->hc->TaintedHttpdConn->bytes_sent;
     if ( c->conn_state != CNST_PAUSING )
-	fdwatch_del_fd( c->hc->conn_fd );
+	fdwatch_del_fd( c->hc->TaintedHttpdConn->conn_fd );
     httpd_close_conn( c->hc, tvP );
     _Ptr<connecttab> tmp_c = _Dynamic_bounds_cast<_Ptr<connecttab>>(c);
     clear_throttles( tmp_c, tvP );
@@ -2169,7 +2206,7 @@ wakeup_connection(ClientData client_data, struct timeval *nowP : itype(_Ptr<stru
     if ( c->conn_state == CNST_PAUSING )
 	{
 	c->conn_state = CNST_SENDING;
-	fdwatch_add_fd<connecttab>( c->hc->conn_fd, c, FDW_WRITE );
+	fdwatch_add_fd<connecttab>( c->hc->TaintedHttpdConn->conn_fd, c, FDW_WRITE );
 	}
     }
 

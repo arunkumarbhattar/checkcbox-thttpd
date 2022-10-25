@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-
+#include <stdlib_tainted.h>
 #pragma CHECKED_SCOPE on
 
 char *malloc_nt(size_t size)
@@ -95,10 +95,9 @@ size_t xstrbcpy(char *restrict dest
   return i;
 }
 
-_TLIB size_t _T_xstrbcpy(char *restrict dest
-    : itype(restrict _TPtr<char>),
-    const char *restrict src
-    : itype(restrict _TPtr<const char>), size_t size) {
+_TLIB size_t _T_xstrbcpy( _TPtr<char> restrict dest,
+    _TPtr<const char> restrict src
+    , size_t size) {
     size_t i = 0;
 
     // We have to set up a new pointer to `src` with `i` as the bound, otherwise
@@ -114,7 +113,7 @@ _TLIB size_t _T_xstrbcpy(char *restrict dest
     // distraction. I'm not sure what's the lesser evil: a runtime check that
     // could fail or a warning suppression that could become inappropriate (once
     // we set up a way to do that at all).
-    _TNt_array_ptr<const char> src1 =
+    _TNt_array_ptr<const char> src1 : count(0)=
         _Tainted_Dynamic_bounds_cast<_TNt_array_ptr<const char>>(src, count(0));
 
     // The compiler doesn't seem to know that this is safe as long as `i` remains
@@ -123,7 +122,7 @@ _TLIB size_t _T_xstrbcpy(char *restrict dest
     //_Nt_array_ptr<const char> src2 : count(i) = src1;
     _TNt_array_ptr<const char> src2
     : count(i) =
-        _Dynamic_bounds_cast<_Nt_array_ptr<const char>>(src1, count(i));
+        _Tainted_Dynamic_bounds_cast<_TNt_array_ptr<const char>>(src1, count(i));
 
     // Copy the data. If the destination overflows, Checked C will raise a runtime
     // error for us based on the declared bound.
@@ -167,10 +166,8 @@ size_t xstrbcat(char *restrict dest
   return dest_i;
 }
 
-_TLIB size_t _T_xstrbcat(char *restrict dest
-    : itype(restrict _TPtr<char>),
-    const char *restrict src
-    : itype(restrict _TPtr<const char>), size_t size) {
+_TLIB size_t _T_xstrbcat(_TPtr<char> dest,
+    _TPtr<const char>restrict src, size_t size) {
     // For code below that is analogous to code in _T_xstrbcpy, the same comments
     // apply.
     _Dynamic_check(size > 0);
@@ -182,7 +179,7 @@ _TLIB size_t _T_xstrbcat(char *restrict dest
         _Tainted_Dynamic_bounds_cast<_TNt_array_ptr<const char>>(src, count(0));
     _TNt_array_ptr<const char> src2
     : count(src_i) =
-        _Tainted_Dynamic_bounds_cast<_Nt_array_ptr<const char>>(src1, count(src_i));
+        _Tainted_Dynamic_bounds_cast<_TNt_array_ptr<const char>>(src1, count(src_i));
     // If we reached the given size without hitting a null terminator in dest,
     // then regular strlcat would return `size`, but we will have already failed a
     // runtime check.
@@ -213,9 +210,9 @@ _Checked _Nt_array_ptr<char> get_after_spn(_Nt_array_ptr<char> str, _Nt_array_pt
   return _Dynamic_bounds_cast<_Nt_array_ptr<char>>(out, count(0));
 }
 
-_TLIB _Checked _TPtr<char> _T_get_after_spn(char* str : itype(_TPtr<char>) , char* search : itype(_TPtr<char>)) {
+_TLIB _Checked _TPtr<char> _T_get_after_spn(_TPtr<char> str , _TPtr<char> search ) {
 size_t spn = t_strspn(str, search);
-_Ptr <char> out  = str + spn;
+_TPtr <char> out  = str + spn;
 return out;
 }
 
@@ -225,7 +222,7 @@ _Nt_array_ptr<char> get_after_cspn(_Nt_array_ptr<char> str, _Nt_array_ptr<char> 
   return _Dynamic_bounds_cast<_Nt_array_ptr<char>>(out, count(0));
 }
 
-_TLIB _TPtr<char> _T_get_after_cspn(const char* str : itype(_TPtr<char>), char* search : itype(_TPtr<char>)) {
+_TLIB _TPtr<char> _T_get_after_cspn(_TPtr<const char> str , _TPtr<char> search) {
     size_t spn = t_strcspn(str, search) _Where str : bounds(str, str + spn);
     _TPtr<char> out = str + spn;
     return out;
