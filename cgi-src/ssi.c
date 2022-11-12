@@ -1,6 +1,6 @@
 /* ssi - server-side-includes CGI program
 **
-** Copyright © 1995 by Jef Poskanzer <jef@mail.acme.com>.
+** Copyright ï¿½ 1995 by Jef Poskanzer <jef@mail.acme.com>.
 ** All rights reserved.
 **
 ** Redistribution and use in source and binary forms, with or without
@@ -32,7 +32,8 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include "../checkedc_utils.h"
-
+#include <string_tainted.h>
+#include <stdlib_tainted.h>
 #include "config.h"
 #include "match.h"
 
@@ -42,8 +43,26 @@
 #define ST_BANG 2
 #define ST_MINUS1 3
 #define ST_MINUS2 4
-
+# define SIZE_MAX		(18446744073709551615UL)
 #pragma CHECKED_SCOPE on
+
+_Tainted _TNt_array_ptr<char> string_tainted_malloc(size_t sz) : count(sz) _Unchecked{
+    if(sz >= SIZE_MAX)
+        return NULL;
+    _TArray_ptr<char> p : count(sz+1) = (_TArray_ptr<char>)t_malloc(sz + 1);
+    if (p != NULL)
+        p[sz] = 0;
+    return _Tainted_Assume_bounds_cast<_TNt_array_ptr<char>>(p, count(sz));
+}
+
+_TLIB _Unchecked static _TPtr<char> CheckedToTaintedStrAdaptor(_Nt_array_ptr<char> Ip )
+{
+    int Iplen = strlen(Ip);
+    _TPtr<char> RetPtr = string_tainted_malloc(Iplen*sizeof(char));
+    t_strcpy(RetPtr, (const char*)Ip);
+    return RetPtr;
+}
+
 
 static void read_file(char *vfilename : itype(_Nt_array_ptr<char>), char *filename : itype(_Nt_array_ptr<char>), FILE *fp : itype(_Ptr<FILE>));
 
@@ -288,7 +307,7 @@ check_filename(char *_filename : itype(_Nt_array_ptr<char>))
 #endif /* AUTH_FILE */
 
     /* Ensure that we are not reading a CGI file. */
-    if ( cgi_pattern !=  0 && match( cgi_pattern, filename ) )
+    if ( cgi_pattern !=  0 && match( cgi_pattern, CheckedToTaintedStrAdaptor(filename) ) )
 	return 0;
 
     return 1;

@@ -1,6 +1,6 @@
 /* libhttpd.h - defines for libhttpd
 **
-** Copyright © 1995,1998,1999,2000,2001 by Jef Poskanzer <jef@mail.acme.com>.
+** Copyright ï¿½ 1995,1998,1999,2000,2001 by Jef Poskanzer <jef@mail.acme.com>.
 ** All rights reserved.
 **
 ** Redistribution and use in source and binary forms, with or without
@@ -53,11 +53,12 @@
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
 #endif
 #define NEW(t,n) (malloc<t>( sizeof(t) * (n) ))
+#define TNEW(t,n) (malloc<t>( sizeof(t) * (n) ))
 #define RENEW(o,t,n) (realloc<t>( o, sizeof(t) * (n) ))
-
+#define TRENEW(o,t,n) (realloc<t>( o, sizeof(t) * (n) ))
 /* Do overlapping strcpy safely, by using memmove. */
 char *ol_strcpy(char *dst : itype(_Array_ptr<char>), char *src : itype(_Nt_array_ptr<char>)) : itype(_Ptr<char>);
-
+_TPtr<char> _T_ol_strcpy(_TPtr<char> dst , _TPtr<char> src);
 /* The httpd structs. */
 
 /* A multi-family sockaddr. */
@@ -92,51 +93,49 @@ typedef struct {
     int no_empty_referrers;
     } httpd_server;
 
-/* A connection. */
-typedef struct {
+typedef Tstruct {
     int initialized;
-    httpd_server* hs : itype(_Ptr<httpd_server>);
-    httpd_sockaddr client_addr;
-    char* read_buf : itype(_Nt_array_ptr<char>) count(read_size);
+    _TPtr<char> read_buf;
     size_t read_size, read_idx, checked_idx;
     int checked_state;
     int method;
     int status;
+    //off_t comes from bits/types.h
     off_t bytes_to_send;
     off_t bytes_sent;
-    char* encodedurl : itype(_Nt_array_ptr<char>);
-    char* decodedurl : itype(_Nt_array_ptr<char>) count(maxdecodedurl);
-    char* protocol : itype(_Nt_array_ptr<char>);
-    char* origfilename : itype(_Nt_array_ptr<char>) count(maxorigfilename);
-    char* expnfilename : itype(_Nt_array_ptr<char>) count(maxexpnfilename);
-    char* encodings : itype(_Nt_array_ptr<char>) count(maxencodings);
-    char* pathinfo : itype(_Nt_array_ptr<char>) count(maxpathinfo);
-    char* query : itype(_Nt_array_ptr<char>) count(maxquery);
-    char* referrer : itype(_Nt_array_ptr<char>);
-    char* useragent : itype(_Nt_array_ptr<char>);
-    char* accept : itype(_Nt_array_ptr<char>) count(maxaccept);
-    char* accepte : itype(_Nt_array_ptr<char>) count(maxaccepte);
-    char* acceptl : itype(_Nt_array_ptr<char>);
-    char* cookie : itype(_Nt_array_ptr<char>);
-    char* contenttype : itype(_Nt_array_ptr<char>);
-    char* reqhost : itype(_Nt_array_ptr<char>) count(maxreqhost);
-    char* hdrhost : itype(_Nt_array_ptr<char>);
-    char* hostdir : itype(_Nt_array_ptr<char>) count(maxhostdir);
-    char* authorization : itype(_Nt_array_ptr<char>);
-    char* remoteuser : itype(_Nt_array_ptr<char>) count(maxremoteuser);
-    char* response : itype(_Nt_array_ptr<char>) count(maxresponse);
+    _TPtr<char> encodedurl;
+    _TPtr<char> decodedurl;
+    _TPtr<char> protocol;
+    _TPtr<char> origfilename;
+    _TPtr<char> expnfilename;
+    _TPtr<char> encodings;
+    _TPtr<char> pathinfo;
+    _TPtr<char> query;
+    _TPtr<char> referrer;
+    _TPtr<char> useragent;
+    _TPtr<char> accept;
+    _TPtr<char> accepte;
+    _TPtr<char> acceptl ;
+    _TPtr<char> cookie;
+    _TPtr<char> contenttype;
+    _TPtr<char> reqhost;
+    _TPtr<char> hdrhost;
+    _TPtr<char> hostdir;
+    _TPtr<char> authorization;
+    _TPtr<char> remoteuser;
+    _TPtr<char> response;
     size_t maxdecodedurl, maxorigfilename, maxexpnfilename, maxencodings,
-	maxpathinfo, maxquery, maxaccept, maxaccepte, maxreqhost, maxhostdir,
-	maxremoteuser, maxresponse;
-#ifdef TILDE_MAP_2
-    char* altdir;
+        maxpathinfo, maxquery, maxaccept, maxaccepte, maxreqhost, maxhostdir,
+        maxremoteuser, maxresponse;
+    #ifdef TILDE_MAP_2
+    _TPtr<char> altdir;
     size_t maxaltdir;
-#endif /* TILDE_MAP_2 */
+    #endif /* TILDE_MAP_2 */
     size_t responselen;
     time_t if_modified_since, range_if;
     size_t contentlength;
-    char* type : itype(_Nt_array_ptr<char>);		/* not malloc()ed */
-    char* hostname : itype(_Nt_array_ptr<char>);	/* not malloc()ed */
+    _TPtr<char> type;		/* not malloc()ed */
+    _TPtr<char> hostname;	/* not malloc()ed */
     int mime_flag;
     int one_one;	/* HTTP/1.1 or better */
     int got_range;
@@ -144,10 +143,19 @@ typedef struct {
     off_t first_byte_index, last_byte_index;
     int keep_alive;
     int should_linger;
-    struct stat sb;
     int conn_fd;
-    char* file_address : itype(_Nt_array_ptr<char>);
-    } httpd_conn;
+    _TPtr<char>  file_address;
+}TW_httpd_conn;
+
+
+/* A Tainted connection. */
+typedef struct{
+    httpd_server* hs : itype(_Ptr<httpd_server>);
+    httpd_sockaddr client_addr;
+    struct stat sb;
+    _TPtr<TW_httpd_conn> TaintedHttpdConn;
+} httpd_conn;
+
 
 /* Methods. */
 #define METHOD_UNKNOWN 0
@@ -249,8 +257,8 @@ void httpd_destroy_conn(httpd_conn *hc : itype(_Ptr<httpd_conn>));
 
 
 /* Send an error message back to the client. */
-void httpd_send_err(httpd_conn *hc : itype(_Ptr<httpd_conn>), int status, char *title : itype(_Nt_array_ptr<char>), char *extraheads : itype(_Nt_array_ptr<char>) count(0), char *form : itype(_Nt_array_ptr<char>), char *arg : itype(_Nt_array_ptr<char>));
-
+//void httpd_send_err(httpd_conn *hc : itype(_Ptr<httpd_conn>), int status, char *title : itype(_Nt_array_ptr<char>), char *extraheads : itype(_Nt_array_ptr<char>) count(0), char *form : itype(_Nt_array_ptr<char>), char *arg : itype(_Nt_array_ptr<char>));
+_TLIB void httpd_send_err(_Ptr<httpd_conn> hc, int status, char *title : itype(_TPtr<char>), char *extraheads : itype(_TPtr<char>), char * form : itype(_TPtr<char>), char *  arg : itype(_TPtr<char>));
 /* Some error messages. */
 extern char* httpd_err400title : itype(_Nt_array_ptr<char>);
 extern char* httpd_err400form : itype(_Nt_array_ptr<char>);
@@ -268,13 +276,13 @@ void httpd_realloc_str(char **strP : itype(_Ptr<_Nt_array_ptr<char>>), size_t *m
 // Test the new Checked C way starting at one call site.
 
 struct strbuf {
-  _Nt_array_ptr<char> str : count(maxsize);
-  size_t maxsize;
+  _TPtr<char> str ;
+  size_t maxsize; //This can be removed --> Thank CheckCBox
 };
 
 // The returned pointer is the same one stored in the structure, but with a
 // promise that it's as big as the caller requested.
-_Nt_array_ptr<char> httpd_realloc_strbuf(_Ptr<struct strbuf> sbuf, size_t size) : count(size);
+_TPtr<char> httpd_realloc_strbuf(_Ptr<struct strbuf> sbuf, size_t size);
 
 // httpd_realloc_str_ccl(tmp_foo, stored_foo, stored_maxfoo, size):
 //
@@ -291,7 +299,7 @@ _Nt_array_ptr<char> httpd_realloc_strbuf(_Ptr<struct strbuf> sbuf, size_t size) 
 // Hm, while we want the _Checked annotations long-term, they seem to block 3C
 // from starting. So disable them for the moment.
 #define httpd_realloc_str_ccl(_tmp_str_var, _strL, _maxsizeL, _size) \
-  _Nt_array_ptr<char> _tmp_str_var : count(_size) = 0; \
+  _TPtr<char> _tmp_str_var = NULL; \
   /*_Checked*/ { \
     struct strbuf _sbuf = {_strL, _maxsizeL}; \
     _tmp_str_var = httpd_realloc_strbuf(&_sbuf, _size); \
@@ -321,7 +329,7 @@ void httpd_clear_ndelay( int fd );
 _Itype_for_any(T) int httpd_read_fully( int fd, void* buf : itype(_Array_ptr<T>) byte_count(nbytes), size_t nbytes );
 
 /* Write the requested buffer completely, accounting for interruptions. */
-int httpd_write_fully(int fd, const char *buf : itype(_Array_ptr<const char>) count(nbytes), size_t nbytes);
+int httpd_write_fully(int fd, _TPtr<const char> buf, size_t nbytes);
 
 /* Generate debugging statistics syslog message. */
 void httpd_logstats( long secs );

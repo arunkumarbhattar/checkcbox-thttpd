@@ -2,7 +2,7 @@
 **
 ** Only does ? * and **, and multiple patterns separated by |.  Returns 1 or 0.
 **
-** Copyright © 1995,2000 by Jef Poskanzer <jef@mail.acme.com>.
+** Copyright ï¿½ 1995,2000 by Jef Poskanzer <jef@mail.acme.com>.
 ** All rights reserved.
 **
 ** Redistribution and use in source and binary forms, with or without
@@ -31,13 +31,31 @@
 #include <string.h>
 
 #include "match.h"
-
+#include <string_tainted.h>
+#include <stdlib.h>
+#  define SIZE_MAX		(18446744073709551615UL)
 #pragma CHECKED_SCOPE on
+
+static _Nt_array_ptr<char> string_malloc(size_t sz)
+: count(sz) _Unchecked {
+if (sz >= SIZE_MAX)
+return NULL;
+char *p = (char *)malloc<char>(sz + 1);
+if (p != NULL)
+p[sz] = 0;
+return _Assume_bounds_cast<_Nt_array_ptr<char>>(p, count(sz));
+}
+static _Nt_array_ptr<char> TaintedToCheckedNtStrAdaptor(_TPtr<char> Ip)
+{
+    int Iplen = t_strlen(Ip);
+    _Nt_array_ptr<char> RetPtr = string_malloc(Iplen*sizeof(char));
+    t_strcpy(RetPtr, Ip);
+    return RetPtr;
+}
 
 static int match_one(const char *pattern : itype(_Array_ptr<const char>) count(patternlen), unsigned int patternlen, const char *string : itype(_Nt_array_ptr<const char>));
 
-_Checked int
-match(const char *pattern : itype(_Nt_array_ptr<const char>), const char *string : itype(_Nt_array_ptr<const char>))
+_Checked int match(const char *pattern : itype(_Nt_array_ptr<const char>), _TPtr<const char> string)
     {
     for (;;)
 	{
@@ -46,12 +64,12 @@ match(const char *pattern : itype(_Nt_array_ptr<const char>), const char *string
             unsigned int slen = strlen(pattern);
             _Array_ptr<char> tmp_p : count(slen) = 0;
             _Unchecked { tmp_p = _Assume_bounds_cast<_Array_ptr<char>>(pattern, count(slen)); }
-	    return match_one( tmp_p, slen, string );
+	    return match_one( tmp_p, slen, TaintedToCheckedNtStrAdaptor(string) );
         }
 
         unsigned int len = or - pattern;
         _Array_ptr<char> tmp : count(len) = _Dynamic_bounds_cast<_Array_ptr<char>>(pattern, count(len));
-	if ( match_one( tmp, len, string ) )
+	if ( match_one( tmp, len, TaintedToCheckedNtStrAdaptor(string) ) )
 	    return 1;
 
 	pattern = or + 1;

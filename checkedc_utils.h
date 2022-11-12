@@ -23,6 +23,11 @@ char *realloc_nt(char *ptr
                  : itype(_Nt_array_ptr<char>), size_t size)
     : itype(_Nt_array_ptr<char>) count(size);
 
+// Like the original `realloc`, this poses a temporal safety concern that's
+// outside the scope of Checked C.
+_TPtr<char> t_realloc_nt(_TPtr<char>ptr
+            , size_t size);
+
 // Recommended replacement functions for strcpy, strcat, and sprintf.
 // These behave the same as strlcpy, strlcat, and snprintf except that:
 //
@@ -42,10 +47,17 @@ size_t xstrbcpy(char *restrict dest
                   const char *restrict src
                 : itype(restrict _Nt_array_ptr<const char>), size_t count);
 
+_TLIB size_t _T_xstrbcpy( _TPtr<char> restrict dest,
+_TPtr<const char> restrict src
+, size_t size);
+
 size_t xstrbcat(char *restrict dest
                 : itype(restrict _Nt_array_ptr<char>) count(count),
                   const char *restrict src
                 : itype(restrict _Nt_array_ptr<const char>), size_t count);
+
+_TLIB size_t _T_xstrbcat(_TPtr<char> dest,
+_TPtr<const char>restrict src, size_t size);
 
 // _Unchecked only because of the varargs. Hopefully someday Checked C will
 // allow varargs functions in checked regions if all the varargs are verified by
@@ -60,7 +72,9 @@ typedef struct {
 } nt_box;
 
 _Nt_array_ptr<char> get_after_spn(_Nt_array_ptr<char> str, _Nt_array_ptr<char> search);
+_TLIB _TPtr<char> _T_get_after_spn(_TPtr<char> str , _TPtr<char> search );
 _Nt_array_ptr<char> get_after_cspn(_Nt_array_ptr<char> str, _Nt_array_ptr<char> search);
+_TLIB _TPtr<char> _T_get_after_cspn(_TPtr<const char> str , _TPtr<char> search);
 
 int __isxdigit(char c);
 int __isdigit(char c);

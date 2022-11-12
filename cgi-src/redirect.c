@@ -1,6 +1,6 @@
 /* redirect - simple redirection CGI program
 **
-** Copyright © 1995 by Jef Poskanzer <jef@mail.acme.com>.
+** Copyright ï¿½ 1995 by Jef Poskanzer <jef@mail.acme.com>.
 ** All rights reserved.
 **
 ** Redistribution and use in source and binary forms, with or without
@@ -63,8 +63,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "config.h"
-#include "checkedc_utils.h"
+#include "../config.h"
+#include "../checkedc_utils.h"
 
 #pragma CHECKED_SCOPE on
 
@@ -188,12 +188,12 @@ char url _Nt_checked[5000];
         cp += spn;
 	/* Check for blank line. */
 	if ( *cp != '\0' )
-	    {
+	    _Unchecked {
 	    /* Parse line. */
 	    if ( sscanf( cp, "%[^ \t\n] %[^ \t\n]", file, url ) == 2 )
 		{
 		/* Check for wildcard match. */
-		star = strchr( file, '*' );
+		star = (_Nt_array_ptr<char>)strchr( file, '*' );
 		if ( star !=  0 )
 		    {
 		    /* Check for leading match. */

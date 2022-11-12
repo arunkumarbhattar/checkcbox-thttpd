@@ -221,31 +221,34 @@ mmc_map(char *filename : itype(_Nt_array_ptr<char>), struct stat *sbP : itype(_P
 	    }
 #else /* HAVE_MMAP */
 	/* Read the file into memory. */
-	m->addr = (void*) malloc( size_size );
+	m->addr = (_Ptr<void>) malloc<void>( size_size );
 	if ( m->addr == (void*) 0 )
 	    {
 	    /* Ooo, out of memory.  Free all unreferenced maps
 	    ** and try again.
 	    */
 	    panic();
-	    m->addr = (void*) malloc( size_size );
+	    m->addr = (_Ptr<void>) malloc<void>( size_size );
 	    }
 	if ( m->addr == (void*) 0 )
 	    {
 	    syslog( LOG_ERR, "out of memory storing a file" );
 	    (void) close( fd );
-	    free( m );
+	    free<Map>( m );
 	    --alloc_count;
 	    return (void*) 0;
 	    }
-	if ( httpd_read_fully( fd, m->addr, size_size ) != size_size )
-	    {
-	    syslog( LOG_ERR, "read - %m" );
-	    (void) close( fd );
-	    free( m );
-	    --alloc_count;
-	    return (void*) 0;
-	    }
+	
+	_Unchecked {
+		if ( httpd_read_fully( fd, m->addr, size_size ) != size_size )
+	    	{
+	   		 syslog( LOG_ERR, "read - %m" );
+	    		(void) close( fd );
+	    		free<Map>( m );
+	    		--alloc_count;
+	    		return (void*) 0;
+	    	}
+	}
 #endif /* HAVE_MMAP */
 	}
     (void) close( fd );
@@ -382,7 +385,7 @@ really_unmap(Map **mm : itype(_Ptr<_Ptr<Map>>))
 	if ( res < 0 )
 	    syslog( LOG_ERR, "munmap - %m" );
 #else /* HAVE_MMAP */
-	free( m->addr );
+	free<void>( m->addr );
 #endif /* HAVE_MMAP */
 	}
     /* Update the total byte count. */
